@@ -3074,6 +3074,19 @@ def operator_status(run_id: int, agent_id: str = "", org_id: str = "") -> str:
 
 
 @mcp.tool()
+def operator_receipt(run_id: int, agent_id: str = "", org_id: str = "") -> str:
+    """The autonomy receipt for a run: every decision, who decided (clone vs you vs
+    gate), the confidence, the rationale — and the headline autonomy rate. The proof
+    the loop ran AS you. Read-only."""
+    try:
+        from sentigent.operator.receipt import build_receipt
+        store = _clone_store(agent_id, org_id)
+        return json.dumps(build_receipt(store, [run_id]), indent=2)
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@mcp.tool()
 def operator_answer(escalation_id: int, decision: str,
                     agent_id: str = "", org_id: str = "") -> str:
     """Answer an open escalation (the operator paused on it). decision is your call,

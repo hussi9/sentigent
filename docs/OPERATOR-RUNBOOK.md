@@ -138,3 +138,26 @@ Track the whole arc any time with `clone_journey`; track capture depth with
   pressure, so prefer the default unless the machine is idle.
 - Everything reads/writes your real clone at `~/.sentigent/memory_<agent>.db`;
   all judging is local — no cloud in the hot path.
+
+---
+
+## After a flight: the autonomy receipt
+
+Every operator run records who decided each step (your clone vs the gate), the
+confidence, and the rationale — plus the headline **autonomy rate**.
+
+```bash
+python scripts/autonomy_receipt.py          # the latest flight
+python scripts/autonomy_receipt.py 7        # a specific run id
+```
+
+Or in a session: `operator_receipt(run_id)` (MCP) returns the same as JSON.
+
+## Make your judgment legible (harness-native)
+
+Export the clone's hard rules, learned precedents, and calibrated thresholds to a
+repo-readable doc so any agent can act the way you would:
+
+```bash
+python scripts/export_judgment.py           # writes docs/JUDGMENT.md
+```

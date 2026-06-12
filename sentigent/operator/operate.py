@@ -584,7 +584,8 @@ def operate(
         _mark_step(step.idx, "done", checkpoint_sha=outcome.checkpoint_sha)
         result.outcomes.append(outcome)
         corr = "" if verdict.decision == CONTINUE else f" (auto-corrected: {verdict.correction})"
-        _event("step_done", {"step": step.idx, "verdict": verdict.decision,
+        _event("step_done", {"step": step.idx, "step_text": step.description,
+                             "verdict": verdict.to_dict(),
                              "checkpoint": outcome.checkpoint_sha, "note": corr})
 
     # Close the run.
