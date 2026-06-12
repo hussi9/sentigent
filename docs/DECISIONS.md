@@ -162,3 +162,19 @@ Status legend: `accepted` (decided, may not be built yet) · `shipped` (in the c
   `render_panel`) + `scripts/flight_summary.py`: one clean, rewarding panel read live from the
   brain — this-flight + all-time + a decision-DNA bar. Real numbers only (D-008).
 - **Rationale:** the payoff of autonomy should be felt, not buried in logs.
+
+## D-016 — Backfill dedup keys on (blocker, decision), not blocker alone
+- **Date:** 2026-06-12 · **Status:** shipped
+- **Context:** A self-review of the backfill module (D-014's self-heal path) found its idempotency
+  keyed on blocker text alone. The same blocker answered two different ways — "build demo?" →
+  approve once, skip another time — collapsed into ONE precedent; the second answer was silently
+  dropped. Invisible on the live brain (a no-dedup manual backfill ran first) but a fresh user, and
+  the run-start reconcile in `operate()`, both lose the second decision. Reproduced: 2 answered →
+  1 precedent.
+- **Decision:** dedup on `(blocker, decision)`. Same blocker + same decision is a real duplicate;
+  same blocker + different decision is a distinct precedent. `_norm_decision` mirrors the store's
+  vocabulary map EXACTLY (kept in lockstep with `store.learn_from_escalation_answer`) so the key
+  matches the stored precedent and re-runs stay idempotent. Regression test added.
+- **Rationale:** the clone should remember that a blocker can resolve more than one way — that
+  spread IS the judgment. Collapsing it is lossy, and dropping data silently is the opposite of
+  this code-review pass's whole point.

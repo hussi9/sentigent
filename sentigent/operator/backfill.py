@@ -8,7 +8,13 @@ found: 11 real answers, 0 precedents. See `docs/DECISIONS.md` D-010.)
 
 `backfill_precedents` walks every answered escalation and ensures each is represented as a
 precedent, using the store's own learn write-back. It is **idempotent**: an escalation already
-turned into a precedent (matched by blocker text) is skipped, so it's safe to run repeatedly.
+turned into a precedent is skipped, so it's safe to run repeatedly.
+
+Idempotency keys on `(blocker, decision)`, NOT blocker text alone. The same blocker answered two
+different ways — "build demo?" → approve once, skip another time — is two *distinct* precedents,
+not a duplicate. Keying on blocker alone silently dropped the second answer (a 2026-06-12 code
+review found this; see D-014). We normalize the decision the same way the store does so the key
+matches the precedent the write-back actually records.
 
 Pure read-over-store + the store's existing `learn_from_escalation_answer`. Never raises on a
 single bad row — it counts the failure and moves on.
@@ -16,6 +22,21 @@ single bad row — it counts the failure and moves on.
 from __future__ import annotations
 
 from typing import Any
+
+
+def _norm_decision(decision: str) -> str:
+    """Mirror MemoryStore.learn_from_escalation_answer's decision mapping EXACTLY so the dedup
+    key matches the `decision` a precedent is actually stored with. Keep this in lockstep with
+    the store's vocabulary map (store.py learn_from_escalation_answer) — extra synonyms here would
+    make the key diverge from the stored precedent and re-create duplicates on re-run."""
+    d = (decision or "").strip().lower()
+    if d in ("approve", "yes", "ok", "go", "proceed", "y", "continue"):
+        return "approve"
+    if d in ("skip", "next", "ignore", "drop"):
+        return "skip"
+    if d in ("takeover", "take over", "handover", "stop"):
+        return "takeover"
+    return d
 
 
 def backfill_precedents(store: Any, dry_run: bool = False) -> dict:
@@ -27,8 +48,11 @@ def backfill_precedents(store: Any, dry_run: bool = False) -> dict:
     except Exception:
         answered = []
     try:
-        # A precedent's `blocker` is the escalation question (see learn_from_escalation_answer).
-        seen = {str(p.get("blocker", "")) for p in (store.get_precedents() or [])}
+        # A precedent is keyed by (blocker, decision): blocker is the escalation question, decision
+        # is the normalized answer (see learn_from_escalation_answer). Same blocker + same decision
+        # is a real duplicate; same blocker + different decision is a distinct precedent.
+        seen = {(str(p.get("blocker", "")), str(p.get("decision", "")))
+                for p in (store.get_precedents() or [])}
     except Exception:
         seen = set()
 
@@ -41,18 +65,19 @@ def backfill_precedents(store: Any, dry_run: bool = False) -> dict:
         if not decision:
             skipped_no_decision += 1
             continue
-        if question in seen:
+        key = (question, _norm_decision(decision))
+        if key in seen:
             skipped_dup += 1
             continue
         if dry_run:
             created += 1
-            seen.add(question)  # don't double-count within one dry run
+            seen.add(key)  # don't double-count within one dry run
             continue
         try:
             res = store.learn_from_escalation_answer(int(esc.get("id", 0)), decision)
             if isinstance(res, dict) and res.get("learned"):
                 created += 1
-                seen.add(question)
+                seen.add(key)
                 pid = res.get("precedent_id")
                 if pid:
                     created_ids.append(pid)

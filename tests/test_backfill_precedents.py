@@ -63,6 +63,27 @@ def test_backfill_closes_the_loop_and_is_idempotent(store):
     assert len(store.get_precedents()) == 2
 
 
+def test_same_blocker_different_decisions_are_both_kept(store):
+    """Regression (D-014): the same blocker answered two ways is TWO precedents, not one.
+
+    Keying idempotency on blocker text alone silently dropped the second answer — found by a
+    2026-06-12 self-review of the backfill module."""
+    e1 = _add_escalation(store, "Build public/demo.html")   # identical blocker text
+    e2 = _add_escalation(store, "Build public/demo.html")
+    store.answer_escalation(e1, "approve")
+    store.answer_escalation(e2, "skip")
+
+    res = backfill_precedents(store)
+    assert res["created"] == 2                              # both decisions survive
+    decisions = sorted(p["decision"] for p in store.get_precedents())
+    assert decisions == ["approve", "skip"]
+
+    # Idempotent: re-running creates no duplicates even with the colliding blocker text.
+    res2 = backfill_precedents(store)
+    assert res2["created"] == 0
+    assert len(store.get_precedents()) == 2
+
+
 def test_dry_run_writes_nothing(store):
     e = _add_escalation(store, "deploy to prod?")
     store.answer_escalation(e, "skip")
