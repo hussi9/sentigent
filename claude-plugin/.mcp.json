@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "sentigent": {
+      "command": "python",
+      "args": ["-m", "sentigent.mcp_server"],
+      "env": {
+        "SENTIGENT_PROFILE": "code_review",
+        "SENTIGENT_AGENT_ID": "claude_code"
+      }
+    }
+  }
+}

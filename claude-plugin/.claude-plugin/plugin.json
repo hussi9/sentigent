@@ -1,0 +1,10 @@
+{
+  "name": "sentigent",
+  "version": "0.1.0",
+  "description": "The judgment layer that learns. Gives Claude Code self-learning operational intuition — your agent gets wiser every day it codes.",
+  "author": "Hussi",
+  "homepage": "https://github.com/hussi9/sentigent",
+  "license": "MIT",
+  "keywords": ["judgment", "safety", "learning", "guardrails", "code-review"],
+  "claude_code_version": ">=2.0.10"
+}
