@@ -178,3 +178,21 @@ Status legend: `accepted` (decided, may not be built yet) · `shipped` (in the c
 - **Rationale:** the clone should remember that a blocker can resolve more than one way — that
   spread IS the judgment. Collapsing it is lossy, and dropping data silently is the opposite of
   this code-review pass's whole point.
+
+## D-017 — Sweep continued: precise shift-left detection + partial-staleness doctor signal
+- **Date:** 2026-06-12 · **Status:** shipped
+- **Context:** Continuing the self-review. Two more real (latent) defects:
+  (a) `shiftleft.detect_test_command` returned `pytest -q` for *any* `pyproject.toml`/`setup.cfg`
+  — files that frequently exist only for black/ruff config with zero tests. Once wired into the
+  Verifier gate that would fail a genuinely-done step on a phantom test runner. (Not yet wired, so
+  caught before it could bite.) (b) `doctor`'s `learn_loop_ok` was binary (`answered>0 and
+  precedents==0`) and so blind to *partial* staleness — some answers learned, some not.
+- **Decision:**
+  (a) Require a real pytest signal: a `tests/` dir, a `pytest.ini`, or an explicit `pytest` mention
+  in `tox.ini`/`pyproject.toml`/`setup.cfg` (content check, read-only). Bare config files no longer
+  gate. (b) Compute the learn-loop signal from a **dry-run backfill** — it counts answered
+  escalations whose `(blocker, decision)` isn't yet a precedent, reusing D-016's exact dedup. This
+  catches partial staleness AND never false-alarms on legitimate dedup. Regression tests for both.
+- **Rationale:** a false test-gate and a blind health check are both silent failures — the precise
+  thing this sweep exists to kill. Reuse the canonical dedup rather than inventing a second notion
+  of "learned" that could drift from it.

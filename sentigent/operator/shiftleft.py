@@ -15,6 +15,16 @@ import os
 from typing import Optional
 
 
+def _file_mentions(path: str, needles) -> bool:
+    """True if `path` exists and contains any needle (case-insensitive). Read-only, capped read."""
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            text = fh.read(20_000).lower()
+        return any(str(n).lower() in text for n in needles)
+    except Exception:
+        return False
+
+
 def detect_test_command(cwd: str) -> Optional[str]:
     """Best-effort project test command, or None if undetectable. Read-only.
 
@@ -31,12 +41,17 @@ def detect_test_command(cwd: str) -> Optional[str]:
                 return "npm test --silent"
         except Exception:
             pass
-    # Python
-    for marker in ("pyproject.toml", "pytest.ini", "tox.ini", "setup.cfg"):
-        if os.path.isfile(os.path.join(cwd, marker)):
-            return "pytest -q"
+    # Python — require a real pytest signal, NOT merely a config file. pyproject.toml / setup.cfg
+    # frequently exist only for build or lint config (black, ruff) with zero tests; gating on their
+    # bare presence would fail a genuinely-done step. Accept a tests/ dir, a pytest.ini, or an
+    # explicit pytest mention in tox.ini / pyproject.toml / setup.cfg.
     if os.path.isdir(os.path.join(cwd, "tests")):
         return "pytest -q"
+    if os.path.isfile(os.path.join(cwd, "pytest.ini")):
+        return "pytest -q"
+    for marker in ("tox.ini", "pyproject.toml", "setup.cfg"):
+        if _file_mentions(os.path.join(cwd, marker), ("pytest",)):
+            return "pytest -q"
     # Rust / Go
     if os.path.isfile(os.path.join(cwd, "Cargo.toml")):
         return "cargo test"

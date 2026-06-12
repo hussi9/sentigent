@@ -27,13 +27,24 @@ def health_report(store: Any) -> dict:
     cal_events = sum(int(v.get("total", 0)) for v in cal.values())
 
     warnings: list[str] = []
-    # Symptom 1: answers recorded but no precedents → learn write-back not firing.
-    learn_loop_ok = not (answered > 0 and precedents == 0)
+    # Symptom 1: answered escalations not represented as precedents → learn write-back not firing.
+    # Measure it precisely with a dry-run backfill: it counts answered escalations whose
+    # (blocker, decision) isn't already a precedent, using the SAME dedup the real backfill uses.
+    # This catches PARTIAL staleness (some learned, some not) — which a bare precedents==0 misses —
+    # and never false-alarms on legitimate dedup (D-016).
+    unlearned = answered  # conservative fallback if the dry-run can't run
+    try:
+        from sentigent.operator.backfill import backfill_precedents
+        unlearned = int(backfill_precedents(store, dry_run=True).get("created", 0))
+    except Exception:
+        pass
+    learn_loop_ok = unlearned == 0
     if not learn_loop_ok:
         warnings.append(
-            f"{answered} answered escalation(s) but 0 precedents — the learn write-back isn't "
-            "firing (most often a stale MCP server). Run `python scripts/backfill_precedents.py` "
-            "and reload the MCP server so future answers learn automatically."
+            f"{unlearned} answered escalation(s) not yet learned as precedents — the learn "
+            "write-back isn't firing (most often a stale MCP server). Run "
+            "`python scripts/backfill_precedents.py` and reload the MCP server so future answers "
+            "learn automatically."
         )
     # Symptom 2: precedents exist but calibration is empty → thresholds are static defaults.
     if precedents > 0 and cal_events == 0:

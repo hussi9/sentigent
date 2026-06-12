@@ -38,8 +38,19 @@ def test_detect_python_and_empty():
     assert detect_test_command(_tmp({"README.md": "hi"})) is None
 
 
+def test_python_requires_a_real_pytest_signal():
+    # A pyproject.toml / setup.cfg that exists only for lint/build config (no tests) must NOT
+    # yield a test command — gating on it would fail a genuinely-done step (D-016 sweep).
+    assert detect_test_command(_tmp({"pyproject.toml": "[tool.black]\nline-length = 100\n"})) is None
+    assert detect_test_command(_tmp({"setup.cfg": "[metadata]\nname = x\n"})) is None
+    # But a real pytest signal anywhere is honored.
+    assert detect_test_command(_tmp({"pyproject.toml": "[tool.pytest.ini_options]\n"})) == "pytest -q"
+    assert detect_test_command(_tmp({"tox.ini": "[testenv]\ncommands = pytest\n"})) == "pytest -q"
+    assert detect_test_command(_tmp({"pytest.ini": "[pytest]\n"})) == "pytest -q"
+
+
 def test_ensure_does_not_override_explicit():
-    d = _tmp({"pyproject.toml": "x"})
+    d = _tmp({"pyproject.toml": "[tool.pytest.ini_options]"})
     assert ensure_test_criterion({"test_cmd": "make ci"}, d)["test_cmd"] == "make ci"
     assert ensure_test_criterion({}, d)["test_cmd"] == "pytest -q"
 

@@ -50,6 +50,20 @@ def test_flags_stale_learn_loop(store):
     assert any("learn write-back isn't firing" in w for w in rep["warnings"])
 
 
+def test_flags_partial_staleness(store):
+    # The improved signal (dry-run backfill) must catch the case a bare precedents==0 misses:
+    # some answers learned, others not. Here one escalation is learned, two are left stale.
+    from sentigent.operator.backfill import backfill_precedents
+    _answer_an_escalation(store, "learned one", "approve")
+    backfill_precedents(store)                      # closes only the first
+    _answer_an_escalation(store, "stale two", "skip")
+    _answer_an_escalation(store, "stale three", "approve")
+    rep = health_report(store)
+    assert rep["precedents"] >= 1                    # not zero — a bare check would say "ok"
+    assert rep["learn_loop_ok"] is False             # but two answers are genuinely unlearned
+    assert any("not yet learned as precedents" in w for w in rep["warnings"])
+
+
 def test_healthy_once_backfilled(store):
     from sentigent.operator.backfill import backfill_precedents
     _answer_an_escalation(store, "deploy?", "skip")
