@@ -196,3 +196,17 @@ Status legend: `accepted` (decided, may not be built yet) · `shipped` (in the c
 - **Rationale:** a false test-gate and a blind health check are both silent failures — the precise
   thing this sweep exists to kill. Reuse the canonical dedup rather than inventing a second notion
   of "learned" that could drift from it.
+
+## D-018 — Verifier: close three vacuous-pass holes in the anti-hallucination gate
+- **Date:** 2026-06-12 · **Status:** shipped
+- **Context:** Highest-severity finding of the sweep — in the Verifier itself, the gate whose whole
+  job is "never falsely pass." An empty/whitespace `test_cmd` or `build_cmd` runs `bash -c ""` →
+  exit 0 → a vacuous PASS. An empty `files_exist: []` reports "all 0 paths exist" → PASS. Any of
+  these as a step's only criterion marks it **done with zero real verification** — so in execute
+  mode self-repair never fires and a half-done step ships. Reproduced all three.
+- **Decision:** conservative guards at the choke points. `_run_cmd`: a blank command can verify
+  nothing → FAIL. `_check_files_exist`: an empty list verified nothing → FAIL. Aligns the code with
+  its own stated contract ("done requires at least one real check that actually ran"). Three
+  regression tests added.
+- **Rationale:** the verifier is the load-bearing wall of the whole loop's honesty. A false green
+  here defeats every downstream guarantee — it must fail closed, not open.

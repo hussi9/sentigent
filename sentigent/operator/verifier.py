@@ -56,6 +56,11 @@ class Verifier:
     def _run_cmd(self, kind: str, cmd: str) -> CheckResult:
         """Run a shell command in the workdir; passed iff exit code 0.
         Any timeout/exception fails the check with the error in detail."""
+        # An empty/whitespace command is `bash -c ""` → exit 0 → a vacuous PASS. That would let an
+        # empty test_cmd/build_cmd falsely mark a step "done" — the exact false-green this gate
+        # exists to prevent. Conservative: nothing to run means nothing was verified → FAIL.
+        if not (cmd or "").strip():
+            return CheckResult(kind, False, f"empty {kind} command — nothing to verify (conservative fail)")
         try:
             proc = subprocess.run(
                 cmd,
@@ -79,6 +84,10 @@ class Verifier:
         return CheckResult(kind, passed, detail)
 
     def _check_files_exist(self, paths: list[str]) -> CheckResult:
+        # An empty list vacuously "passes" (all 0 paths exist) — but nothing was actually verified,
+        # which violates the contract that done requires at least one real check. Conservative: FAIL.
+        if not paths:
+            return CheckResult("files_exist", False, "no files specified to check (conservative fail)")
         missing = []
         for p in paths:
             full = p if os.path.isabs(p) else os.path.join(self.workdir, p)

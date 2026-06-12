@@ -161,6 +161,29 @@ def test_empty_criteria_not_done(workdir):
     assert res.checks[0].passed is False
 
 
+# -- vacuous-pass guards (D-018) -----------------------------------------
+# The gate must never falsely pass. An empty command is `bash -c ""` → exit 0, and an empty
+# files_exist list "all 0 paths exist" — both would mark a step done with zero real verification.
+
+def test_empty_test_cmd_fails_not_vacuous_pass(workdir):
+    res = Verifier(workdir).verify({"test_cmd": ""})
+    assert res.done is False
+    assert res.checks[0].kind == "test" and res.checks[0].passed is False
+    assert "empty" in res.checks[0].detail
+
+
+def test_whitespace_build_cmd_fails(workdir):
+    res = Verifier(workdir).verify({"build_cmd": "   "})
+    assert res.done is False
+    assert res.checks[0].kind == "build" and res.checks[0].passed is False
+
+
+def test_empty_files_exist_list_fails(workdir):
+    res = Verifier(workdir).verify({"files_exist": []})
+    assert res.done is False
+    assert res.checks[0].kind == "files_exist" and res.checks[0].passed is False
+
+
 # -- AND semantics + serialization ---------------------------------------
 
 def test_and_semantics_one_fail_blocks_done(workdir):
