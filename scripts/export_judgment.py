@@ -8,6 +8,7 @@ Run this so any agent (or teammate) can read how you decide, straight from the r
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 
@@ -25,11 +26,11 @@ def main(argv: list[str]) -> int:
 
     profile = {}
     try:
-        raw = store.get_operator_profile()
-        if isinstance(raw, dict):
-            profile = raw
+        latest = store.get_latest_operator_profile()
+        if latest:
+            profile = json.loads(latest.get("profile_json", "{}")) or {}
     except Exception:
-        pass
+        profile = {}
 
     doc = build_judgment_doc(store, profile)
 

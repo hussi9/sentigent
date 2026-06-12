@@ -161,3 +161,19 @@ repo-readable doc so any agent can act the way you would:
 ```bash
 python scripts/export_judgment.py           # writes docs/JUDGMENT.md
 ```
+
+## Learned steering file (AGENTS.md)
+
+Frontier teams hand-write steering files — conventions, coding standards, testing
+patterns, rules — and they go stale. Sentigent already holds the same information
+as *behavior*, so it can write the steering file for you and keep it honest:
+
+```bash
+python scripts/export_steering.py            # writes ./AGENTS.md
+python scripts/export_steering.py --print    # print, don't write
+```
+
+The output is a standard `AGENTS.md` (hard rules first, then conventions, declared
+practices, preferences, when-to-ask, risk posture, learned decision defaults, and
+calibrated autonomy) that any agent harness can read — learned from how you work,
+not typed once and left to rot.
