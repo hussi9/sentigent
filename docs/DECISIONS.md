@@ -107,3 +107,32 @@ Status legend: `accepted` (decided, may not be built yet) · `shipped` (in the c
 - **Rationale:** The project's whole pitch is *compounding learned judgment*. A loop that never
   closes is the difference between a real product and a demo. Found because we code-reviewed
   instead of feature-list-reviewed.
+
+## D-011 — Calibration loop is wired; proven by test (not rebuilt)
+- **Date:** 2026-06-12 · **Status:** shipped (test) — capability already present
+- **Context:** Roadmap said "build calibration-from-outcomes." Code review showed `operate.py:532-536`
+  already stashes `clone_attempt` into the escalation context, and `learn_from_escalation_answer`
+  already calibrates it. Live calibration was empty only because every real escalation so far was
+  a hard rule (resolver skipped) or verify-failed (resolver not run) — unexercised, not missing.
+- **Decision:** Don't rebuild. Add `tests/test_calibration_loop.py` proving the path fires when a
+  clone attempt is present, and proving it correctly does NOT calibrate without one.
+- **Rationale:** Honest accounting (D-010): prove by execution. The test is the regression guard.
+
+## D-012 — Shift-left test gate: populate the test_cmd the Verifier already runs
+- **Date:** 2026-06-12 · **Status:** shipped
+- **Context:** `verifier.py:161` already runs a `test_cmd` done-criterion (the shift-left gate). The
+  gap was *supplying* it without the planner hand-writing the command.
+- **Decision:** Add `sentigent/operator/shiftleft.py` — `detect_test_command(cwd)` (Node/Python/
+  Rust/Go, read-only) + `ensure_test_criterion()` to fold it into a step's done-criteria. Tests
+  include a real proof that a failing `test_cmd` blocks "done".
+- **Rationale:** Triple-endorsed practice; additive; no hot-path rewrite. Wiring it into operate's
+  DoD by default is a follow-on (touches the unproven execute path — deferred deliberately).
+
+## D-013 — Brain doctor: make silent loop failures loud
+- **Date:** 2026-06-12 · **Status:** shipped
+- **Context:** The learn-loop gap (D-010) was invisible — nothing surfaced "answers recorded, 0
+  precedents." A judgment product that can't see its own broken loop is the worst failure mode.
+- **Decision:** Add `sentigent/operator/doctor.py` (`health_report`) + `scripts/doctor.py`:
+  vital signs + two named symptoms (stale learn-loop; precedents-without-calibration) with the fix
+  inline. Exit 1 on warnings so it can gate CI/cron.
+- **Rationale:** Observability for the loops the product's value depends on. Cheap, high-leverage.
