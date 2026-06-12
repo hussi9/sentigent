@@ -53,7 +53,7 @@ The more blockers you answer, the fewer it needs you for. That compounding auton
 
 **Two layers:**
 - **Layer 1 — local SQLite brain.** Judgment, the loop, the clone, precedents, calibration. Fully working, zero network. This is what you use.
-- **Layer 2 — optional team sync (Supabase).** Share patterns across agents/machines. Off by default; not needed to fly solo.
+- **Layer 2 — team / org sync (Supabase): roadmap, not built.** Sharing learned judgment across agents/machines/teammates is a *planned* direction — it will only be built if there's real demand. Open an issue if you want it. Solo use needs nothing here.
 
 ---
 
@@ -106,8 +106,18 @@ The three docs that matter — written to understand and run the project:
 ## Honest status
 
 - **Layer 1 (local judgment + loop): real and tested** — what you use every day.
-- **Layer 2 (Supabase team-sync): built but optional/dormant** — only for multi-agent / multi-machine sharing.
+- **Layer 2 (team / org sync): roadmap only** — not implemented; will be built based on adoption + requests, not before.
 - Research-grade open source, not a turnkey product. Teardowns and issues welcome.
+
+## Roadmap (demand-gated)
+
+These are *directions*, not commitments — built only if there's real adoption / requests:
+
+- **Team layer** — teammates share one judgment surface; your clone learns from the whole team's answered blockers.
+- **Org layer** — org-wide policies + role profiles that govern every agent, with row-level isolation.
+- **Cross-harness adapters** — the same judgment, portable to Codex / Cursor.
+
+Want one of these? Open an issue — that's the signal that decides what gets built.
 
 ## License
 
