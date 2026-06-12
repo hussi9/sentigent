@@ -2,6 +2,7 @@
 """Sentigent brain doctor — vital signs + silent-failure detection.
 
     python scripts/doctor.py            # human summary + JSON, exit 1 if warnings
+    python scripts/doctor.py --fix      # backfill precedents to close the learn loop, then re-check
 
 Catches the failure modes a code review found the hard way: answers recorded but no precedents
 (stale-server / learn loop not firing), and precedents with no calibration (static thresholds).
@@ -22,7 +23,14 @@ def main(argv: list[str]) -> int:
     db_path = os.environ.get(
         "SENTIGENT_DB_PATH", os.path.expanduser(f"~/.sentigent/memory_{agent}.db")
     )
-    rep = health_report(MemoryStore(agent_id=agent, org_id=org, db_path=db_path))
+    store = MemoryStore(agent_id=agent, org_id=org, db_path=db_path)
+    rep = health_report(store)
+
+    if "--fix" in argv and not rep["learn_loop_ok"]:
+        from sentigent.operator.backfill import backfill_precedents
+        res = backfill_precedents(store)
+        print(f"  🔧 fix → backfilled {res['created']} precedent(s); re-checking…\n")
+        rep = health_report(store)
 
     print(json.dumps(rep, indent=2))
     print(f"\n{'✅ healthy' if rep['ok'] else '⚠ needs attention'} — "

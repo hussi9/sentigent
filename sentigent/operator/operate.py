@@ -258,6 +258,16 @@ def operate(
     budget = BudgetGovernor(budget_usd)
     sysmsg = _profile_system(profile)
 
+    # Self-heal the learning loop (D-010/D-014): reconcile any answered-but-unlearned
+    # escalations into precedents at the start of every flight. This makes learning robust
+    # to a stale server that recorded answers but skipped the write-back — the next run
+    # always closes the gap. Idempotent + fail-soft; never blocks a run.
+    try:
+        from sentigent.operator.backfill import backfill_precedents
+        backfill_precedents(store)
+    except Exception:
+        pass
+
     # Map step idx → persisted plan_steps.id so we can update per-step status.
     step_id_by_idx: dict[int, int] = {}
 

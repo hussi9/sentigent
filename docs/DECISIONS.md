@@ -136,3 +136,29 @@ Status legend: `accepted` (decided, may not be built yet) · `shipped` (in the c
   vital signs + two named symptoms (stale learn-loop; precedents-without-calibration) with the fix
   inline. Exit 1 on warnings so it can gate CI/cron.
 - **Rationale:** Observability for the loops the product's value depends on. Cheap, high-leverage.
+
+## D-014 — Close the open gaps honestly (self-heal learning; calibration self-fills; execute = a real flight)
+- **Date:** 2026-06-12 · **Status:** (1) shipped · (2) accepted-as-is · (3) honest-deferred
+- **Context:** Three gaps were open: (1) a stale MCP server records answers but skips the learn
+  write-back; (2) calibration is empty; (3) the execute-mode verify path is unproven live.
+- **Decision:**
+  1. **FIXED.** `operate()` now reconciles answered-but-unlearned escalations at every run start
+     (`backfill_precedents`), and `scripts/doctor.py --fix` does it on demand. Learning is now
+     robust to a stale server — the next flight always closes the gap.
+  2. **No build.** Calibration accrues only from real resolver-attempted escalations a human then
+     answers. Auto-scoring the clone's own resolutions as "correct" would be the clone grading
+     itself — banned (D-008). The doctor surfaces the empty state; it fills from real runs.
+  3. **Honest-deferred.** The Verifier + `test_cmd` gate is proven by unit test
+     (`test_shiftleft.py`). The only remaining proof is `operate()`'s execute path on a real
+     flight, which spawns a nested worker drawing real quota. Deferred to a real run — not faked
+     with a brittle box-check test.
+- **Rationale:** fix what genuinely fixes; never fake a green check. That's the whole point of
+  this code-review pass.
+
+## D-015 — Flight summary panel (fix fly-mode UIUX)
+- **Date:** 2026-06-12 · **Status:** shipped
+- **Context:** Fly mode ended in event-JSON spam — no sense of achievement or usefulness.
+- **Decision:** `sentigent/operator/flight_summary.py` (`cumulative_stats` + `session_stats` +
+  `render_panel`) + `scripts/flight_summary.py`: one clean, rewarding panel read live from the
+  brain — this-flight + all-time + a decision-DNA bar. Real numbers only (D-008).
+- **Rationale:** the payoff of autonomy should be felt, not buried in logs.
