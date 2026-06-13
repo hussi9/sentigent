@@ -251,3 +251,24 @@ Status legend: `accepted` (decided, may not be built yet) · `shipped` (in the c
 - **Rationale:** the hard-rule wall is the one guarantee that must hold even when everything else
   (profile, gate, clone) is wrong. A guarantee with no tests and a numeric-coincidence dependency
   isn't a guarantee — make it provable and fail-closed.
+
+## D-021 — Chain circuit-breaker + borderline-decision trail (Reddit launch feedback)
+- **Date:** 2026-06-13 · **Status:** shipped
+- **Context:** r/LLMDevs launch feedback (u/Ill_Formal7579): "the 83% agreement gives me pause — that
+  17% is where the damage lives; how do you surface those disagreements before they compound into a
+  chain of bad decisions?" Existing guards (calibrated floors, policy wall, verifier) handle the
+  single bad call; nothing addressed a *chain* of barely-confident auto-applies drifting silently.
+- **Decision:** new `chain_guard.py` — `is_borderline` (cleared the floor but only just:
+  floor ≤ conf < floor+margin) + `ChainGuard` (tracks consecutive borderline auto-applies; a
+  confident call resets the streak). Wired into `operate()`'s resolver path: every borderline
+  auto-apply is recorded to a reviewable trail (`RunResult.borderline` + `borderline_autoapply`
+  events); after `chain_break_after` (default 3) in a row the breaker TRIPS — the run does NOT
+  auto-apply, it pauses for a human checkpoint (`chain_breaker` event). Defaults
+  `chain_break_after=3`, `chain_margin=0.10`, both tunable.
+- **Bug caught in build:** the first wiring left `esc = _no_ask(esc)` outside the non-trip branch,
+  so a tripped step auto-applied anyway — the exact failure the feature prevents. Fixed: all
+  auto-apply logic now lives strictly inside the non-trip `else`. Regression test asserts the run
+  pauses after 3 and only 2 steps completed.
+- **Rationale:** the honest answer to "how do you catch the 17%" is: make the borderline calls
+  visible, and refuse to let a streak of them run unattended. Surfacing + a circuit-breaker beats
+  pretending the agreement rate is 100%.

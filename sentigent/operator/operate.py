@@ -27,6 +27,7 @@ from sentigent.operator.plan import Plan, Step
 from sentigent.operator.resolver import CloneResolver, APPROVE, SKIP
 from sentigent.operator.risk import RiskAssessor
 from sentigent.operator.runner import OperatorRunner
+from sentigent.operator.chain_guard import ChainGuard, is_borderline
 from sentigent.operator.safety import BudgetGovernor, KillSwitch
 from sentigent.operator.verifier import Verifier
 
@@ -64,6 +65,7 @@ class RunResult:
     outcomes: list[StepOutcome] = field(default_factory=list)
     spent_usd: float = 0.0
     open_escalation_id: Optional[int] = None
+    borderline: list = field(default_factory=list)   # reviewable trail of borderline auto-applies (D-021)
 
     @property
     def steps_done(self) -> int:
@@ -177,6 +179,8 @@ def operate(
     resolve: bool = True,
     resolver: Optional[CloneResolver] = None,
     resolver_thresholds: Optional[dict] = None,
+    chain_break_after: int = 3,
+    chain_margin: float = 0.10,
 ) -> RunResult:
     """Drive a plan. Returns a persisted, inspectable RunResult. Never raises.
 
@@ -256,6 +260,7 @@ def operate(
     runner = runner or OperatorRunner(model=model, dry_run=not execute)
     ks = killswitch or KillSwitch()
     budget = BudgetGovernor(budget_usd)
+    chain_guard = ChainGuard(max_consecutive=chain_break_after, margin=chain_margin)
     sysmsg = _profile_system(profile)
 
     # Self-heal the learning loop (D-010/D-014): reconcile any answered-but-unlearned
@@ -515,23 +520,41 @@ def operate(
                 cloned, policy_wall=risk.policy_wall, category=esc.trigger,
                 thresholds=resolver_thresholds,
             ):
-                outcome.clone_resolved = True
-                outcome.resolution = cloned.to_dict()
-                if cloned.decision == SKIP:
-                    outcome.status = "skipped"
-                    _mark_step(step.idx, "skipped")
-                    result.outcomes.append(outcome)
-                    _event("clone_resolved", {"step": step.idx, "decision": SKIP,
+                # Chain circuit-breaker (D-021): the clone cleared the bar, but if it only *just*
+                # cleared it (borderline) too many times in a row, pause for a human instead of
+                # letting a chain of barely-confident calls compound into drift.
+                _thr = CloneResolver.threshold_for(esc.trigger, resolver_thresholds)
+                if chain_guard.record(step=step.idx, confidence=cloned.confidence,
+                                      threshold=_thr, category=esc.trigger):
+                    # TRIP: do NOT auto-apply. Leave esc.ask True so the human checkpoint below
+                    # fires; attach the clone's attempt for context.
+                    outcome.resolution = cloned.to_dict()
+                    _event("chain_breaker", {"step": step.idx,
+                                             "consecutive_borderline": chain_guard.max_consecutive,
+                                             "trail": chain_guard.trail[-chain_guard.max_consecutive:]})
+                    chain_guard.reset()
+                else:
+                    if is_borderline(cloned.confidence, _thr, chain_margin):
+                        _event("borderline_autoapply", {"step": step.idx,
+                                "confidence": round(float(cloned.confidence), 2),
+                                "threshold": round(float(_thr), 2), "category": esc.trigger})
+                    outcome.clone_resolved = True
+                    outcome.resolution = cloned.to_dict()
+                    if cloned.decision == SKIP:
+                        outcome.status = "skipped"
+                        _mark_step(step.idx, "skipped")
+                        result.outcomes.append(outcome)
+                        _event("clone_resolved", {"step": step.idx, "decision": SKIP,
+                                                  "confidence": cloned.confidence,
+                                                  "rationale": cloned.rationale,
+                                                  "trigger": esc.trigger})
+                        continue
+                    # APPROVE → proceed exactly as a cleared step would.
+                    esc = _no_ask(esc)
+                    _event("clone_resolved", {"step": step.idx, "decision": APPROVE,
                                               "confidence": cloned.confidence,
                                               "rationale": cloned.rationale,
                                               "trigger": esc.trigger})
-                    continue
-                # APPROVE → proceed exactly as a cleared step would.
-                esc = _no_ask(esc)
-                _event("clone_resolved", {"step": step.idx, "decision": APPROVE,
-                                          "confidence": cloned.confidence,
-                                          "rationale": cloned.rationale,
-                                          "trigger": esc.trigger})
 
         # Wake the human? → record escalation, pause the run (no blocking).
         if esc.ask:
@@ -597,6 +620,10 @@ def operate(
         _event("step_done", {"step": step.idx, "step_text": step.description,
                              "verdict": verdict.to_dict(),
                              "checkpoint": outcome.checkpoint_sha, "note": corr})
+
+    # Surface the borderline-decision trail (D-021) so the flight summary can show the calls the
+    # clone made at the edge of its confidence — the ones worth a human glance.
+    result.borderline = list(chain_guard.trail)
 
     # Close the run.
     final = "completed" if result.status == "done" else result.status
