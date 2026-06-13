@@ -1732,6 +1732,41 @@ class MemoryStore:
         finally:
             conn.close()
 
+    def count_episodes_since(self, iso_ts: str) -> int:
+        """How many episodes were recorded at or after `iso_ts` (an ISO-8601
+        string, matched lexicographically against the stored TEXT timestamp).
+        Used by the session-start engagement line to show recent activity.
+        Fail-soft → 0."""
+        conn = sqlite3.connect(self.db_path)
+        try:
+            return int(
+                conn.execute(
+                    "SELECT COUNT(*) FROM episodes WHERE agent_id=? AND timestamp>=?",
+                    (self.agent_id, iso_ts),
+                ).fetchone()[0]
+            )
+        except Exception:
+            return 0
+        finally:
+            conn.close()
+
+    def count_episodes_by_decision(self) -> dict[str, int]:
+        """Lifetime episode counts grouped by the decision action
+        (proceed / enrich / slow_down / escalate). The intervention breakdown
+        that proves Sentigent judges rather than rubber-stamps. Fail-soft → {}."""
+        conn = sqlite3.connect(self.db_path)
+        try:
+            rows = conn.execute(
+                "SELECT decision, COUNT(*) FROM episodes WHERE agent_id=? "
+                "GROUP BY decision",
+                (self.agent_id,),
+            ).fetchall()
+            return {str(d): int(n) for d, n in rows if d}
+        except Exception:
+            return {}
+        finally:
+            conn.close()
+
     # ------------------------------------------------------------------
     # Operator profile — the synthesized model of the user (Phase 1, A2)
     # ------------------------------------------------------------------

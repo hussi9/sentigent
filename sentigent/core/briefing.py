@@ -11,9 +11,58 @@ in-session, here.
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sentigent.core import clone_readiness, profile_review
+
+
+def build_engagement_line(store: Any) -> str:
+    """A one-glance proof that Sentigent is LIVE and actively judging — the
+    answer to "is the MCP even engaged?". Reads ONLY local SQLite (fast, no
+    network). Shows last-24h activity, lifetime decision volume, and the
+    intervention breakdown that proves it judges rather than rubber-stamps.
+    Returns '' if the brain is empty or unreadable (never raises)."""
+    try:
+        lifetime = store.count_episodes()
+        if not lifetime:
+            return ""
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        last24 = store.count_episodes_since(cutoff)
+        by_decision = store.count_episodes_by_decision()
+    except Exception:
+        return ""
+
+    # Active interventions = anything that wasn't a clean "proceed".
+    enrich = by_decision.get("enrich", 0)
+    slow = by_decision.get("slow_down", 0)
+    esc = by_decision.get("escalate", 0)
+    interventions = enrich + slow + esc
+
+    lines = [
+        "## ⚡ Sentigent is live",
+        "*Judging every Bash · Edit · Write · Agent before it runs — "
+        "silent unless something needs your eyes.*",
+        "",
+        f"- **Watching now:** {last24:,} actions checked in the last 24h",
+        f"- **Brain:** {lifetime:,} decisions recorded",
+    ]
+    if interventions:
+        parts = []
+        if enrich:
+            parts.append(f"{enrich:,} enrich")
+        if slow:
+            parts.append(f"{slow:,} slow-down")
+        if esc:
+            parts.append(f"{esc:,} escalate")
+        lines.append(
+            f"- **It doesn't rubber-stamp:** {interventions:,} interventions "
+            f"({' · '.join(parts)})"
+        )
+    lines.append("- _See for yourself: `sentigent_score()` · `sentigent_insights()`._")
+    lines.append("")
+
+    return "\n".join(lines).strip()
 
 
 def build_clone_briefing(store: Any) -> str:

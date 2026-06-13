@@ -172,13 +172,19 @@ def _clone_briefing() -> str:
         repo = Path(__file__).resolve().parent.parent.parent
         if str(repo) not in sys.path:
             sys.path.insert(0, str(repo))
-        from sentigent.core.briefing import build_clone_briefing
+        from sentigent.core.briefing import (
+            build_clone_briefing,
+            build_engagement_line,
+        )
         from sentigent.memory.store import MemoryStore
 
         agent_id = os.environ.get("SENTIGENT_AGENT_ID", "claude_code")
         org_id = os.environ.get("SENTIGENT_ORG_ID", "default")
         store = MemoryStore(agent_id=agent_id, org_id=org_id)
-        return build_clone_briefing(store)
+        # Engagement line first — the direct "yes, it's on and here's what it's
+        # doing" — then the clone briefing. Either may be '' (fail-soft).
+        parts = [build_engagement_line(store), build_clone_briefing(store)]
+        return "\n\n".join(p for p in parts if p)
     except Exception:
         return ""
 

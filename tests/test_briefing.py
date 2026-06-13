@@ -27,6 +27,59 @@ def test_empty_store_is_silent(store):
     assert build_clone_briefing(store) == ""
 
 
+def _episode(store, decision, when=None):
+    """Insert one episode with a given decision (and optional timestamp)."""
+    from datetime import datetime, timezone
+
+    from sentigent.core.types import DecisionAction, Trace
+
+    n = store.count_episodes()
+    store.store_episode(
+        Trace(
+            trace_id=f"t{n}",
+            agent_id=store.agent_id,
+            timestamp=when or datetime.now(timezone.utc),
+            task="Bash: echo hi",
+            decision=DecisionAction(decision),
+            reason="test",
+        )
+    )
+
+
+def test_engagement_line_silent_when_empty(store):
+    # No episodes yet → no "is it on" banner (don't claim activity that isn't there).
+    assert briefing_mod.build_engagement_line(store) == ""
+
+
+def test_engagement_line_shows_live_counts_and_interventions(store):
+    from datetime import datetime, timedelta, timezone
+
+    for _ in range(3):
+        _episode(store, "proceed")
+    _episode(store, "enrich")
+    _episode(store, "slow_down")
+    _episode(store, "escalate")
+    # One old episode that should NOT count toward the last-24h figure.
+    _episode(store, "proceed", when=datetime.now(timezone.utc) - timedelta(days=3))
+
+    line = briefing_mod.build_engagement_line(store)
+    assert "Sentigent is live" in line
+    assert "7 decisions recorded" in line  # lifetime = all 7
+    assert "6 actions checked in the last 24h" in line  # excludes the 3-day-old one
+    # Interventions = enrich + slow_down + escalate (proceed is not an intervention).
+    assert "3 interventions" in line
+    assert "1 enrich" in line and "1 slow-down" in line and "1 escalate" in line
+
+
+def test_count_episodes_since_is_inclusive_and_bounded(store):
+    from datetime import datetime, timedelta, timezone
+
+    _episode(store, "proceed", when=datetime.now(timezone.utc) - timedelta(hours=1))
+    _episode(store, "proceed", when=datetime.now(timezone.utc) - timedelta(days=2))
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    assert store.count_episodes_since(cutoff) == 1
+
+
 def test_briefing_speaks_once_profile_exists(store):
     store.save_operator_profile(
         '{"summary":"ships fast","preferences":["autonomous"],'
