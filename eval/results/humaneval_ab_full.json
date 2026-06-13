@@ -1,0 +1,2793 @@
+{
+  "results": [
+    {
+      "task": "HumanEval/0",
+      "off": {
+        "passed": true,
+        "in": 18535,
+        "out": 226,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25419,
+        "out": 226,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/1",
+      "off": {
+        "passed": true,
+        "in": 27347,
+        "out": 371,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 22772,
+        "out": 296,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/2",
+      "off": {
+        "passed": true,
+        "in": 28485,
+        "out": 244,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 232,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/3",
+      "off": {
+        "passed": true,
+        "in": 27267,
+        "out": 235,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28452,
+        "out": 251,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/4",
+      "off": {
+        "passed": true,
+        "in": 27314,
+        "out": 318,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25106,
+        "out": 300,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/5",
+      "off": {
+        "passed": true,
+        "in": 28452,
+        "out": 251,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 27317,
+        "out": 311,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/6",
+      "off": {
+        "passed": true,
+        "in": 22812,
+        "out": 344,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25538,
+        "out": 339,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/7",
+      "off": {
+        "passed": true,
+        "in": 19571,
+        "out": 158,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 26801,
+        "out": 210,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/8",
+      "off": {
+        "passed": true,
+        "in": 23415,
+        "out": 286,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 24695,
+        "out": 271,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/9",
+      "off": {
+        "passed": true,
+        "in": 27211,
+        "out": 242,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25432,
+        "out": 270,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/10",
+      "off": {
+        "passed": false,
+        "in": 24500,
+        "out": 247,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 48962,
+        "out": 684,
+        "calls": 2,
+        "attempts": 2,
+        "self_repaired": true
+      }
+    },
+    {
+      "task": "HumanEval/11",
+      "off": {
+        "passed": true,
+        "in": 24932,
+        "out": 269,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28346,
+        "out": 127,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/12",
+      "off": {
+        "passed": true,
+        "in": 26918,
+        "out": 265,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25230,
+        "out": 278,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/13",
+      "off": {
+        "passed": true,
+        "in": 26810,
+        "out": 223,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 27158,
+        "out": 246,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/14",
+      "off": {
+        "passed": true,
+        "in": 28234,
+        "out": 199,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28234,
+        "out": 202,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/15",
+      "off": {
+        "passed": true,
+        "in": 28234,
+        "out": 233,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 24820,
+        "out": 126,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/16",
+      "off": {
+        "passed": true,
+        "in": 28338,
+        "out": 194,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 27372,
+        "out": 118,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/17",
+      "off": {
+        "passed": true,
+        "in": 28510,
+        "out": 305,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 288,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/18",
+      "off": {
+        "passed": true,
+        "in": 28510,
+        "out": 198,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 198,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/19",
+      "off": {
+        "passed": true,
+        "in": 29690,
+        "out": 370,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28510,
+        "out": 340,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/20",
+      "off": {
+        "passed": true,
+        "in": 28510,
+        "out": 382,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28510,
+        "out": 362,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/21",
+      "off": {
+        "passed": true,
+        "in": 27024,
+        "out": 228,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 27375,
+        "out": 233,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/22",
+      "off": {
+        "passed": true,
+        "in": 28510,
+        "out": 188,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28510,
+        "out": 202,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/23",
+      "off": {
+        "passed": true,
+        "in": 28312,
+        "out": 119,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 147,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/24",
+      "off": {
+        "passed": true,
+        "in": 28312,
+        "out": 197,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28360,
+        "out": 124,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/25",
+      "off": {
+        "passed": true,
+        "in": 28429,
+        "out": 362,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 324,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/26",
+      "off": {
+        "passed": true,
+        "in": 28356,
+        "out": 227,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 29536,
+        "out": 162,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/27",
+      "off": {
+        "passed": true,
+        "in": 29008,
+        "out": 159,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 128,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/28",
+      "off": {
+        "passed": true,
+        "in": 29585,
+        "out": 193,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28405,
+        "out": 141,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/29",
+      "off": {
+        "passed": true,
+        "in": 29585,
+        "out": 224,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 29585,
+        "out": 186,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/30",
+      "off": {
+        "passed": true,
+        "in": 29585,
+        "out": 253,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28405,
+        "out": 184,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/31",
+      "off": {
+        "passed": true,
+        "in": 28405,
+        "out": 296,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 241,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/32",
+      "off": {
+        "passed": false,
+        "in": 28405,
+        "out": 423,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28408,
+        "out": 1208,
+        "calls": 2,
+        "attempts": 2,
+        "self_repaired": true
+      }
+    },
+    {
+      "task": "HumanEval/33",
+      "off": {
+        "passed": true,
+        "in": 28405,
+        "out": 350,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 29057,
+        "out": 299,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/34",
+      "off": {
+        "passed": true,
+        "in": 27267,
+        "out": 134,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28405,
+        "out": 173,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/35",
+      "off": {
+        "passed": true,
+        "in": 28337,
+        "out": 138,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 171,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/36",
+      "off": {
+        "passed": true,
+        "in": 28337,
+        "out": 264,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 243,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/37",
+      "off": {
+        "passed": true,
+        "in": 25271,
+        "out": 260,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 26406,
+        "out": 213,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/38",
+      "off": {
+        "passed": false,
+        "in": 25271,
+        "out": 354,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 49763,
+        "out": 1008,
+        "calls": 2,
+        "attempts": 2,
+        "self_repaired": true
+      }
+    },
+    {
+      "task": "HumanEval/39",
+      "off": {
+        "passed": true,
+        "in": 27199,
+        "out": 305,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18563,
+        "out": 302,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/40",
+      "off": {
+        "passed": true,
+        "in": 18746,
+        "out": 308,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 24432,
+        "out": 392,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/41",
+      "off": {
+        "passed": true,
+        "in": 23809,
+        "out": 214,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28278,
+        "out": 303,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/42",
+      "off": {
+        "passed": true,
+        "in": 28406,
+        "out": 242,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 223,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/43",
+      "off": {
+        "passed": true,
+        "in": 28321,
+        "out": 350,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28304,
+        "out": 298,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/44",
+      "off": {
+        "passed": true,
+        "in": 28314,
+        "out": 175,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 244,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/45",
+      "off": {
+        "passed": true,
+        "in": 27740,
+        "out": 138,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 29420,
+        "out": 125,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/46",
+      "off": {
+        "passed": true,
+        "in": 27740,
+        "out": 625,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 55188,
+        "out": 1151,
+        "calls": 2,
+        "attempts": 2,
+        "self_repaired": true
+      }
+    },
+    {
+      "task": "HumanEval/47",
+      "off": {
+        "passed": true,
+        "in": 28240,
+        "out": 196,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 179,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/48",
+      "off": {
+        "passed": true,
+        "in": 29420,
+        "out": 168,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28240,
+        "out": 188,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/49",
+      "off": {
+        "passed": true,
+        "in": 28240,
+        "out": 190,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28240,
+        "out": 202,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/50",
+      "off": {
+        "passed": false,
+        "in": 28240,
+        "out": 164,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28243,
+        "out": 687,
+        "calls": 2,
+        "attempts": 2,
+        "self_repaired": true
+      }
+    },
+    {
+      "task": "HumanEval/51",
+      "off": {
+        "passed": true,
+        "in": 28915,
+        "out": 283,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28357,
+        "out": 351,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/52",
+      "off": {
+        "passed": true,
+        "in": 28300,
+        "out": 175,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28280,
+        "out": 175,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/53",
+      "off": {
+        "passed": true,
+        "in": 28302,
+        "out": 69,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 23917,
+        "out": 69,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/54",
+      "off": {
+        "passed": true,
+        "in": 28302,
+        "out": 321,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25198,
+        "out": 306,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/55",
+      "off": {
+        "passed": true,
+        "in": 28209,
+        "out": 164,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 27074,
+        "out": 186,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/56",
+      "off": {
+        "passed": true,
+        "in": 28209,
+        "out": 284,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 273,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/57",
+      "off": {
+        "passed": true,
+        "in": 28209,
+        "out": 266,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 142,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/58",
+      "off": {
+        "passed": true,
+        "in": 18505,
+        "out": 181,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 24795,
+        "out": 208,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/59",
+      "off": {
+        "passed": true,
+        "in": 27236,
+        "out": 222,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25294,
+        "out": 196,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/60",
+      "off": {
+        "passed": true,
+        "in": 25305,
+        "out": 168,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 24525,
+        "out": 147,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/61",
+      "off": {
+        "passed": true,
+        "in": 26736,
+        "out": 210,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 23986,
+        "out": 282,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/62",
+      "off": {
+        "passed": true,
+        "in": 24689,
+        "out": 243,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25805,
+        "out": 172,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/63",
+      "off": {
+        "passed": true,
+        "in": 28371,
+        "out": 301,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18656,
+        "out": 301,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/64",
+      "off": {
+        "passed": true,
+        "in": 27233,
+        "out": 285,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 27578,
+        "out": 311,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/65",
+      "off": {
+        "passed": true,
+        "in": 26595,
+        "out": 183,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 19306,
+        "out": 183,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/66",
+      "off": {
+        "passed": true,
+        "in": 24991,
+        "out": 37,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18889,
+        "out": 37,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/67",
+      "off": {
+        "passed": true,
+        "in": 20301,
+        "out": 355,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25164,
+        "out": 404,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/68",
+      "off": {
+        "passed": true,
+        "in": 19295,
+        "out": 548,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25944,
+        "out": 482,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/69",
+      "off": {
+        "passed": true,
+        "in": 18174,
+        "out": 271,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 23478,
+        "out": 324,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/70",
+      "off": {
+        "passed": true,
+        "in": 25975,
+        "out": 229,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25682,
+        "out": 260,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/71",
+      "off": {
+        "passed": true,
+        "in": 25213,
+        "out": 255,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 24433,
+        "out": 282,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/72",
+      "off": {
+        "passed": true,
+        "in": 20577,
+        "out": 329,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18213,
+        "out": 329,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/73",
+      "off": {
+        "passed": true,
+        "in": 19625,
+        "out": 293,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 19452,
+        "out": 304,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/74",
+      "off": {
+        "passed": true,
+        "in": 25623,
+        "out": 333,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 28367,
+        "out": 369,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/75",
+      "off": {
+        "passed": true,
+        "in": 24486,
+        "out": 312,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25621,
+        "out": 274,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/76",
+      "off": {
+        "passed": true,
+        "in": 25266,
+        "out": 366,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18628,
+        "out": 223,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/77",
+      "off": {
+        "passed": true,
+        "in": 25624,
+        "out": 189,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18617,
+        "out": 189,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/78",
+      "off": {
+        "passed": true,
+        "in": 18800,
+        "out": 417,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 23663,
+        "out": 417,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/79",
+      "off": {
+        "passed": true,
+        "in": 28332,
+        "out": 280,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 227,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/80",
+      "off": {
+        "passed": true,
+        "in": 28332,
+        "out": 238,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18789,
+        "out": 238,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/81",
+      "off": {
+        "passed": true,
+        "in": 18211,
+        "out": 682,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18222,
+        "out": 371,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/82",
+      "off": {
+        "passed": true,
+        "in": 19450,
+        "out": 170,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18628,
+        "out": 216,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/83",
+      "off": {
+        "passed": true,
+        "in": 22459,
+        "out": 440,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 37663,
+        "out": 451,
+        "calls": 2,
+        "attempts": 2,
+        "self_repaired": true
+      }
+    },
+    {
+      "task": "HumanEval/84",
+      "off": {
+        "passed": true,
+        "in": 18211,
+        "out": 38,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18610,
+        "out": 276,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/85",
+      "off": {
+        "passed": true,
+        "in": 18782,
+        "out": 207,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 23564,
+        "out": 234,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/86",
+      "off": {
+        "passed": true,
+        "in": 18433,
+        "out": 238,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 313,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/87",
+      "off": {
+        "passed": true,
+        "in": 18260,
+        "out": 475,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 26373,
+        "out": 101,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/88",
+      "off": {
+        "passed": true,
+        "in": 18761,
+        "out": 430,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 23580,
+        "out": 329,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/89",
+      "off": {
+        "passed": true,
+        "in": 25342,
+        "out": 67,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 26477,
+        "out": 382,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/90",
+      "off": {
+        "passed": true,
+        "in": 18693,
+        "out": 191,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 24562,
+        "out": 194,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/91",
+      "off": {
+        "passed": true,
+        "in": 28408,
+        "out": 234,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18520,
+        "out": 207,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/92",
+      "off": {
+        "passed": true,
+        "in": 18704,
+        "out": 231,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 22276,
+        "out": 371,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/93",
+      "off": {
+        "passed": true,
+        "in": 18865,
+        "out": 256,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18704,
+        "out": 455,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/94",
+      "off": {
+        "passed": true,
+        "in": 19699,
+        "out": 479,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18471,
+        "out": 465,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/95",
+      "off": {
+        "passed": true,
+        "in": 19699,
+        "out": 338,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 19883,
+        "out": 343,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/96",
+      "off": {
+        "passed": true,
+        "in": 18287,
+        "out": 306,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 19699,
+        "out": 276,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/97",
+      "off": {
+        "passed": true,
+        "in": 18460,
+        "out": 152,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 19699,
+        "out": 317,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/98",
+      "off": {
+        "passed": true,
+        "in": 18597,
+        "out": 139,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 20610,
+        "out": 229,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/99",
+      "off": {
+        "passed": true,
+        "in": 18191,
+        "out": 374,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 351,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/100",
+      "off": {
+        "passed": true,
+        "in": 18846,
+        "out": 186,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18895,
+        "out": 186,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/101",
+      "off": {
+        "passed": true,
+        "in": 18539,
+        "out": 156,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18306,
+        "out": 156,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/102",
+      "off": {
+        "passed": true,
+        "in": 18259,
+        "out": 169,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18676,
+        "out": 169,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/103",
+      "off": {
+        "passed": true,
+        "in": 18259,
+        "out": 255,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18503,
+        "out": 219,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/104",
+      "off": {
+        "passed": true,
+        "in": 18259,
+        "out": 178,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18709,
+        "out": 225,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/105",
+      "off": {
+        "passed": true,
+        "in": 18892,
+        "out": 466,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18881,
+        "out": 466,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/106",
+      "off": {
+        "passed": true,
+        "in": 18486,
+        "out": 260,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18767,
+        "out": 259,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/107",
+      "off": {
+        "passed": true,
+        "in": 18595,
+        "out": 359,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18351,
+        "out": 359,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/108",
+      "off": {
+        "passed": true,
+        "in": 18351,
+        "out": 262,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18351,
+        "out": 268,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/109",
+      "off": {
+        "passed": true,
+        "in": 18351,
+        "out": 509,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 553,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/110",
+      "off": {
+        "passed": true,
+        "in": 18768,
+        "out": 489,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18351,
+        "out": 388,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/111",
+      "off": {
+        "passed": true,
+        "in": 18696,
+        "out": 296,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18757,
+        "out": 304,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/112",
+      "off": {
+        "passed": true,
+        "in": 18524,
+        "out": 276,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18351,
+        "out": 282,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/113",
+      "off": {
+        "passed": true,
+        "in": 18351,
+        "out": 375,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18351,
+        "out": 351,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/114",
+      "off": {
+        "passed": true,
+        "in": 18768,
+        "out": 186,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18610,
+        "out": 183,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/115",
+      "off": {
+        "passed": true,
+        "in": 24448,
+        "out": 488,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18173,
+        "out": 465,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/116",
+      "off": {
+        "passed": true,
+        "in": 24880,
+        "out": 286,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18601,
+        "out": 47,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/117",
+      "off": {
+        "passed": true,
+        "in": 23591,
+        "out": 344,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18693,
+        "out": 331,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/118",
+      "off": {
+        "passed": true,
+        "in": 18865,
+        "out": 305,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18704,
+        "out": 423,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/119",
+      "off": {
+        "passed": true,
+        "in": 18287,
+        "out": 414,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18693,
+        "out": 428,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/120",
+      "off": {
+        "passed": true,
+        "in": 18287,
+        "out": 406,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18298,
+        "out": 332,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/121",
+      "off": {
+        "passed": true,
+        "in": 18460,
+        "out": 206,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18287,
+        "out": 54,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/122",
+      "off": {
+        "passed": true,
+        "in": 18520,
+        "out": 312,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18287,
+        "out": 200,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/123",
+      "off": {
+        "passed": true,
+        "in": 18267,
+        "out": 472,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18267,
+        "out": 411,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/124",
+      "off": {
+        "passed": true,
+        "in": 18287,
+        "out": 549,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 593,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/125",
+      "off": {
+        "passed": true,
+        "in": 18287,
+        "out": 281,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 281,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/126",
+      "off": {
+        "passed": true,
+        "in": 18287,
+        "out": 396,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 396,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/127",
+      "off": {
+        "passed": true,
+        "in": 18460,
+        "out": 156,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18287,
+        "out": 492,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/128",
+      "off": {
+        "passed": true,
+        "in": 18574,
+        "out": 244,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18168,
+        "out": 242,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/129",
+      "off": {
+        "passed": true,
+        "in": 18799,
+        "out": 280,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18638,
+        "out": 1104,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/130",
+      "off": {
+        "passed": true,
+        "in": 18100,
+        "out": 699,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18398,
+        "out": 583,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/131",
+      "off": {
+        "passed": true,
+        "in": 18214,
+        "out": 160,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 160,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/132",
+      "off": {
+        "passed": false,
+        "in": 18214,
+        "out": 360,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18294,
+        "out": 432,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/133",
+      "off": {
+        "passed": true,
+        "in": 18294,
+        "out": 215,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18294,
+        "out": 215,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/134",
+      "off": {
+        "passed": true,
+        "in": 18294,
+        "out": 255,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 281,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/135",
+      "off": {
+        "passed": true,
+        "in": 18294,
+        "out": 221,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18294,
+        "out": 202,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/136",
+      "off": {
+        "passed": true,
+        "in": 18305,
+        "out": 263,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18294,
+        "out": 263,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/137",
+      "off": {
+        "passed": true,
+        "in": 18467,
+        "out": 277,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18294,
+        "out": 283,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/138",
+      "off": {
+        "passed": true,
+        "in": 18711,
+        "out": 206,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18294,
+        "out": 203,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/139",
+      "off": {
+        "passed": true,
+        "in": 29302,
+        "out": 173,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18294,
+        "out": 170,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/140",
+      "off": {
+        "passed": true,
+        "in": 18294,
+        "out": 306,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18294,
+        "out": 328,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/141",
+      "off": {
+        "passed": true,
+        "in": 18294,
+        "out": 420,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18294,
+        "out": 456,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/142",
+      "off": {
+        "passed": true,
+        "in": 18294,
+        "out": 582,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18305,
+        "out": 294,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/143",
+      "off": {
+        "passed": true,
+        "in": 18294,
+        "out": 303,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 303,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/144",
+      "off": {
+        "passed": true,
+        "in": 18294,
+        "out": 256,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 332,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/145",
+      "off": {
+        "passed": true,
+        "in": 18233,
+        "out": 265,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18244,
+        "out": 282,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/146",
+      "off": {
+        "passed": true,
+        "in": 18406,
+        "out": 250,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18233,
+        "out": 230,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/147",
+      "off": {
+        "passed": true,
+        "in": 18549,
+        "out": 424,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18222,
+        "out": 372,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/148",
+      "off": {
+        "passed": true,
+        "in": 18222,
+        "out": 480,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 474,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/149",
+      "off": {
+        "passed": true,
+        "in": 18406,
+        "out": 60,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18567,
+        "out": 370,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/150",
+      "off": {
+        "passed": true,
+        "in": 18222,
+        "out": 160,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 160,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/151",
+      "off": {
+        "passed": true,
+        "in": 18222,
+        "out": 232,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18222,
+        "out": 232,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/152",
+      "off": {
+        "passed": true,
+        "in": 18395,
+        "out": 41,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18222,
+        "out": 346,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/153",
+      "off": {
+        "passed": true,
+        "in": 18628,
+        "out": 530,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18395,
+        "out": 155,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/154",
+      "off": {
+        "passed": true,
+        "in": 18628,
+        "out": 221,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18222,
+        "out": 221,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/155",
+      "off": {
+        "passed": true,
+        "in": 18222,
+        "out": 183,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18222,
+        "out": 164,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/156",
+      "off": {
+        "passed": true,
+        "in": 18222,
+        "out": 317,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 2,
+        "out": 386,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/157",
+      "off": {
+        "passed": true,
+        "in": 18800,
+        "out": 226,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18222,
+        "out": 205,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/158",
+      "off": {
+        "passed": true,
+        "in": 18455,
+        "out": 211,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 20641,
+        "out": 312,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/159",
+      "off": {
+        "passed": true,
+        "in": 24497,
+        "out": 151,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18811,
+        "out": 448,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/160",
+      "off": {
+        "passed": true,
+        "in": 18270,
+        "out": 72,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 25557,
+        "out": 373,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/161",
+      "off": {
+        "passed": true,
+        "in": 18209,
+        "out": 253,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18230,
+        "out": 223,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/162",
+      "off": {
+        "passed": true,
+        "in": 18819,
+        "out": 224,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18351,
+        "out": 171,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/163",
+      "off": {
+        "passed": true,
+        "in": 18351,
+        "out": 287,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18198,
+        "out": 208,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    }
+  ],
+  "card": "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n  SENTIGENT EVAL CARD \u2014 HumanEval A/B (verify + self-repair vs one-shot)\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n  Base model: claude -p default (identical in both arms)   \u00b7   N = 164\n\n  metric                               OFF (blank)  ON (Sentigent)\n  --------------------------------------------------------------\n  verified pass@1                         159 (97%)        164 (100%)\n  failures (= human-fix events)                  5               0\n  auto-self-repaired (no human)                  \u2014               6\n  total tokens                           3,772,422       3,176,870\n  WASTED tokens (on failed tasks)          126,178               0\n\n  \u0394 verified pass@1 : +3 pts\n  \u0394 failures        : -5  (fewer = less human intervention)\n  \u0394 wasted tokens   : -126,178\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501"
+}

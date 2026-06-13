@@ -1,0 +1,107 @@
+{
+  "results": [
+    {
+      "task": "HumanEval/0",
+      "off": {
+        "passed": true,
+        "in": 18344,
+        "out": 282,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18111,
+        "out": 266,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/1",
+      "off": {
+        "passed": true,
+        "in": 25239,
+        "out": 350,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18344,
+        "out": 277,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/2",
+      "off": {
+        "passed": true,
+        "in": 18111,
+        "out": 126,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 19351,
+        "out": 126,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/3",
+      "off": {
+        "passed": true,
+        "in": 25906,
+        "out": 259,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18111,
+        "out": 242,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/4",
+      "off": {
+        "passed": true,
+        "in": 23488,
+        "out": 223,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 18528,
+        "out": 266,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    },
+    {
+      "task": "HumanEval/5",
+      "off": {
+        "passed": true,
+        "in": 18601,
+        "out": 199,
+        "calls": 1
+      },
+      "on": {
+        "passed": true,
+        "in": 27170,
+        "out": 283,
+        "calls": 1,
+        "attempts": 1,
+        "self_repaired": false
+      }
+    }
+  ],
+  "card": "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n  SENTIGENT EVAL CARD \u2014 HumanEval A/B (verify + self-repair vs one-shot)\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n  Base model: claude -p default (identical in both arms)   \u00b7   N = 6\n\n  metric                               OFF (blank)  ON (Sentigent)\n  --------------------------------------------------------------\n  verified pass@1                           6 (100%)          6 (100%)\n  failures (= human-fix events)                  0               0\n  auto-self-repaired (no human)                  \u2014               0\n  total tokens                             131,128         121,075\n  WASTED tokens (on failed tasks)                0               0\n\n  \u0394 verified pass@1 : +0 pts\n  \u0394 failures        : +0  (fewer = less human intervention)\n  \u0394 wasted tokens   : +0\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501"
+}
