@@ -230,3 +230,24 @@ Status legend: `accepted` (decided, may not be built yet) · `shipped` (in the c
   can auto-proceed. Flagged for Hussain as a risk-posture choice rather than silently changed.
 - **Rationale:** "unproven" was the honest status for months; the honest closure is a permanent
   end-to-end regression test, not a one-off manual flight that proves nothing tomorrow.
+
+## D-020 — Fly-mode safety-floor sweep: PolicyWall stickiness + first risk tests
+- **Date:** 2026-06-13 · **Status:** shipped
+- **Context:** Swept fly mode's safety-critical surface — `risk.py` (PolicyWall hard rules),
+  `safety.py` (KillSwitch + BudgetGovernor), and confirmed the killswitch is actually polled
+  (operate.py:387, per-run + global, before every step). `safety.py` is clean and the killswitch
+  is live. But `RiskAssessor.assess()` carried `policy_wall` on whichever rule won the *score*,
+  and the safety floor had **zero test coverage**.
+- **Decision:**
+  1. **PolicyWall is now sticky.** If ANY hard rule matches, the verdict carries `policy_wall=True`
+     regardless of which rule wins the score. The old code was safe only by the numeric coincidence
+     that no non-wall base exceeded any wall base — one future rule edit (e.g. a 0.9 non-wall
+     "deploy-to-prod") would have silently dropped a co-occurring hard-rule escalation. Now it fails
+     closed. Behavior on the current ruleset is unchanged.
+  2. **First `tests/test_risk.py`.** Locks the hard rules, the low-risk routine cases, and the
+     stickiness invariant (proven via a patched future high-base non-wall rule).
+- **Open (tuning, not a defect):** the `TRUSTED`-offline gate floor from D-019 still stands as a
+  risk-posture choice for Hussain.
+- **Rationale:** the hard-rule wall is the one guarantee that must hold even when everything else
+  (profile, gate, clone) is wrong. A guarantee with no tests and a numeric-coincidence dependency
+  isn't a guarantee — make it provable and fail-closed.

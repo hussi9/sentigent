@@ -67,11 +67,26 @@ class RiskAssessor:
         if not text:
             return RiskScore(0.0, "normal", [])
         best: RiskScore | None = None
+        wall_fired = False
+        wall_reasons: list[str] = []
         for pat, category, base, wall, reason in _RULES:
             if pat.search(text):
+                if wall:
+                    wall_fired = True
+                    if reason not in wall_reasons:
+                        wall_reasons.append(reason)
                 if best is None or base > best.score:
                     best = RiskScore(base, category, [reason], wall)
-                elif wall and not best.policy_wall:
-                    best.policy_wall = True
-                    best.reasons.append(reason)
-        return best or RiskScore(0.05, "normal", ["routine change"])
+        if best is None:
+            return RiskScore(0.05, "normal", ["routine change"])
+        # PolicyWall is STICKY: if ANY hard-rule matched, the verdict must carry policy_wall=True
+        # regardless of which rule won the score. The old code carried the wall flag on whichever
+        # rule had the highest base — safe only by the numeric coincidence that no non-wall base
+        # exceeded any wall base. One future rule edit (e.g. a 0.9 non-wall "deploy-to-prod" rule)
+        # would have silently dropped a co-occurring hard-rule escalation. Fail closed instead.
+        if wall_fired and not best.policy_wall:
+            best.policy_wall = True
+            for r in wall_reasons:
+                if r not in best.reasons:
+                    best.reasons.append(r)
+        return best
