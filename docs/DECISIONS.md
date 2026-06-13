@@ -210,3 +210,23 @@ Status legend: `accepted` (decided, may not be built yet) · `shipped` (in the c
   regression tests added.
 - **Rationale:** the verifier is the load-bearing wall of the whole loop's honesty. A false green
   here defeats every downstream guarantee — it must fail closed, not open.
+
+## D-019 — Execute-mode verifier proven live (closes gap-3) + core-loop sweep clean
+- **Date:** 2026-06-13 · **Status:** shipped
+- **Context:** The last open gap (D-014 #3): the Verifier + `test_cmd` gate firing inside
+  `operate(execute=True)` was only unit-proven, never exercised end-to-end. Also completed the
+  code-review sweep of the remaining core-loop modules: `gate.py`, `resolver.py`, `escalation.py`.
+- **Decision:**
+  1. **Gap-3 closed.** New `tests/test_operate_execute.py` drives the real `operate()` loop in
+     execute mode against a real MemoryStore, a real temp git worktree, and real subprocess
+     `test_cmd` criteria run by the real Verifier — only the LLM worker + clone are injected (a test
+     must not burn Anthropic quota, and that's not what this gap is about). Proves both arms live:
+     passing test_cmd → `verified=True` + real git checkpoint; failing test_cmd → self-repair
+     retries exactly `max_attempts`, `verified=False`, run pauses, `verify_failed` escalation filed.
+  2. **Core-loop sweep clean.** `gate`/`resolver`/`escalation` reviewed; no reproducible defects —
+     the session's bugs all lived in the learning/verification plumbing, not the decision core.
+- **Open (tuning, not a defect):** under `TRUSTED` autonomy with the LLM offline, the gate's
+  heuristic-fallback confidence (0.25) exactly meets the TRUSTED floor (0.25), so an unjudged step
+  can auto-proceed. Flagged for Hussain as a risk-posture choice rather than silently changed.
+- **Rationale:** "unproven" was the honest status for months; the honest closure is a permanent
+  end-to-end regression test, not a one-off manual flight that proves nothing tomorrow.
