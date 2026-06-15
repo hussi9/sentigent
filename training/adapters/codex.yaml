@@ -1,0 +1,110 @@
+# LAYER 2 — ADAPTER · OpenAI Codex CLI
+#
+# Binds the abstract intent verbs from training/principles.yaml (L1) to concrete
+# Codex CLI primitives. This file exists to PROVE portability: the same L1
+# principles render into a Codex-native trajectory by swapping only this adapter.
+#
+# pipeline:  principle (L1)  ×  this adapter (L2)  →  Codex trajectory
+#
+# Codex primitives referenced: shell (sandboxed command exec), apply_patch
+# (unified-diff file edits), update_plan (plan/step + status), request_input
+# (ask the operator / escalate). Codex has no first-class "subagent" or "skill"
+# primitive, so those collapse to shell + apply_patch.
+#
+# Every distinct intent verb that appears in principles.yaml is mapped here.
+
+agent: codex
+version: 1
+
+intents:
+  ask_human:
+    tools: [request_input]
+    note: Ask the operator a specific question and wait before proceeding.
+
+  inspect_target:
+    tools: [shell]
+    note: shell cat/sed -n the file/symbol before acting on it.
+
+  inspect_usages:
+    tools: [shell]
+    note: shell grep -rn / rg across the repo for call-sites and references.
+
+  reproduce_failure:
+    tools: [shell]
+    note: shell run the failing command/test to observe the failure first-hand.
+
+  write_plan:
+    tools: [update_plan]
+    note: update_plan with explicit steps, each carrying a done-criterion.
+
+  attach_done_criteria:
+    tools: [update_plan]
+    note: Encode each step's machine-checkable done into the plan entry.
+
+  note_defer:
+    tools: [update_plan]
+    note: Add an out-of-scope tangent as a deferred/pending plan note; don't act now.
+
+  survey_existing_patterns:
+    tools: [shell]
+    note: shell rg/ls to survey analogous code and match conventions.
+
+  search_existing_capability:
+    tools: [shell]
+    note: shell grep deps/imports for an existing util before adding one.
+
+  decompose_change:
+    tools: [update_plan, apply_patch]
+    note: Split a big change into small apply_patch hunks tracked in the plan.
+
+  block_and_ask:
+    tools: [request_input]
+    note: Halt and escalate to the operator for irreversible/sensitive decisions.
+
+  conform_style:
+    tools: [shell, apply_patch]
+    note: shell-read neighbors, then apply_patch matching naming/idiom/comments.
+
+  run_success_oracle:
+    tools: [shell]
+    note: shell run the project's tests/typecheck as the success oracle.
+
+  add_test:
+    tools: [apply_patch, shell]
+    note: apply_patch a regression test, shell-run it (fails before fix, passes after).
+
+  review_diff:
+    tools: [shell]
+    note: shell git diff to inspect leftovers, debug prints, scope creep.
+
+  security_review:
+    tools: [shell, apply_patch]
+    note: shell grep + read for input validation/parameterized queries/authz.
+
+  scan_secrets:
+    tools: [shell]
+    note: shell grep secret-scan over the staged diff before commit/push.
+
+  create_branch:
+    tools: [shell]
+    note: shell git checkout -b a feature branch instead of committing to main.
+
+  ensure_rollback:
+    tools: [update_plan, shell]
+    note: Record and verify the rollback path in the plan before deploying.
+
+  post_change_check:
+    tools: [shell]
+    note: shell run a real post-deploy check that the change actually works.
+
+  investigate_root_cause:
+    tools: [shell]
+    note: shell read/grep/run to trace the failure to its root cause.
+
+  change_approach:
+    tools: [update_plan, shell]
+    note: After repeated failure, revise the plan with a different approach.
+
+  refactor:
+    tools: [apply_patch]
+    note: Behavior-preserving apply_patch, bracketed by the oracle before and after.

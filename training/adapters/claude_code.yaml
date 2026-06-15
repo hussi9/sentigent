@@ -1,0 +1,107 @@
+# LAYER 2 — ADAPTER · Claude Code
+#
+# Binds the abstract intent verbs from training/principles.yaml (L1) to concrete
+# Claude Code primitives. L1 stays agent-agnostic; this file is the swappable
+# tool-binding layer. The generator renders agent-specific trajectories by
+# substituting each principle's `intent: [...]` through the map below.
+#
+# pipeline:  principle (L1)  ×  this adapter (L2)  →  Claude-Code trajectory
+#
+# Every distinct intent verb that appears in principles.yaml is mapped here.
+# Each entry: tools: [<Claude Code primitives>], note: <one-line binding rationale>.
+
+agent: claude_code
+version: 1
+
+intents:
+  ask_human:
+    tools: [ask_user]
+    note: Pose a specific question to the user and wait; do not assume.
+
+  inspect_target:
+    tools: [Read]
+    note: Open the actual file/symbol before acting on it.
+
+  inspect_usages:
+    tools: [Grep, Glob]
+    note: Find call-sites/references across the repo before changing a target.
+
+  reproduce_failure:
+    tools: [Bash]
+    note: Run the failing command/test to observe the failure first-hand.
+
+  write_plan:
+    tools: [EnterPlanMode, TodoWrite]
+    note: Draft a step list with per-step done-criteria before touching code.
+
+  attach_done_criteria:
+    tools: [TodoWrite]
+    note: Give each plan step a machine-checkable definition of done.
+
+  note_defer:
+    tools: [TodoWrite]
+    note: Record an out-of-scope tangent as a deferred item; don't act on it now.
+
+  survey_existing_patterns:
+    tools: [Grep, Glob, Read]
+    note: Survey sibling/analogous code to match existing conventions.
+
+  search_existing_capability:
+    tools: [Grep, Glob]
+    note: Search for an existing util/lib before adding a dependency.
+
+  decompose_change:
+    tools: [TodoWrite, Edit]
+    note: Split a large change into small, independently-verifiable edits.
+
+  block_and_ask:
+    tools: [ask_user]
+    note: Halt and escalate to the human for an irreversible/sensitive decision.
+
+  conform_style:
+    tools: [Read, Edit]
+    note: Read neighbors, then edit so new code matches naming/idiom/comments.
+
+  run_success_oracle:
+    tools: [Bash]
+    note: Run the project's own tests/typecheck (e.g. Bash run_tests) as the oracle.
+
+  add_test:
+    tools: [Write, Edit, Bash]
+    note: Add a regression test that fails before the fix and passes after.
+
+  review_diff:
+    tools: [Bash, Read]
+    note: Inspect git diff for leftovers, debug prints, and scope creep.
+
+  security_review:
+    tools: [Grep, Read, Task, Skill]
+    note: Check input validation, parameterized queries, authz (Skill security / Task subagent).
+
+  scan_secrets:
+    tools: [Bash]
+    note: Bash grep secret-scan over the staged diff before commit/push.
+
+  create_branch:
+    tools: [Bash]
+    note: git checkout -b a feature branch instead of committing to default/main.
+
+  ensure_rollback:
+    tools: [TodoWrite, Bash]
+    note: Confirm and record the rollback path before deploying/releasing.
+
+  post_change_check:
+    tools: [Bash]
+    note: After a deploy/change, run a real check that it actually works.
+
+  investigate_root_cause:
+    tools: [Read, Grep, Bash]
+    note: Trace the failure to its root cause; don't patch the symptom.
+
+  change_approach:
+    tools: [TodoWrite, Read]
+    note: After repeated failure, step back and pick a different approach.
+
+  refactor:
+    tools: [Edit]
+    note: Behavior-preserving edits, bracketed by the success oracle before and after.
