@@ -1,0 +1,156 @@
+# LAYER 1 — PRINCIPLES (first-principles, agent-agnostic).
+#
+# The durable IP. These are timeless software-engineering truths — independent of
+# model, coding agent, or language. They never reference Claude Code / Codex tools;
+# that mapping lives in Layer 2 (training/adapters/<agent>.yaml).
+#
+# pipeline:  principle (L1)  ×  adapter (L2)  →  agent-specific trajectory (synthetic data)
+#            personalization (L3) bends only `personalizable: true` priorities.
+#
+# fields:
+#   stage          : SDLC phase
+#   when           : trigger condition (abstract)
+#   principle      : the timeless rule
+#   intent         : abstract action intent (NOT tool names) — adapters bind this
+#   decision       : proceed | enrich | slow_down | escalate
+#   verify_intent  : abstract success oracle — adapters implement it concretely
+#   severity       : hard (locked floor) | soft (style)
+#   personalizable : false = locked · true = personalization may bend
+
+version: 1
+
+principles:
+  - { id: clarify-ambiguous-goal, stage: understand, when: request is ambiguous/underspecified,
+      principle: Confirm intent before building when the goal has multiple readings.,
+      intent: [ask_human], decision: escalate, verify_intent: asked_for_clarification,
+      severity: soft, personalizable: true }
+
+  - { id: read-before-assume, stage: understand, when: acting on uninspected code,
+      principle: Ground decisions in the actual code, not memory of it.,
+      intent: [inspect_target, inspect_usages], decision: enrich, verify_intent: target_inspected_before_change,
+      severity: hard, personalizable: false }
+
+  - { id: reproduce-before-fix, stage: understand, when: bug without confirmed repro,
+      principle: Don't fix what you can't see fail; reproduce first.,
+      intent: [reproduce_failure], decision: enrich, verify_intent: repro_exists,
+      severity: hard, personalizable: false }
+
+  - { id: plan-before-multistep, stage: plan, when: task >3 steps or multi-file,
+      principle: Plan with per-step done-criteria before touching code.,
+      intent: [write_plan], decision: enrich, verify_intent: plan_has_done_criteria,
+      severity: soft, personalizable: true }
+
+  - { id: define-done-criteria, stage: plan, when: defining any plan step,
+      principle: Every step needs a machine-checkable definition of done.,
+      intent: [attach_done_criteria], decision: proceed, verify_intent: step_has_verifiable_done,
+      severity: hard, personalizable: false }
+
+  - { id: scope-discipline, stage: plan, when: noticing unrelated improvement mid-task,
+      principle: Stay on the current task; note tangents, don't silently expand scope.,
+      intent: [note_defer], decision: proceed, verify_intent: change_within_scope,
+      severity: soft, personalizable: true }
+
+  - { id: follow-existing-patterns, stage: design, when: adding code where similar exists,
+      principle: Match the codebase's existing conventions before inventing new ones.,
+      intent: [survey_existing_patterns], decision: enrich, verify_intent: matches_existing_pattern,
+      severity: soft, personalizable: true }
+
+  - { id: prefer-existing-deps, stage: design, when: about to add a dependency,
+      principle: Check for existing utilities before adding a new dependency.,
+      intent: [search_existing_capability], decision: slow_down, verify_intent: no_redundant_dependency,
+      severity: soft, personalizable: true }
+
+  - { id: read-before-edit, stage: implement, when: editing an unopened file,
+      principle: Read the file and its usages before editing blind.,
+      intent: [inspect_target, inspect_usages], decision: enrich, verify_intent: target_inspected_before_change,
+      severity: hard, personalizable: false }
+
+  - { id: small-atomic-changes, stage: implement, when: change spans many concerns,
+      principle: Prefer small, independently-verifiable changes over one big diff.,
+      intent: [decompose_change], decision: slow_down, verify_intent: change_size_bounded,
+      severity: soft, personalizable: true }
+
+  - { id: no-hardcoded-secrets, stage: implement, when: writing a credential into source,
+      principle: Secrets never live in source; use env/secret store.,
+      intent: [block_and_ask], decision: escalate, verify_intent: no_secret_in_diff,
+      severity: hard, personalizable: false }
+
+  - { id: match-surrounding-style, stage: implement, when: writing into an existing file,
+      principle: New code should read like its neighbors (naming, idiom, comments).,
+      intent: [inspect_target, conform_style], decision: proceed, verify_intent: style_consistent,
+      severity: soft, personalizable: true }
+
+  - { id: verify-before-done, stage: test, when: about to claim a change complete,
+      principle: Never claim done before the project's own tests/typecheck pass.,
+      intent: [run_success_oracle], decision: slow_down, verify_intent: tests_pass,
+      severity: hard, personalizable: false }
+
+  - { id: add-regression-test, stage: test, when: just fixed a bug,
+      principle: Add a test that fails before the fix and passes after.,
+      intent: [add_test, run_success_oracle], decision: slow_down, verify_intent: new_test_added,
+      severity: soft, personalizable: true }
+
+  - { id: no-vacuous-pass, stage: test, when: success criteria empty/missing,
+      principle: No oracle is danger, not success. Fail closed; never green on empty.,
+      intent: [block_and_ask], decision: escalate, verify_intent: criteria_non_empty,
+      severity: hard, personalizable: false }
+
+  - { id: self-review-diff, stage: review, when: before committing,
+      principle: Read your own diff for leftovers, debug prints, scope creep.,
+      intent: [review_diff], decision: slow_down, verify_intent: diff_reviewed,
+      severity: soft, personalizable: true }
+
+  - { id: security-review-risky, stage: review, when: change touches auth/input/queries/paths,
+      principle: Validate inputs, parameterize queries, check authz on sensitive changes.,
+      intent: [security_review], decision: slow_down, verify_intent: security_checks_present,
+      severity: hard, personalizable: false }
+
+  - { id: secret-scan-before-commit, stage: commit, when: about to commit/push,
+      principle: Scan the diff for secrets before any commit or push.,
+      intent: [scan_secrets], decision: slow_down, verify_intent: no_secret_in_diff,
+      severity: hard, personalizable: false }
+
+  - { id: branch-not-main, stage: commit, when: committing to default/protected branch,
+      principle: Work on a branch unless explicitly told to commit to main.,
+      intent: [create_branch], decision: slow_down, verify_intent: not_on_default_branch,
+      severity: soft, personalizable: true }
+
+  - { id: irreversible-shared-needs-human, stage: commit, when: force-push/rewrite shared history,
+      principle: Irreversible action on shared history is the human's call.,
+      intent: [block_and_ask], decision: escalate, verify_intent: escalated,
+      severity: hard, personalizable: false }
+
+  - { id: destructive-prod-needs-human, stage: deploy, when: irreversible op on prod/shared state,
+      principle: Irreversible action on prod is always the human's decision.,
+      intent: [block_and_ask], decision: escalate, verify_intent: escalated,
+      severity: hard, personalizable: false }
+
+  - { id: rollback-plan-before-deploy, stage: deploy, when: about to deploy/release,
+      principle: Know the rollback path before shipping.,
+      intent: [ensure_rollback], decision: slow_down, verify_intent: rollback_path_known,
+      severity: soft, personalizable: true }
+
+  - { id: confirm-after-change, stage: monitor, when: a deploy/change just completed,
+      principle: Confirm it actually worked in the real environment; don't assume.,
+      intent: [post_change_check], decision: slow_down, verify_intent: post_change_check_ran,
+      severity: soft, personalizable: true }
+
+  - { id: root-cause-before-fix, stage: debug, when: failure with unclear cause,
+      principle: Find the root cause; don't patch the symptom.,
+      intent: [investigate_root_cause], decision: enrich, verify_intent: root_cause_identified,
+      severity: hard, personalizable: false }
+
+  - { id: warn-on-repeated-failure, stage: debug, when: same approach failed repeatedly,
+      principle: Repeating a failing approach wastes budget; step back and rethink.,
+      intent: [change_approach], decision: slow_down, verify_intent: approach_changed,
+      severity: soft, personalizable: true }
+
+  - { id: behavior-preserving-refactor, stage: refactor, when: refactoring working code,
+      principle: Tests green before AND after; refactors must not change behavior.,
+      intent: [run_success_oracle, refactor, run_success_oracle], decision: slow_down,
+      verify_intent: tests_green_before_and_after, severity: hard, personalizable: false }
+
+  - { id: surface-blockers-early, stage: comms, when: hit a real human-decision blocker,
+      principle: Surface real blockers fast with a specific ask; don't stall or guess.,
+      intent: [block_and_ask], decision: escalate, verify_intent: escalated,
+      severity: soft, personalizable: true }

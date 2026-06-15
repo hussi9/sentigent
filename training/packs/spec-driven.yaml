@@ -1,0 +1,28 @@
+# PRACTICE PACK — Spec-Driven Development (the agentic-SDLC keystone).
+# No code until a written, testable spec exists. The spec is the success oracle.
+pack: spec-driven
+extends: baseline
+meta:
+  name: Spec-Driven Development
+  description: Write a verifiable spec/acceptance-criteria first; it drives plan, code, and verification.
+
+override:
+  define-done-criteria:
+    severity: hard
+    personalizable: false
+  plan-before-multistep:
+    severity: hard          # spec-driven makes planning mandatory, not optional
+    personalizable: false
+
+add:
+  - { id: write-spec-first, stage: spec,
+      when: starting any non-trivial feature or change,
+      principle: Produce a written spec with acceptance criteria before planning or coding.,
+      intent: [write_spec], decision: enrich,
+      verify_intent: spec_has_acceptance_criteria, severity: hard, personalizable: false }
+
+  - { id: trace-code-to-spec, stage: review,
+      when: reviewing a change,
+      principle: Every change traces to a spec line; no orphan scope.,
+      intent: [review_diff], decision: slow_down,
+      verify_intent: change_traces_to_spec, severity: soft, personalizable: true }

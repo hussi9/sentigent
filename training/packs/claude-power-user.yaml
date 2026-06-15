@@ -1,0 +1,90 @@
+# PRACTICE PACK — Claude Code Super-User.
+#
+# Encodes the best-practice WAY to use Claude Code's strongest features — so an
+# agent that loads this pack uses skills, subagents, plan mode, MCP, parallelism,
+# background jobs and extended thinking the way a power user does, on day 0.
+#
+# NOTE: unlike the agent-agnostic L1 principles, this pack is deliberately
+# `agent: claude_code`-scoped — its rules name real Claude Code primitives. Sibling
+# packs can do the same for codex/cursor/etc. (the "best features" map differently
+# per agent; that's the point of keeping it a pack, not baseline).
+
+pack: claude-power-user
+extends: baseline
+agent: claude_code
+meta:
+  name: Claude Code Super-User
+  description: Reach for Claude Code's best capabilities at the right moment — skills, subagents, plan mode, MCP, parallelism, background jobs, extended thinking.
+
+add:
+  - { id: cc-use-skill-when-matches, stage: understand,
+      when: a skill/slash-command exists that fits the task,
+      principle: Invoke the matching Skill before improvising — even a 1% fit means check it first.,
+      intent: [invoke_skill], decision: enrich,
+      verify_intent: skill_invoked_when_available, severity: hard, personalizable: false }
+
+  - { id: cc-plan-mode-before-large, stage: plan,
+      when: change is large, multi-file, ambiguous, or architecturally significant,
+      principle: Enter plan mode and get the plan approved before editing.,
+      intent: [enter_plan_mode], decision: enrich,
+      verify_intent: plan_approved_before_edit, severity: soft, personalizable: true }
+
+  - { id: cc-delegate-subagents, stage: context,
+      when: work is an isolated sub-task, a broad fan-out search, or parallelizable,
+      principle: Spawn a subagent (Task/Explore) with fresh context instead of bloating the main thread.,
+      intent: [spawn_subagent], decision: enrich,
+      verify_intent: subagent_used_for_isolated_work, severity: soft, personalizable: true }
+
+  - { id: cc-parallel-tool-calls, stage: context,
+      when: multiple independent reads/greps/lookups are needed,
+      principle: Batch independent tool calls in one message; don't serialize what can run in parallel.,
+      intent: [batch_parallel_calls], decision: proceed,
+      verify_intent: independent_calls_batched, severity: soft, personalizable: true }
+
+  - { id: cc-todowrite-multistep, stage: plan,
+      when: task has more than ~3 tracked steps,
+      principle: Use TodoWrite to track multi-step work so nothing is dropped.,
+      intent: [track_todos], decision: proceed,
+      verify_intent: todos_tracked_for_multistep, severity: soft, personalizable: true }
+
+  - { id: cc-mcp-over-guessing, stage: implement,
+      when: the task needs DB / browser / external-service capability an MCP server provides,
+      principle: Use the MCP tool (e.g. supabase, playwright) rather than guessing or hand-rolling.,
+      intent: [use_mcp_tool], decision: enrich,
+      verify_intent: mcp_used_for_capability, severity: soft, personalizable: true }
+
+  - { id: cc-context7-for-docs, stage: understand,
+      when: a question about a library/framework/API/CLI version or syntax,
+      principle: Fetch current docs (context7) instead of trusting possibly-stale memory.,
+      intent: [fetch_current_docs], decision: enrich,
+      verify_intent: docs_fetched_not_guessed, severity: soft, personalizable: true }
+
+  - { id: cc-extended-thinking-hard, stage: plan,
+      when: a genuinely hard reasoning / design / debugging problem,
+      principle: Use extended thinking before acting on hard problems; don't snap to the first idea.,
+      intent: [think_hard], decision: slow_down,
+      verify_intent: reasoning_before_action, severity: soft, personalizable: true }
+
+  - { id: cc-background-long-running, stage: implement,
+      when: a long-running command (build, full test suite, eval, install),
+      principle: Run it in the background and keep working; don't block the session on a long job.,
+      intent: [run_in_background], decision: proceed,
+      verify_intent: long_job_backgrounded, severity: soft, personalizable: true }
+
+  - { id: cc-grep-glob-first, stage: context,
+      when: locating code/symbols/usages,
+      principle: Use Grep/Glob to locate before reading whole files or guessing paths.,
+      intent: [search_then_read], decision: enrich,
+      verify_intent: searched_before_bulk_read, severity: soft, personalizable: true }
+
+  - { id: cc-codereview-risky, stage: review,
+      when: a large or risky branch is ready,
+      principle: Run a multi-agent /code-review for an adversarial second pass before merge.,
+      intent: [request_code_review], decision: slow_down,
+      verify_intent: review_requested_for_risky, severity: soft, personalizable: true }
+
+  - { id: cc-worktree-parallel-mutation, stage: implement,
+      when: multiple agents will edit files concurrently,
+      principle: Isolate each in a git worktree so parallel edits don't conflict.,
+      intent: [isolate_worktree], decision: slow_down,
+      verify_intent: worktree_isolation_used, severity: soft, personalizable: true }

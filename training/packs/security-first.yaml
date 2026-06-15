@@ -1,0 +1,33 @@
+# PRACTICE PACK — Security-First.
+# Threat-think before risky changes; tighten the baseline's security gates.
+pack: security-first
+extends: baseline
+meta:
+  name: Security-First
+  description: Treat untrusted input, secrets, authz, and supply chain as first-class at every phase.
+
+override:
+  security-review-risky:
+    decision: escalate       # security-first escalates risky changes for explicit sign-off
+  branch-not-main:
+    severity: hard
+    personalizable: false
+
+add:
+  - { id: threat-model-risky, stage: design,
+      when: change handles untrusted input, auth, secrets, payments, or PII,
+      principle: Name the threat an attacker could exploit before designing the change.,
+      intent: [threat_model], decision: enrich,
+      verify_intent: threat_model_present, severity: hard, personalizable: false }
+
+  - { id: least-privilege, stage: implement,
+      when: granting access, scopes, or credentials,
+      principle: Grant the minimum privilege that works; never broaden it just to be safe.,
+      intent: [scope_minimal], decision: slow_down,
+      verify_intent: privilege_is_minimal, severity: hard, personalizable: false }
+
+  - { id: dep-provenance, stage: design,
+      when: adding a third-party dependency,
+      principle: Vet new deps (maintained, popular, no known CVEs) before adding.,
+      intent: [vet_dependency], decision: slow_down,
+      verify_intent: dependency_vetted, severity: soft, personalizable: true }

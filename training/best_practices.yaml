@@ -1,0 +1,342 @@
+# BASELINE BEST-PRACTICES RUBRIC — the whole development lifecycle.
+#
+# This is the GAME-CHANGER asset: it ships WITH the product, so a brand-new user
+# (zero data) gets a competent senior-dev judgment layer on day 0. Personalization
+# then only BENDS the `personalizable: true` rules toward the individual — it can
+# NEVER weaken a `personalizable: false` safety rule. So:
+#
+#   baseline (this file)  = the floor everyone gets instantly
+#   personalization (data) = fills the GAPS / bends the soft rules toward you
+#
+# It is also the source of truth for SYNTHETIC training data: a teacher model is
+# conditioned on each rule to generate balanced, Claude-Code/Codex-specific
+# trajectories, each gated by `verify` before entering the dataset.
+#
+# ── fields ──────────────────────────────────────────────────────────────────
+#   stage         : SDLC phase
+#   situation     : when this rule fires
+#   ideal_sequence: best-practice action order (Claude Code / Codex primitives)
+#   skills        : tools/skills to use
+#   decision      : judgment-layer output  (proceed | enrich | slow_down | escalate)
+#   reason        : one-line rationale (teaches the "why")
+#   verify        : machine-checkable success oracle (quality gate for synthetic data)
+#   severity      : hard (safety floor) | soft (style/preference)
+#   personalizable: false = locked floor · true = personalization may bend it
+#
+# action space: Read, Grep, Glob, Edit, Write, Bash, Task(subagent), Skill(<name>),
+#   plan, run_tests, typecheck, build, lint, secret_scan, git_status, git_diff,
+#   git_branch, git_commit, deploy, rollback, monitor, ask_user
+# decision space: proceed | enrich | slow_down | escalate
+
+version: 1
+
+rules:
+
+  # ── 1. UNDERSTAND / INTAKE ──────────────────────────────────────────────
+  - id: clarify-ambiguous-goal
+    stage: understand
+    situation: The request is ambiguous, underspecified, or has multiple readings.
+    ideal_sequence: [ask_user]
+    skills: [ask_user]
+    decision: escalate
+    reason: A wrong understanding multiplies downstream; confirm intent before building.
+    verify: { type: decision_is, value: escalate }
+    severity: soft
+    personalizable: true   # some users want you to assume sensible defaults & proceed
+
+  - id: read-before-assume
+    stage: understand
+    situation: About to act on a file/module not yet inspected this session.
+    ideal_sequence: [Read, Grep]
+    skills: [Read, Grep]
+    decision: enrich
+    reason: Ground in the actual code, not memory of it.
+    verify: { type: file_was_read_before_edit }
+    severity: hard
+    personalizable: false
+
+  - id: reproduce-before-fix
+    stage: understand
+    situation: A bug report without a confirmed reproduction.
+    ideal_sequence: [Read, Bash, run_tests]
+    skills: [Bash]
+    decision: enrich
+    reason: Don't fix what you can't see fail; reproduce first.
+    verify: { type: repro_exists }
+    severity: hard
+    personalizable: false
+
+  # ── 2. PLAN ─────────────────────────────────────────────────────────────
+  - id: plan-before-multistep
+    stage: plan
+    situation: Task spans multiple files or has more than ~3 steps.
+    ideal_sequence: [plan]
+    skills: [plan]
+    decision: enrich
+    reason: Write the plan with per-step done-criteria before touching code.
+    verify: { type: plan_has_done_criteria }
+    severity: soft
+    personalizable: true
+
+  - id: define-done-criteria
+    stage: plan
+    situation: Defining any step of a plan.
+    ideal_sequence: [plan]
+    skills: [plan]
+    decision: proceed
+    reason: Every step needs a machine-checkable "done" (test/build/grep/file).
+    verify: { type: step_has_verifiable_done }
+    severity: hard
+    personalizable: false
+
+  - id: scope-discipline
+    stage: plan
+    situation: While doing task A you notice an unrelated improvement B.
+    ideal_sequence: [proceed]
+    skills: []
+    decision: proceed
+    reason: Stay on A; note B, don't silently expand scope.
+    verify: { type: diff_within_task_scope }
+    severity: soft
+    personalizable: true
+
+  # ── 3. DESIGN ───────────────────────────────────────────────────────────
+  - id: follow-existing-patterns
+    stage: design
+    situation: Adding a new component/module where similar ones already exist.
+    ideal_sequence: [Grep, Glob, Read]
+    skills: [Grep, Glob]
+    decision: enrich
+    reason: Match the codebase's existing conventions before inventing a new one.
+    verify: { type: pattern_match_existing }
+    severity: soft
+    personalizable: true
+
+  - id: prefer-existing-deps
+    stage: design
+    situation: About to add a dependency for functionality that may already exist.
+    ideal_sequence: [Grep, Read]
+    skills: [Grep]
+    decision: slow_down
+    reason: Check for an existing util/lib before adding a new dependency.
+    verify: { type: no_redundant_dependency }
+    severity: soft
+    personalizable: true
+
+  # ── 4. IMPLEMENT ────────────────────────────────────────────────────────
+  - id: read-before-edit
+    stage: implement
+    situation: About to Edit a file not opened this session.
+    ideal_sequence: [Read, Grep, Edit]
+    skills: [Read, Grep]
+    decision: enrich
+    reason: Read the file and its usages before editing blind.
+    verify: { type: file_was_read_before_edit }
+    severity: hard
+    personalizable: false
+
+  - id: small-atomic-changes
+    stage: implement
+    situation: A large change spanning many concerns at once.
+    ideal_sequence: [plan, Edit, run_tests]
+    skills: []
+    decision: slow_down
+    reason: Prefer small, independently-verifiable changes over one big diff.
+    verify: { type: diff_size_bounded }
+    severity: soft
+    personalizable: true
+
+  - id: no-hardcoded-secrets
+    stage: implement
+    situation: About to write a credential/key/token into a file.
+    ideal_sequence: [ask_user]
+    skills: [secret_scan]
+    decision: escalate
+    reason: Secrets never go in source; use env/secret store.
+    verify: { type: grep_absent, pattern: "(sk-|service_role|password\\s*=|BEGIN .*PRIVATE KEY)" }
+    severity: hard
+    personalizable: false
+
+  - id: match-surrounding-style
+    stage: implement
+    situation: Writing new code in an existing file.
+    ideal_sequence: [Read, Edit]
+    skills: [Read]
+    decision: proceed
+    reason: Match the file's naming, comments, idiom — read like the neighbors.
+    verify: { type: style_consistent }
+    severity: soft
+    personalizable: true
+
+  # ── 5. TEST ─────────────────────────────────────────────────────────────
+  - id: verify-before-done
+    stage: test
+    situation: About to report a code change complete.
+    ideal_sequence: [run_tests, typecheck]
+    skills: [run_tests, typecheck]
+    decision: slow_down
+    reason: Never claim done before the project's own tests/typecheck pass.
+    verify: { type: cmd_exits_zero, cmd: "task test command" }
+    severity: hard
+    personalizable: false
+
+  - id: add-regression-test
+    stage: test
+    situation: Just fixed a bug.
+    ideal_sequence: [Edit, run_tests]
+    skills: [run_tests]
+    decision: slow_down
+    reason: Add a test that fails before the fix and passes after.
+    verify: { type: new_test_added }
+    severity: soft
+    personalizable: true
+
+  - id: no-vacuous-pass
+    stage: test
+    situation: The verification command/criteria is empty or missing.
+    ideal_sequence: [ask_user]
+    skills: []
+    decision: escalate
+    reason: No oracle = danger, not success. Fail closed; never green on empty.
+    verify: { type: criteria_non_empty }
+    severity: hard
+    personalizable: false
+
+  # ── 6. REVIEW ───────────────────────────────────────────────────────────
+  - id: self-review-diff
+    stage: review
+    situation: Before committing, the diff has not been reviewed.
+    ideal_sequence: [git_diff, Read]
+    skills: [git_diff]
+    decision: slow_down
+    reason: Read your own diff for leftovers, debug prints, scope creep.
+    verify: { type: diff_reviewed }
+    severity: soft
+    personalizable: true
+
+  - id: security-review-risky
+    stage: review
+    situation: Change touches auth, input handling, queries, or file/URL paths.
+    ideal_sequence: [Grep, Read, Task]
+    skills: [Skill(security)]
+    decision: slow_down
+    reason: Validate inputs, parameterize queries, check authz on sensitive changes.
+    verify: { type: security_checks_present }
+    severity: hard
+    personalizable: false
+
+  # ── 7. COMMIT / VCS ─────────────────────────────────────────────────────
+  - id: secret-scan-before-commit
+    stage: commit
+    situation: About to commit or push.
+    ideal_sequence: [secret_scan, git_status, git_commit]
+    skills: [secret_scan]
+    decision: slow_down
+    reason: Scan the diff for secrets before any commit/push.
+    verify: { type: grep_absent, pattern: "(sk-|service_role|BEGIN .*PRIVATE KEY)" }
+    severity: hard
+    personalizable: false
+
+  - id: branch-not-main
+    stage: commit
+    situation: About to commit directly to the default/protected branch.
+    ideal_sequence: [git_branch, git_commit]
+    skills: [git_branch]
+    decision: slow_down
+    reason: Work on a branch unless the user explicitly said commit to main.
+    verify: { type: not_on_default_branch }
+    severity: soft
+    personalizable: true
+
+  - id: force-push-shared
+    stage: commit
+    situation: About to force-push to a shared/remote branch.
+    ideal_sequence: [ask_user]
+    skills: [ask_user]
+    decision: escalate
+    reason: Force-push to shared history is irreversible for others; human's call.
+    verify: { type: decision_is, value: escalate }
+    severity: hard
+    personalizable: false
+
+  # ── 8. DEPLOY / RELEASE ─────────────────────────────────────────────────
+  - id: destructive-prod-needs-human
+    stage: deploy
+    situation: Irreversible/destructive op on prod/shared state (rm -rf, DROP, prod deploy/migration).
+    ideal_sequence: [ask_user]
+    skills: [ask_user]
+    decision: escalate
+    reason: Irreversible action on prod is the human's decision, always.
+    verify: { type: decision_is, value: escalate }
+    severity: hard
+    personalizable: false
+
+  - id: rollback-plan-before-deploy
+    stage: deploy
+    situation: About to deploy/release.
+    ideal_sequence: [plan, deploy, monitor]
+    skills: [deploy]
+    decision: slow_down
+    reason: Know the rollback path before you ship.
+    verify: { type: rollback_path_known }
+    severity: soft
+    personalizable: true
+
+  # ── 9. MONITOR / CONFIRM ────────────────────────────────────────────────
+  - id: confirm-after-change
+    stage: monitor
+    situation: A deploy/change just completed.
+    ideal_sequence: [monitor, Bash]
+    skills: [monitor]
+    decision: slow_down
+    reason: Confirm it actually worked in the real environment; don't assume.
+    verify: { type: post_change_check_ran }
+    severity: soft
+    personalizable: true
+
+  # ── 10. DEBUG ───────────────────────────────────────────────────────────
+  - id: root-cause-before-fix
+    stage: debug
+    situation: A failure with an unclear cause.
+    ideal_sequence: [Read, Bash, Grep]
+    skills: [Bash, Grep]
+    decision: enrich
+    reason: Find the root cause; don't patch the symptom.
+    verify: { type: root_cause_identified }
+    severity: hard
+    personalizable: false
+
+  - id: warn-on-repeated-failure
+    stage: debug
+    situation: The same command/approach has failed multiple times.
+    ideal_sequence: [slow_down, Read]
+    skills: []
+    decision: slow_down
+    reason: Repeating a failing approach wastes budget; step back and rethink.
+    verify: { type: approach_changed_after_fail }
+    severity: soft
+    personalizable: true
+
+  # ── 11. REFACTOR ────────────────────────────────────────────────────────
+  - id: behavior-preserving-refactor
+    stage: refactor
+    situation: Refactoring existing working code.
+    ideal_sequence: [run_tests, Edit, run_tests]
+    skills: [run_tests]
+    decision: slow_down
+    reason: Tests green before AND after; refactors must not change behavior.
+    verify: { type: tests_green_before_and_after }
+    severity: hard
+    personalizable: false
+
+  # ── 12. COLLABORATION / COMMS ───────────────────────────────────────────
+  - id: surface-blockers-early
+    stage: comms
+    situation: Hit a genuine blocker that needs a human decision.
+    ideal_sequence: [ask_user]
+    skills: [ask_user]
+    decision: escalate
+    reason: Surface real blockers fast with a specific ask; don't silently stall or guess.
+    verify: { type: decision_is, value: escalate }
+    severity: soft
+    personalizable: true   # autonomy appetite varies — this is THE classic "bend toward me" rule

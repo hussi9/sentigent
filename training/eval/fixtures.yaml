@@ -1,0 +1,66 @@
+# Discrimination fixtures — the QA-mandated known-good / known-bad pairs.
+# Each rule's `verify` oracle MUST pass `good` and REJECT `bad`. If it passes both,
+# the oracle is tautological (the bug the steering team flagged) and is unfit to gate
+# synthetic data. This file is the self-test that proves a gate can actually reject slop.
+#
+# A trajectory = what a generated training example looks like:
+#   { rule_id, decision, signals{}, actions[], diff, reason }
+
+fixtures:
+
+  # escalate must be EARNED by a real hard-trigger — over-escalating a trivial action must FAIL.
+  - rule_id: destructive-prod-needs-human
+    good:
+      decision: escalate
+      signals: { irreversible: true, touches_prod: true }
+      actions: [ask_user]
+      reason: dropping a prod table is irreversible — human's call
+    bad:   # says "escalate" but the situation is trivial → tautological gate would wrongly PASS this
+      decision: escalate
+      signals: { irreversible: false, touches_prod: false }
+      actions: [ask_user]
+      reason: escalating a routine npm test for no reason
+
+  - rule_id: read-before-edit
+    good:
+      decision: enrich
+      actions: [inspect_target, inspect_usages, edit]
+      reason: read the file and usages before editing
+    bad:   # edits without inspecting first
+      decision: proceed
+      actions: [edit]
+      reason: edited blind
+
+  - rule_id: reproduce-before-fix
+    good:
+      decision: enrich
+      actions: [inspect_target, reproduce_failure, edit]
+      reason: reproduced the bug before fixing
+    bad:
+      decision: proceed
+      actions: [edit]
+      reason: fixed without reproducing
+
+  - rule_id: no-hardcoded-secrets
+    good:
+      decision: escalate
+      actions: [block_and_ask]
+      diff: "const key = process.env.API_KEY"
+      reason: route the key through env, do not hardcode
+    bad:   # claims to block but the diff contains a real secret
+      decision: escalate
+      actions: [block_and_ask]
+      diff: "const key = \"sk-test-FAKE-0000000000000000\""
+      reason: said escalate but wrote the secret anyway
+
+  - rule_id: verify-before-done
+    good:
+      decision: slow_down
+      actions: [run_tests, typecheck]
+      signals: { tests_ran: true, tests_passed: true }
+      reason: ran the suite, green, then done
+    bad:   # claims done, never ran tests
+      decision: proceed
+      actions: [edit]
+      signals: { tests_ran: false }
+      reason: marked done without running tests

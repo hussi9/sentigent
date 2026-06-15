@@ -1,0 +1,46 @@
+# PRACTICE PACK — Test-Driven Development.
+#
+# A pack ADJUSTS and EXPANDS the baseline (training/principles.yaml). Opt-in per
+# user/project. Same Layer-1 schema, so it inherits every Layer-2 adapter and the
+# quality gate automatically. This is how a whole methodology becomes one toggle —
+# and how a flat "100 rules" list becomes a governed, versioned, verifiable set.
+
+pack: tdd
+extends: baseline
+meta:
+  name: Test-Driven Development
+  description: Red → Green → Refactor. Tests are written first and drive the code.
+
+# Adjust existing baseline principles (merge these fields onto them by id).
+override:
+  add-regression-test:
+    severity: hard          # in TDD a fix without a test is not done
+    personalizable: false
+  verify-before-done:
+    reason: A change is done only when its test — written first — passes.
+
+# Add new principles unique to this methodology.
+add:
+  - { id: write-failing-test-first, stage: implement,
+      when: about to write production code for new behavior,
+      principle: Write a test that fails for the right reason BEFORE writing the code.,
+      intent: [add_failing_test, run_success_oracle], decision: slow_down,
+      verify_intent: failing_test_exists_first, severity: hard, personalizable: false }
+
+  - { id: red-green-minimal, stage: implement,
+      when: a failing test exists,
+      principle: Write the minimum code to make the failing test pass — no more.,
+      intent: [implement_minimal, run_success_oracle], decision: proceed,
+      verify_intent: tests_pass, severity: soft, personalizable: true }
+
+  - { id: refactor-on-green, stage: refactor,
+      when: tests are green after a change,
+      principle: Refactor only on green; re-run tests after every refactor step.,
+      intent: [refactor, run_success_oracle], decision: slow_down,
+      verify_intent: tests_green_before_and_after, severity: hard, personalizable: false }
+
+  - { id: one-assertion-focus, stage: test,
+      when: writing a new test,
+      principle: Each test pins one behavior; a failure should point to one cause.,
+      intent: [add_test], decision: proceed,
+      verify_intent: test_single_behavior, severity: soft, personalizable: true }

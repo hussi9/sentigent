@@ -1,0 +1,103 @@
+# MACRO LAYER — the AGENTIC SDLC (whole-task workflow, agent-coding perspective).
+#
+# principles.yaml = ATOMIC ("should I do THIS action?").
+# lifecycle.yaml  = MACRO   ("what is the correct PHASE SEQUENCE + GATES to take a
+#                            task from request → shipped, as an autonomous agent?").
+#
+# This is agent-NATIVE, not a human SDLC: it adds the concerns a coding agent has
+# that a human doesn't — context budget, fresh-context-per-step, subagent
+# delegation, verification GATES between phases (the anti-hallucination spine),
+# checkpoint/resume, escalation points, and a kill/budget ceiling.
+#
+# Each phase has a machine-checkable EXIT GATE. The agent may not advance to the
+# next phase until the gate passes — that gate discipline is what stops a confident
+# wrong "done" from propagating. Atomic principles (by id) fire WITHIN each phase.
+
+version: 1
+
+# cross-cutting agent concerns — apply in EVERY phase
+agent_invariants:
+  context: Use fresh, task-scoped context per step; checkpoint state so long runs resume.
+  delegation: Spawn a subagent for isolated/parallel sub-work; keep one decision-root.
+  gates: Never advance a phase until its exit_gate passes (fail-closed).
+  escalation: At any phase, an irreversible/ambiguous/repeated-failure event → escalate.
+  budget: Respect token/step ceiling + kill switch; chain-guard trips on low-confidence streaks.
+  provenance: Log every decision+outcome (feeds the data flywheel / Layer-3 learning).
+
+phases:
+  - id: intake
+    goal: Capture the real intent; disambiguate.
+    entry: a new task/request arrives
+    principles: [clarify-ambiguous-goal, read-before-assume]
+    exit_gate: intent is unambiguous (or a clarifying question was asked)
+    agent_concern: pull only the context needed to understand — not the whole repo.
+
+  - id: spec
+    goal: Turn the request into written acceptance criteria (spec-driven).
+    entry: intent confirmed
+    principles: [define-done-criteria]
+    exit_gate: spec exists with testable acceptance criteria
+    agent_concern: the spec IS the success oracle the rest of the loop verifies against.
+
+  - id: plan
+    goal: Decompose into steps, each with a Definition-of-Done; mark risk/escalation points.
+    entry: spec accepted
+    principles: [plan-before-multistep, define-done-criteria, scope-discipline]
+    exit_gate: every step has a machine-checkable DoD
+    agent_concern: checkpoint the plan; it is the resume point for a long run.
+
+  - id: context
+    goal: Gather the right code/docs for the step into working context.
+    entry: a step begins
+    principles: [read-before-assume, follow-existing-patterns, prefer-existing-deps]
+    exit_gate: target files + their usages inspected
+    agent_concern: fresh per-step context; don't carry stale history — it degrades long runs.
+
+  - id: implement
+    goal: Make the change for ONE step, then verify it, repair on failure (bounded).
+    entry: context gathered for the step
+    principles: [read-before-edit, small-atomic-changes, match-surrounding-style, no-hardcoded-secrets]
+    exit_gate: the step's DoD passes (self-repair retries, capped)
+    agent_concern: one step at a time; checkpoint after each; never batch unverified steps.
+
+  - id: verify
+    goal: Whole-change verification (full tests/build/typecheck), not just the step.
+    entry: all steps individually pass
+    principles: [verify-before-done, no-vacuous-pass, add-regression-test]
+    exit_gate: project's own success oracle is green
+    agent_concern: empty/missing oracle → escalate, never green-on-empty.
+
+  - id: review
+    goal: Self-review the diff + adversarial/security pass.
+    entry: verification green
+    principles: [self-review-diff, security-review-risky, root-cause-before-fix]
+    exit_gate: no unaddressed findings
+    agent_concern: spawn a fresh-context reviewer subagent — the author is a biased reviewer.
+
+  - id: commit
+    goal: Land the change safely in version control.
+    entry: review clean
+    principles: [secret-scan-before-commit, branch-not-main, irreversible-shared-needs-human]
+    exit_gate: clean diff committed, no secrets, on a branch
+    agent_concern: force-push / shared-history rewrite → escalate.
+
+  - id: deliver
+    goal: Deploy/release with a known rollback; humans own irreversible prod actions.
+    entry: committed
+    principles: [destructive-prod-needs-human, rollback-plan-before-deploy]
+    exit_gate: deployed (after human approval if irreversible) with rollback known
+    agent_concern: prod/destructive = hard escalation gate, no exceptions.
+
+  - id: operate
+    goal: Confirm it actually works in the real environment.
+    entry: delivered
+    principles: [confirm-after-change]
+    exit_gate: post-change check passed
+    agent_concern: don't assume success from a 200 / exit-0; check real behavior.
+
+  - id: learn
+    goal: Close the data flywheel — record outcome + any human override.
+    entry: task complete or escalated
+    principles: [surface-blockers-early, warn-on-repeated-failure]
+    exit_gate: episode + outcome + (override, if any) logged for Layer-3 learning
+    agent_concern: a human override here is GOLD preference data — capture it cleanly.

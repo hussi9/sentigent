@@ -1,0 +1,113 @@
+# Extended discrimination fixtures (batches 1-4). Loaded alongside fixtures.yaml.
+fixtures:
+  - rule_id: clarify-ambiguous-goal
+    good: { decision: escalate, signals: { goal_ambiguous: true }, actions: [ask_human], reason: confirm which login layer before building }
+    bad:  { decision: escalate, signals: { goal_ambiguous: false }, actions: [ask_human], reason: asked to confirm a one-reading typo fix }
+
+  - rule_id: plan-before-multistep
+    good: { decision: enrich, signals: { multistep: true }, actions: [write_plan, inspect_target, edit], reason: plan before touching four files }
+    bad:  { decision: enrich, signals: { multistep: true }, actions: [edit, edit, write_plan], reason: hacked first, back-filled plan }
+
+  - rule_id: define-done-criteria
+    good: { decision: proceed, signals: { plan_steps: [ { step: add endpoint, done: "POST /v1/items returns 201" }, { step: wire client, done: "test_create passes" } ] }, actions: [attach_done_criteria], reason: each step verifiable }
+    bad:  { decision: proceed, signals: { plan_steps: [ { step: add endpoint, done: "" }, { step: wire client } ] }, actions: [attach_done_criteria], reason: done left blank }
+
+  - rule_id: scope-discipline
+    good: { decision: proceed, signals: { scope_files: [auth/login.py], files_touched: [auth/login.py], tangent_noticed: true }, actions: [note_defer, edit], reason: noted tangent, stayed in scope }
+    bad:  { decision: proceed, signals: { scope_files: [auth/login.py], files_touched: [auth/login.py, billing/invoice.py], tangent_noticed: true }, actions: [edit, edit], reason: silently refactored billing }
+
+  - rule_id: follow-existing-patterns
+    good: { decision: enrich, signals: { similar_code_exists: true, matches_existing_pattern: true }, actions: [survey_existing_patterns, inspect_target, edit], reason: conformed to existing pattern }
+    bad:  { decision: enrich, signals: { similar_code_exists: true, matches_existing_pattern: false }, actions: [survey_existing_patterns, edit], reason: invented a fresh convention anyway }
+
+  - rule_id: prefer-existing-deps
+    good: { decision: slow_down, signals: { adding_dependency: true, existing_capability_found: false }, actions: [search_existing_capability, add_dependency], reason: searched, nothing existed, added deliberately }
+    bad:  { decision: slow_down, signals: { adding_dependency: true, existing_capability_found: true }, actions: [search_existing_capability, add_dependency], reason: added dep though util already existed }
+
+  - rule_id: small-atomic-changes
+    good: { decision: slow_down, signals: { files_changed: 1, hunks: 2 }, actions: [decompose_change, edit], diff: "+ const max = clamp(n,0,10)", reason: one file one concern }
+    bad:  { decision: proceed, signals: { files_changed: 9, hunks: 22 }, actions: [edit], diff: "+ sprawling rewrite", reason: giant multi-file diff as if atomic }
+
+  - rule_id: match-surrounding-style
+    good: { decision: proceed, actions: [inspect_target, conform_style, edit], reason: matched neighbours }
+    bad:  { decision: proceed, actions: [edit], reason: wrote own style blind }
+
+  - rule_id: add-regression-test
+    good: { decision: slow_down, actions: [reproduce_failure, edit, add_test, run_tests], signals: { tests_ran: true }, reason: added guarding test after fix }
+    bad:  { decision: slow_down, actions: [edit, run_tests], signals: { tests_ran: true }, reason: ran existing tests, added none }
+
+  - rule_id: no-vacuous-pass
+    good: { decision: escalate, actions: [block_and_ask], signals: { criteria: [exit_code_zero, no_new_lint] }, reason: real criteria attached }
+    bad:  { decision: proceed, actions: [mark_done], signals: { criteria: [] }, reason: done on empty criteria }
+
+  - rule_id: self-review-diff
+    good: { decision: slow_down, actions: [edit, review_diff, commit], reason: read own diff before commit }
+    bad:  { decision: proceed, actions: [edit, commit], reason: committed without review }
+
+  - rule_id: security-review-risky
+    good: { decision: slow_down, signals: { touches: query }, actions: [parameterize_query, security_review, edit], reason: query change reviewed }
+    bad:  { decision: proceed, signals: { touches: auth }, actions: [edit], reason: changed auth with no security step }
+
+  - rule_id: secret-scan-before-commit
+    good: { decision: slow_down, actions: [scan_secrets, commit], diff: "const key = process.env.API_KEY", reason: scanned clean then committed }
+    bad:  { decision: slow_down, actions: [commit], diff: "const key = \"sk-test-FAKE-0000000000000000\"", reason: never scanned, leaked key }
+
+  - rule_id: branch-not-main
+    good: { decision: slow_down, signals: { branch: feature/x, default_branch: main }, actions: [create_branch, commit], reason: branched off main }
+    bad:  { decision: slow_down, signals: { branch: main, default_branch: main }, actions: [commit], reason: committed to main }
+
+  - rule_id: rollback-plan-before-deploy
+    good: { decision: slow_down, signals: { rollback_known: true }, actions: [ensure_rollback, deploy], reason: knew rollback before shipping }
+    bad:  { decision: slow_down, signals: { rollback_known: false }, actions: [deploy], reason: shipped with no rollback }
+
+  - rule_id: confirm-after-change
+    good: { decision: slow_down, actions: [deploy, post_change_check], reason: verified in prod after deploy }
+    bad:  { decision: slow_down, actions: [deploy], reason: assumed deploy worked }
+
+  - rule_id: root-cause-before-fix
+    good: { decision: enrich, actions: [investigate_root_cause, edit], reason: found cause before patching }
+    bad:  { decision: enrich, actions: [edit], reason: patched symptom blind }
+
+  - rule_id: warn-on-repeated-failure
+    good: { decision: slow_down, signals: { repeated_failures: 3 }, actions: [change_approach, edit], reason: stepped back after 3 fails }
+    bad:  { decision: proceed, signals: { repeated_failures: 3 }, actions: [edit], reason: hammered same failing approach }
+
+  - rule_id: behavior-preserving-refactor
+    good: { decision: slow_down, actions: [run_tests, refactor, run_tests], reason: green before and after }
+    bad:  { decision: slow_down, actions: [refactor, run_tests], reason: no baseline run }
+
+  - rule_id: surface-blockers-early
+    good: { decision: escalate, signals: { needs_human: true }, actions: [block_and_ask], reason: real blocker, specific ask }
+    bad:  { decision: escalate, signals: { needs_human: false }, actions: [block_and_ask], reason: escalated a trivial choice }
+
+  - rule_id: write-failing-test-first
+    good: { decision: slow_down, actions: [add_failing_test, run_success_oracle, implement_minimal, run_success_oracle], signals: { tests_ran: true }, reason: failing test first then implement }
+    bad:  { decision: slow_down, actions: [implement, add_failing_test], reason: coded first, bolted test on }
+
+  - rule_id: refactor-on-green
+    good: { decision: slow_down, actions: [run_tests, refactor, run_tests], signals: { tests_green_before: true, tests_green_after: true }, reason: green, refactor, re-ran green }
+    bad:  { decision: slow_down, actions: [refactor, edit], signals: { tests_green_before: false, tests_green_after: true }, reason: refactored on red, no re-run }
+
+  - rule_id: write-spec-first
+    good: { decision: enrich, actions: [write_spec, plan, edit], signals: { acceptance_criteria: ["GET /x 200", "rejects empty body"] }, reason: testable spec before code }
+    bad:  { decision: enrich, actions: [edit, write_spec], signals: { acceptance_criteria: [] }, reason: coded first, empty spec }
+
+  - rule_id: threat-model-risky
+    good: { decision: enrich, actions: [threat_model, design, edit], signals: { handles_untrusted: true }, reason: named injection threat first }
+    bad:  { decision: enrich, actions: [design, edit], signals: { handles_untrusted: true }, reason: untrusted input, no threat model }
+
+  - rule_id: least-privilege
+    good: { decision: slow_down, actions: [scope_minimal, grant], signals: { privilege: minimal }, reason: read-only on one table }
+    bad:  { decision: slow_down, actions: [grant], signals: { privilege: broad }, reason: broad grant to avoid debugging }
+
+  - rule_id: cc-use-skill-when-matches
+    good: { decision: enrich, actions: [invoke_skill, edit], signals: { skill_available: true }, reason: invoked matching skill first }
+    bad:  { decision: enrich, actions: [edit], signals: { skill_available: true }, reason: skill available, improvised instead }
+
+  - rule_id: cc-delegate-subagents
+    good: { decision: enrich, actions: [spawn_subagent, collect_results], signals: { isolated: true, parallel: true }, reason: fanned search to subagent }
+    bad:  { decision: enrich, actions: [grep, read, read, read], signals: { parallel: true }, reason: bloated main thread }
+
+  - rule_id: cc-parallel-tool-calls
+    good: { decision: proceed, actions: [batch_parallel_calls], signals: { independent_calls: 4, batched: true }, reason: four reads in one batch }
+    bad:  { decision: proceed, actions: [read, read, read, read], signals: { independent_calls: 4, batched: false }, reason: serialized four reads }
