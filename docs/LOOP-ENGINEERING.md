@@ -136,12 +136,16 @@ make that decision *learned from your history*** — that is the differentiated 
 | Anchor-file injection (VISION/CLAUDE) | — | 🔨 add to loop_driver |
 | Receipt (laps/verifies/resolves/$) | `receipt.py` partial | 🔨 extend |
 
-### Build plan (phased, each shippable)
-- **P1 — durable loop core:** `loop_driver.py` start/drive/resume with atomic state. ✅ done.
-- **P2 — production discipline:** anchor-file injection + closed-loop verify gate + no-progress halt + budget/lap caps in the driver. ← next.
-- **P3 — learned autonomy:** wire CloneResolver's learned thresholds into the driver's blocker path so push-vs-ask is decided from your history (the wedge).
-- **P4 — org guardrails:** data-driven guardrail packs enforced as the per-lap safety invariant (org authors/enforces).
-- **P5 — receipt + proof:** every lap logged; `loop receipt` shows laps, verifications, autonomy rate, cost — real numbers, no fabrication.
+### Build plan (phased, each shippable) — ALL SHIPPED
+- **P1 — durable loop core** ✅ `loop_driver.py` start/drive/resume, atomic state, cross-session resume (commit 00cc68e).
+- **P2 — production discipline** ✅ anchor-file injection + closed-loop verify gate + retry pressure-cooker + no-progress halt + lap caps (in driver).
+- **P3 — learned autonomy** ✅ CloneResolver wired into the blocker path; push-vs-ask uses learned per-category thresholds, in a killable child process under a hard budget; fail-soft to ask (commit c0e5d2d).
+- **P4 — org guardrails** ✅ data-driven packs (`guardrails/*.yaml` + `operator/guardrails.py`) enforced as the per-lap safety invariant; opt-in (commit 3330cb5).
+- **P5 — receipt + proof** ✅ `loop_driver.py receipt` aggregates FAP/distance/fidelity/autonomy across all runs — real numbers, no fabrication.
+
+**Status: the loop harness is feature-complete (P1–P5). Next is real-world hardening —
+run it with `--execute` on live visions to gather actual FAP, and wire the driver into
+the MCP `operator_*` tools so the loop is callable from Claude Code directly.**
 
 ## 4. Positioning (honest)
 Sentigent is **a loop harness with learned judgment**: it keeps pushing your plan across

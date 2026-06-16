@@ -378,6 +378,52 @@ def metrics(state: dict) -> dict:
     }
 
 
+def receipt(loop_dir: Path | str | None = None) -> dict:
+    """Aggregate FAP across every loop on disk — the dark-factory scoreboard.
+
+    Real numbers only: each row is computed from that loop's own persisted state."""
+    d = Path(loop_dir or LOOP_DIR)
+    rows = []
+    if d.exists():
+        for f in sorted(d.glob("loop_*.json")):
+            try:
+                st = json.loads(f.read_text())
+            except Exception:
+                continue
+            m = metrics(st)
+            rows.append({"loop_id": st["loop_id"], "goal": st.get("goal", "")[:38],
+                         "status": st.get("status", "?"), **m})
+    n = len(rows) or 1
+    agg = {
+        "loops": len(rows),
+        "mean_FAP": round(sum(r["FAP"] for r in rows) / n, 3),
+        "mean_distance": round(sum(r["plan_distance"] for r in rows) / n, 3),
+        "mean_fidelity": round(sum(r["fidelity"] for r in rows) / n, 3),
+        "total_asks": sum(r["human_asks"] for r in rows),
+        "total_clone_resolves": sum(r["clone_resolves"] for r in rows),
+        "completed": sum(1 for r in rows if r["status"] == "done"),
+    }
+    return {"rows": rows, "aggregate": agg}
+
+
+def print_receipt(loop_dir: Path | str | None = None) -> None:
+    rep = receipt(loop_dir)
+    a = rep["aggregate"]
+    print("━" * 72)
+    print("  SENTIGENT LOOP RECEIPT — Faithful Autonomous Progress across runs")
+    print("━" * 72)
+    print(f"  {'loop':<14}{'FAP':>6}{'dist':>6}{'fid':>6}{'auto':>6}{'asks':>6}  goal")
+    print("  " + "─" * 68)
+    for r in rep["rows"]:
+        print(f"  {r['loop_id']:<14}{r['FAP']:>6.0%}{r['plan_distance']:>6.0%}"
+              f"{r['fidelity']:>6.0%}{r['autonomy']:>6.0%}{r['human_asks']:>6}  {r['goal']}")
+    print("  " + "─" * 68)
+    print(f"  {a['loops']} loops · {a['completed']} completed · mean FAP {a['mean_FAP']:.0%} · "
+          f"mean distance {a['mean_distance']:.0%} · mean fidelity {a['mean_fidelity']:.0%}")
+    print(f"  clone-resolved {a['total_clone_resolves']} blocker(s) · paged you {a['total_asks']}× total")
+    print("━" * 72)
+
+
 def status_line(state: dict) -> str:
     m = metrics(state)
     icon = {"running": "▶", "done": "✅", "blocked": "⏸", "max": "🔁", "error": "🛑"}.get(state["status"], "•")
@@ -405,6 +451,7 @@ def main() -> None:
         p = sub.add_parser(name); p.add_argument("loop_id")
         p.add_argument("--execute", action="store_true"); p.add_argument("--max", type=int, default=50)
     st = sub.add_parser("status"); st.add_argument("loop_id")
+    sub.add_parser("receipt")
     a = ap.parse_args()
 
     if a.cmd == "start":
@@ -417,6 +464,8 @@ def main() -> None:
         print(status_line(fn(a.loop_id, execute=a.execute, max_steps=a.max)))
     elif a.cmd == "status":
         print(status_line(load(a.loop_id)))
+    elif a.cmd == "receipt":
+        print_receipt()
 
 
 if __name__ == "__main__":
