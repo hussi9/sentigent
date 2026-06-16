@@ -64,7 +64,7 @@ def load(loop_id: str) -> dict:
 # ── lifecycle ─────────────────────────────────────────────────────────────────
 def start(goal: str, steps: list[str], cwd: str = ".", *, verify_cmd: str = "",
           anchor_files: list[str] | None = None, max_attempts: int = 3,
-          stamp: float | None = None) -> dict:
+          max_resolve_pushes: int = 2, stamp: float | None = None) -> dict:
     loop_id = "loop_" + uuid.uuid4().hex[:8]
     state = {
         "loop_id": loop_id,
@@ -72,15 +72,17 @@ def start(goal: str, steps: list[str], cwd: str = ".", *, verify_cmd: str = "",
         "cwd": str(Path(cwd).resolve()),
         "verify_cmd": verify_cmd,            # closed-loop gate (run after each step)
         "anchor_files": anchor_files or [],  # re-injected every lap (VISION/CLAUDE/...)
-        "max_attempts": max_attempts,        # no-progress halt: same step fails N×
+        "max_attempts": max_attempts,        # cheap retries before a fail is a real blocker
+        "max_resolve_pushes": max_resolve_pushes,  # times the clone may push past a blocker
         "status": "running",                 # running | done | blocked | max | error
         "cursor": 0,
         "asks": 0,                           # times the loop had to page a human
-        "clone_resolves": 0,                 # blockers self-resolved (P3: resolver)
+        "clone_resolves": 0,                 # blockers the clone resolved (push/skip)
         "created_at": stamp or time.time(),
         "steps": [
-            {"i": i, "text": s, "status": "pending", "attempts": 0,
-             "verified": None, "asked": False, "last_error": "", "result": "", "ended_at": None}
+            {"i": i, "text": s, "status": "pending", "attempts": 0, "resolve_pushes": 0,
+             "verified": None, "asked": False, "last_error": "", "clone_note": "",
+             "result": "", "ended_at": None}
             for i, s in enumerate(steps)
         ],
         "history": [],
@@ -154,6 +156,71 @@ def _verify(state: dict, timeout: int = 600) -> tuple[bool, str]:
         return False, f"verify error: {e}"
 
 
+def _resolver_worker(step: dict, budget: float, q) -> None:
+    """Run the CloneResolver in a CHILD PROCESS (so a stuck model load can be killed —
+    threads can't be). Puts (action, decision, rationale) on the queue; ask on failure."""
+    try:
+        # bind the resolver's model timeout BEFORE importing it (it reads the env at import)
+        os.environ["SENTIGENT_RESOLVER_TIMEOUT"] = str(max(1, int(budget)))
+        from sentigent.operator.resolver import CloneResolver, APPROVE, SKIP
+        from sentigent.memory.store import MemoryStore
+        agent = os.environ.get("SENTIGENT_AGENT_ID", "hussain")
+        org = os.environ.get("SENTIGENT_ORG_ID", agent)
+        store = MemoryStore(agent_id=agent, org_id=org)
+        profile = {}
+        for getter in ("get_operator_profile", "get_profile"):
+            fn = getattr(store, getter, None)
+            if callable(fn):
+                try:
+                    profile = fn() or {}
+                    break
+                except Exception:
+                    pass
+        resolver = CloneResolver(profile, store=store)
+        res = resolver.resolve({
+            "step_text": step["text"], "trigger": "verify_failed",
+            "gate_reason": step.get("last_error", "")[:300],
+            "risk_level": "medium", "category": "normal",
+        })
+        thr = CloneResolver.thresholds_from_calibration(store)
+        if CloneResolver.should_apply(res, policy_wall=False, category="normal", thresholds=thr):
+            if res.decision == APPROVE:
+                q.put(("push", res.decision, res.rationale)); return
+            if res.decision == SKIP:
+                q.put(("skip", res.decision, res.rationale)); return
+        q.put(("ask", res.decision, res.rationale))
+    except Exception as e:
+        q.put(("ask", "needs_human", f"clone unavailable ({e})"))
+
+
+def _decide_blocker(state: dict, step: dict) -> tuple[str, str, str]:
+    """Learned push-vs-ask at a real blocker — Sentigent's wedge over a bare Ralph loop.
+
+    Asks the CloneResolver "what would you do here?" with learned per-category thresholds
+    from your override history, under a HARD wall-clock budget (the clone answers fast or
+    we page you — a loop that stalls minutes on a cold model load is worse than one that
+    asks). Fail-soft to 'ask' so it NEVER fabricates autonomy."""
+    if os.environ.get("SENTIGENT_LOOP_RESOLVER", "1") != "1":
+        return "ask", "needs_human", "resolver disabled"
+    budget = float(os.environ.get("SENTIGENT_LOOP_RESOLVE_TIMEOUT", "25"))
+    try:
+        import multiprocessing as mp
+        ctx = mp.get_context("spawn")
+        q = ctx.Queue()
+        p = ctx.Process(target=_resolver_worker, args=(step, budget, q), daemon=True)
+        p.start()
+        p.join(budget)
+        if p.is_alive():
+            p.terminate(); p.join(2)        # killable — no hang, ever
+            return "ask", "needs_human", "clone timed out"
+        try:
+            return q.get_nowait()
+        except Exception:
+            return "ask", "needs_human", "clone returned nothing"
+    except Exception as e:
+        return "ask", "needs_human", f"resolver unavailable ({e})"
+
+
 def step_once(loop_id: str, execute: bool = False, timeout: int = 1800) -> dict:
     """Execute the next pending step, verify, persist. Failing steps retry (pressure
     cooker) until max_attempts → then halt as `blocked` (no-progress) and count an ask."""
@@ -172,7 +239,8 @@ def step_once(loop_id: str, execute: bool = False, timeout: int = 1800) -> dict:
         ran_ok, result = _run_claude(prompt, state["cwd"], timeout)
         verified, vtail = _verify(state) if ran_ok else (False, result)
     else:
-        ran_ok, result, verified, vtail = True, f"DRY-RUN: would run `claude -p` for: {step['text']}", True, ""
+        ran_ok, result = True, f"DRY-RUN: would run `claude -p` for: {step['text']}"
+        verified, vtail = _verify(state)          # dry-run still honors the verify gate
 
     step["result"] = result
     step["ended_at"] = time.time()
@@ -185,16 +253,29 @@ def step_once(loop_id: str, execute: bool = False, timeout: int = 1800) -> dict:
         state["cursor"] = step["i"] + 1
     else:
         step["last_error"] = (vtail or result)[:600]
-        if step["attempts"] >= state["max_attempts"]:
-            step["status"] = "failed"
-            step["asked"] = True
-            state["asks"] += 1
-            state["status"] = "blocked"      # no-progress halt — a human is genuinely needed
-        # else: leave pending → retried next lap with the error piped in
+        if step["attempts"] < state["max_attempts"]:
+            pass                                  # cheap retry next lap — pressure cooker
+        else:
+            # real blocker → LEARNED push-vs-ask (the wedge over raw Ralph)
+            action, decision, why = _decide_blocker(state, step)
+            step["clone_note"] = f"{decision}: {why}"[:300]
+            if action == "push" and step["resolve_pushes"] < state["max_resolve_pushes"]:
+                step["resolve_pushes"] += 1
+                step["attempts"] = 0              # clone says keep going → fresh budget
+                state["clone_resolves"] += 1
+            elif action == "skip":
+                step["status"] = "skipped"        # clone says move on
+                state["clone_resolves"] += 1
+                state["cursor"] = step["i"] + 1
+            else:                                 # ask (or exhausted pushes) → page the human
+                step["status"] = "failed"
+                step["asked"] = True
+                state["asks"] += 1
+                state["status"] = "blocked"
 
     state["history"].append({"step": step["i"], "attempt": step["attempts"],
                              "ok": ok, "at": step["ended_at"]})
-    if state["status"] == "running" and all(s["status"] == "done" for s in state["steps"]):
+    if state["status"] == "running" and all(s["status"] in ("done", "skipped") for s in state["steps"]):
         state["status"] = "done"
     _save(state)                              # next step durably queued
     return state
@@ -211,7 +292,8 @@ def drive(loop_id: str, execute: bool = False, max_steps: int = 50, timeout: int
         ran += 1
         if cur is not None:
             s = state["steps"][cur["i"]]
-            mark = "✓" if s["status"] == "done" else ("…retry" if s["status"] == "pending" else "✗ blocked")
+            mark = {"done": "✓", "pending": "…retry", "skipped": "↷ skipped"}.get(
+                s["status"], "✗ blocked")
             print(f"  [{loop_id}] lap {ran}: {mark} {s['text'][:55]}")
     if state["status"] == "running" and ran >= max_steps:
         state["status"] = "max"
@@ -227,6 +309,7 @@ def resume(loop_id: str, execute: bool = False, max_steps: int = 50, timeout: in
         for s in state["steps"]:
             if s["status"] == "failed":
                 s["status"] = "pending"; s["attempts"] = 0; s["asked"] = False
+                s["resolve_pushes"] = 0   # fresh push budget on human-triggered resume
         state["status"] = "running"
         _save(state)
     return drive(loop_id, execute=execute, max_steps=max_steps, timeout=timeout)
@@ -237,6 +320,8 @@ def metrics(state: dict) -> dict:
     steps = state["steps"]
     total = len(steps) or 1
     done = [s for s in steps if s["status"] == "done"]
+    skipped = [s for s in steps if s["status"] == "skipped"]
+    progressed = done + skipped                                     # the loop moved past these
     verified = [s for s in done if s.get("verified")]
     asks = state.get("asks", 0)
     resolves = state.get("clone_resolves", 0)
@@ -248,13 +333,15 @@ def metrics(state: dict) -> dict:
         else:
             streak = 0
     return {
-        "plan_distance": round(len(done) / total, 3),               # how long it ran
-        "fidelity": round(len(verified) / len(done), 3) if done else 0.0,  # how faithfully
-        "autonomy": round(resolves / faced, 3) if faced else 1.0,
+        "plan_distance": round(len(progressed) / total, 3),         # how long it ran
+        "fidelity": round(len(verified) / len(progressed), 3) if progressed else 0.0,  # how faithfully
+        "autonomy": round(resolves / faced, 3) if faced else 1.0,   # self-resolved vs paged you
         "FAP": round(len(verified) / total, 3),                     # the headline (0..1)
         "faithful_streak": best,
         "verified_steps": f"{len(verified)}/{len(steps)}",
+        "skipped": len(skipped),
         "human_asks": asks,
+        "clone_resolves": resolves,
     }
 
 
@@ -269,7 +356,8 @@ def status_line(state: dict) -> str:
         f"  ── Faithful Autonomous Progress ──\n"
         f"  FAP {m['FAP']:.0%}   distance {m['plan_distance']:.0%}   fidelity {m['fidelity']:.0%}   "
         f"autonomy {m['autonomy']:.0%}\n"
-        f"  verified {m['verified_steps']} · faithful streak {m['faithful_streak']} · paged you {m['human_asks']}×"
+        f"  verified {m['verified_steps']} · faithful streak {m['faithful_streak']} · "
+        f"clone-resolved {m['clone_resolves']} · paged you {m['human_asks']}×"
     )
 
 
