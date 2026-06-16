@@ -299,9 +299,85 @@ def _inline_nudge(tool_name: str, tool_input: str) -> str:
         return ""
 
 
+# ── Deterministic catastrophe guard ───────────────────────────────────────────
+# High-precision, irreversible-only patterns. This does NOT depend on the learned
+# judge (which historically never escalated on raw shell danger) — it always fires.
+# Tuned to avoid false positives on normal dev work (e.g. `rm -rf node_modules` is
+# allowed; `rm -rf /` / `~` / `$HOME` / wildcard is blocked).
+def _catastrophic(cmd: str) -> str | None:
+    import re
+    raw = (cmd or "").strip()
+    if not raw:
+        return None
+    low = raw.lower()
+
+    # Pipe-to-shell is judged on the WHOLE line (the pipe is the mechanism).
+    if re.search(r"\b(curl|wget)\b[^|]*\|\s*(sudo\s+)?\w*sh\b", low):
+        return "curl|sh — executing unverified remote code"
+    if ":|:&" in raw.replace(" ", ""):
+        return "fork bomb"
+
+    # Everything else is judged PER SEGMENT so flags from one command don't bleed
+    # into another (e.g. `git commit -F msg && git push` must not look like push -f).
+    for seg in re.split(r"[;&|\n]+", raw):
+        s = seg.strip()
+        if not s:
+            continue
+        sl = s.lower()
+
+        # recursive force-delete of a root / home / wildcard target
+        if re.search(r"\brm\b", sl):
+            has_r = bool(re.search(r"-\w*r", sl)) or "--recursive" in sl
+            has_f = bool(re.search(r"-\w*f", sl)) or "--force" in sl
+            if has_r and has_f:
+                if ("--no-preserve-root" in sl
+                        or re.search(r"(^|\s)(/|~|\$home|/\*|\*|\.\.)(\s|/|$)", sl)
+                        or re.search(r"\s/(bin|etc|usr|var|lib|sys|boot|dev|opt|root|home)(\s|/|$)", sl)):
+                    return "rm -rf on root/home/wildcard — irreversible mass deletion"
+
+        # force-push (rewrites shared history). Case-SENSITIVE -f so `commit -F` is safe;
+        # --force-with-lease is the safe variant and allowed.
+        if re.search(r"\bgit\s+push\b", sl) and "--force-with-lease" not in sl:
+            if "--force" in sl or re.search(r"(^|\s)-[A-Za-z]*f[A-Za-z]*\b", s):
+                return "git push --force — rewrites shared remote history"
+
+        # hard reset discards uncommitted work
+        if re.search(r"\bgit\s+reset\b.*--hard", sl):
+            return "git reset --hard — discards uncommitted changes"
+
+        # destructive SQL — only when a SQL client runs it (so a commit message that
+        # merely mentions DROP TABLE is not flagged).
+        if re.search(r"\b(drop\s+(table|database|schema)|truncate\s+table)\b", sl):
+            if re.search(r"\b(psql|mysql|mariadb|sqlite3|mongosh?|supabase|prisma)\b", sl) \
+                    or re.match(r"^\s*(drop|truncate)\b", sl):
+                return "destructive SQL (DROP / TRUNCATE)"
+
+        # raw disk write / format
+        if re.search(r"\bdd\b.*of=/dev/", sl) or re.search(r"\bmkfs(\.\w+)?\b.*/dev/", sl) \
+                or re.search(r">\s*/dev/sd", sl):
+            return "raw disk write/format — destroys a device"
+
+        # recursive chmod on root
+        if re.search(r"\bchmod\b.*-\w*r.*\s/(\s|$)", sl) or re.search(r"\bchmod\b.*\s777\s+/(\s|$)", sl):
+            return "recursive chmod on / — breaks system permissions"
+
+    return None
+
+
 # ── Pre-hook ──────────────────────────────────────────────────────────────────
 def pre_hook(tool_name: str, tool_input: str) -> dict[str, Any]:
     """Evaluate action before execution. Save trace_id for post-hook."""
+    # Deterministic catastrophe guard — fires for Bash regardless of the learned
+    # judge. This is the one guarantee a safety layer must make.
+    if tool_name == "Bash" and isinstance(tool_input, str):
+        danger = _catastrophic(tool_input)
+        if danger:
+            return {
+                "decision": "block",
+                "reason": (f"⛔ Sentigent safety guard: {danger}. This is irreversible — "
+                           f"re-run only if you are certain, or narrow the command."),
+            }
+
     if tool_name in _SAFE_TOOLS:
         # Clear trace file so post-hook knows to skip
         try:
