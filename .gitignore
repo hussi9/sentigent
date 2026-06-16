@@ -47,3 +47,5 @@ supabase/.temp/
 docs/JUDGMENT.md
 training/data/
 training/eval/report.json
+
+training/eval/swebench_out/
