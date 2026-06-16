@@ -1,0 +1,59 @@
+{
+  "n": 86629,
+  "train": 40000,
+  "test": 6000,
+  "k": 15,
+  "results": [
+    {
+      "name": "B0 constant-proceed",
+      "bal_acc": 0.25,
+      "minority_recall": 0.0,
+      "aggregate": 0.9775,
+      "per_class": {
+        "proceed": 1.0,
+        "enrich": 0.0,
+        "slow_down": 0.0,
+        "escalate": 0.0
+      }
+    },
+    {
+      "name": "B1 static-rubric",
+      "bal_acc": 0.6456943286071726,
+      "minority_recall": 0.5275924381428969,
+      "aggregate": 0.9898333333333333,
+      "per_class": {
+        "proceed": 1.0,
+        "enrich": 0.606,
+        "slow_down": 0.227,
+        "escalate": 0.75
+      }
+    },
+    {
+      "name": "L1 learned-kNN(signals)",
+      "bal_acc": 0.9373721227621483,
+      "minority_recall": 0.9166666666666666,
+      "aggregate": 0.9993333333333333,
+      "per_class": {
+        "proceed": 0.999,
+        "enrich": 1.0,
+        "slow_down": 1.0,
+        "escalate": 0.75
+      }
+    },
+    {
+      "name": "L2 learned-kNN(sig+text)",
+      "bal_acc": 0.9544253274432303,
+      "minority_recall": 0.9696969696969697,
+      "aggregate": 0.9103333333333333,
+      "per_class": {
+        "proceed": 0.909,
+        "enrich": 1.0,
+        "slow_down": 0.909,
+        "escalate": 1.0
+      }
+    }
+  ],
+  "delta_bal_acc": 0.3087,
+  "delta_minority_recall": 0.4421,
+  "verdict": "PASS \u2705  learning has a real edge \u2192 SWE-bench spend justified"
+}
