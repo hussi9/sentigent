@@ -1,0 +1,51 @@
+# Core safety guardrail pack — the baseline an org enforces on every loop lap.
+# Data, not code: edit/add rules here; the loop loads them at runtime. Opt-in
+# (set SENTIGENT_LOOP_GUARDRAILS=1). action: block (never) | approve (needs sign-off) | warn.
+pack: core-safety
+version: 1
+scope: org
+description: Stops a loop from driving an irreversible / high-blast-radius step without a human.
+
+rules:
+  - id: irreversible-recursive-delete
+    pattern: '\brm\s+-[a-z]*r[a-z]*f|\brm\s+-[a-z]*f[a-z]*r|--no-preserve-root'
+    action: block
+    severity: critical
+    message: "Irreversible recursive delete — the loop will not run this."
+
+  - id: destructive-sql-on-prod
+    pattern: '\b(drop|truncate)\b.*\b(table|database|schema)\b'
+    action: approve
+    severity: critical
+    message: "Destructive SQL (DROP/TRUNCATE) — needs human sign-off."
+
+  - id: force-push-shared-history
+    pattern: 'force[- ]?push|push\s+--force\b|git\s+push\b.*--mirror'
+    excludes: '--force-with-lease'
+    action: approve
+    severity: high
+    message: "Force-push rewrites shared history — needs sign-off."
+
+  - id: production-deploy
+    pattern: '\b(deploy|ship|release|rollout)\b.*\b(prod|production|live)\b'
+    action: approve
+    severity: high
+    message: "Production deploy/release — needs sign-off."
+
+  - id: touches-secrets
+    pattern: '\b(secret|api[\s_-]?key|credential|private\s+key|service[\s_-]?role)\b|\.env\b'
+    action: approve
+    severity: high
+    message: "Step touches secrets/credentials — needs sign-off."
+
+  - id: payment-or-money-movement
+    pattern: '\b(charge|refund|payout|wire|transfer)\b.*\b(customer|card|account|funds?)\b'
+    action: approve
+    severity: high
+    message: "Moves money — needs sign-off."
+
+  - id: mass-external-send
+    pattern: '\b(email|message|dm|notify)\b.*\b(all|everyone|every\s+(user|customer)|list)\b'
+    action: approve
+    severity: medium
+    message: "Mass outbound send — needs sign-off."

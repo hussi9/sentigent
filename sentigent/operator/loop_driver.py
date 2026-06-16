@@ -64,7 +64,8 @@ def load(loop_id: str) -> dict:
 # ── lifecycle ─────────────────────────────────────────────────────────────────
 def start(goal: str, steps: list[str], cwd: str = ".", *, verify_cmd: str = "",
           anchor_files: list[str] | None = None, max_attempts: int = 3,
-          max_resolve_pushes: int = 2, stamp: float | None = None) -> dict:
+          max_resolve_pushes: int = 2, guardrails: bool = False,
+          stamp: float | None = None) -> dict:
     loop_id = "loop_" + uuid.uuid4().hex[:8]
     state = {
         "loop_id": loop_id,
@@ -74,6 +75,7 @@ def start(goal: str, steps: list[str], cwd: str = ".", *, verify_cmd: str = "",
         "anchor_files": anchor_files or [],  # re-injected every lap (VISION/CLAUDE/...)
         "max_attempts": max_attempts,        # cheap retries before a fail is a real blocker
         "max_resolve_pushes": max_resolve_pushes,  # times the clone may push past a blocker
+        "guardrails": guardrails,            # enforce org guardrail packs per lap (opt-in)
         "status": "running",                 # running | done | blocked | max | error
         "cursor": 0,
         "asks": 0,                           # times the loop had to page a human
@@ -221,6 +223,22 @@ def _decide_blocker(state: dict, step: dict) -> tuple[str, str, str]:
         return "ask", "needs_human", f"resolver unavailable ({e})"
 
 
+_GUARDRAIL_RULES = None
+
+
+def _guardrail_check(text: str):
+    """Org guardrail pack hit that should stop the lap for sign-off, else None. Fail-soft."""
+    global _GUARDRAIL_RULES
+    try:
+        from sentigent.operator.guardrails import load_packs, evaluate
+        if _GUARDRAIL_RULES is None:
+            _GUARDRAIL_RULES = load_packs()
+        d = evaluate(text, _GUARDRAIL_RULES)
+        return d if d.stops_lap else None
+    except Exception:
+        return None
+
+
 def step_once(loop_id: str, execute: bool = False, timeout: int = 1800) -> dict:
     """Execute the next pending step, verify, persist. Failing steps retry (pressure
     cooker) until max_attempts → then halt as `blocked` (no-progress) and count an ask."""
@@ -232,6 +250,21 @@ def step_once(loop_id: str, execute: bool = False, timeout: int = 1800) -> dict:
         state["status"] = "done"
         _save(state)
         return state
+
+    # Per-lap org guardrail invariant (opt-in): never dispatch a flagged step
+    # autonomously — stop for sign-off. This is the "won't drive off a cliff" gate.
+    if state.get("guardrails") or os.environ.get("SENTIGENT_LOOP_GUARDRAILS") == "1":
+        g = _guardrail_check(step["text"])
+        if g is not None:
+            step["status"] = "failed"
+            step["asked"] = True
+            step["last_error"] = g.message
+            step["clone_note"] = f"guardrail:{g.rule_id} ({g.decision}) — {g.message}"[:300]
+            state["asks"] += 1
+            state["status"] = "blocked"
+            state["history"].append({"step": step["i"], "guardrail": g.rule_id, "at": time.time()})
+            _save(state)
+            return state
 
     prompt = _build_prompt(state, step)
     step["attempts"] += 1
