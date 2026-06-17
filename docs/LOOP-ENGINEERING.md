@@ -147,9 +147,27 @@ make that decision *learned from your history*** — that is the differentiated 
 run it with `--execute` on live visions to gather actual FAP, and wire the driver into
 the MCP `operator_*` tools so the loop is callable from Claude Code directly.**
 
-## 4. Positioning (honest)
-Sentigent is **a loop harness with learned judgment**: it keeps pushing your plan across
-session boundaries (Ralph's autonomy + durable resume), but it knows — from *your* decision
-history — when to push through a blocker vs. stop and ask, and it enforces org guardrails on
-every lap. Ralph is the engine; Sentigent is the engine that doesn't need babysitting and
-won't drive off a cliff.
+## 4. Positioning (honest) — compound learning is the moat
+
+The industry has converged on a thesis (the Nadella / Microsoft framing, 2026): **the AI
+era won't be won by whoever has the best model — intelligence is becoming a commodity. It's
+won by whoever compounds human capital + token capital fastest, through the strongest
+learning loop between humans and AI.** Ask the moat test: *"if we switched models tomorrow,
+what would we lose?"* If the answer is "nothing," you have no moat.
+
+Sentigent is that loop, as software you install — and it makes the answer
+*"years of encoded workflows, judgment, guardrails, and faithful progress."* It maps 1:1:
+
+| Industry concept | Sentigent component |
+|---|---|
+| **Token Capital** — intelligence encoded into systems (workflows, evals, playbooks, memory) | durable loop state + org guardrail packs + the local brain (every decision remembered) |
+| **The Learning Loop** — seed → capture → apply at scale → learn from outcomes → compound | `loop_driver` fresh-context laps + closed-loop verify + CloneResolver learning push-vs-ask from your history; measured as FAP and **FAP-over-time** (§0) |
+| **The moat test** | model-independent capital — switch models, keep your judgment, guardrails, and FAP |
+
+So, concretely: Sentigent is **a loop harness with learned judgment**. It keeps pushing your
+plan across session boundaries (Ralph's autonomy + durable resume), but it knows — from
+*your* decision history — when to push through a blocker vs. stop and ask, and it enforces org
+guardrails on every lap. Ralph is the engine; Sentigent is the engine that doesn't need
+babysitting, won't drive off a cliff, and **compounds** — the one thing a rented model can't
+give you. That compounding is the honest frontier: the FAP-over-time trend (§0) is how we
+prove "the system gets smarter," not assert it.

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guardrails — Sentigent Docs</title>
+  <meta name="description" content="Sentigent org guardrail packs: data-driven YAML rules evaluated on every loop lap. Block, approve, or warn — enforced before any step executes." />
+  <link rel="canonical" href="https://sentigent.xyz/docs/guardrails.html" />
+  <script src="https://unpkg.com/@tailwindcss/browser@4.1.8/dist/index.global.js"
+          integrity="sha384-8X5W4SD/nWpjc4BXk/HRuQ+rhoTF2Dx9DJ+7I2oQctvF4jSQjwtYIeo6fGqZSGGR"
+          crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg:      #0a0a0f;
+      --panel:   #14141f;
+      --border:  #1e1e2e;
+      --text:    #e6e6f0;
+      --muted:   #8a8aa0;
+      --accent:  #7c5cff;
+      --accent2: #a18bff;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .nav-blur {
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    pre, code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+    .prose h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .prose h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent2);
+      margin-top: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .prose p {
+      color: var(--muted);
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+    .prose p strong { color: var(--text); }
+    .prose ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 1rem;
+    }
+    .prose ul li {
+      color: var(--muted);
+      padding-left: 1.25rem;
+      position: relative;
+      margin-bottom: 0.4rem;
+      line-height: 1.7;
+    }
+    .prose ul li::before {
+      content: "–";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+    .prose ul li strong { color: var(--text); }
+    .code-block {
+      background: #0d0d14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .code-block-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block-header span {
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+    .code-block pre {
+      padding: 20px 24px;
+      font-size: 0.82rem;
+      line-height: 1.8;
+      overflow-x: auto;
+      margin: 0;
+    }
+    .action-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .action-block  { background: rgba(248,113,113,0.15); color: #fca5a5; border: 1px solid rgba(248,113,113,0.3); }
+    .action-approve{ background: rgba(250,204,21,0.12);  color: #fde68a; border: 1px solid rgba(250,204,21,0.3); }
+    .action-warn   { background: rgba(161,139,255,0.12); color: var(--accent2); border: 1px solid rgba(161,139,255,0.3); }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      vertical-align: top;
+      line-height: 1.6;
+      font-size: 0.85rem;
+    }
+    .data-table td:first-child {
+      color: var(--text);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .info-box {
+      background: rgba(124,92,255,0.06);
+      border: 1px solid rgba(124,92,255,0.25);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--muted);
+      font-size: 0.875rem;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+    .info-box strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav-blur sticky top-0 z-50 border-b border-[#1e1e2e] bg-[rgba(10,10,15,0.85)]">
+  <div class="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+    <a href="../index.html" class="flex items-center gap-2 font-semibold text-[var(--text)]">
+      <span class="inline-block w-4 h-4 rounded-full bg-[var(--accent)]"></span>
+      Sentigent
+    </a>
+    <div class="hidden sm:flex items-center gap-5 text-sm text-[var(--muted)]">
+      <a href="loop-engineering.html" class="hover:text-[var(--text)] transition-colors">Loop</a>
+      <a href="fap.html" class="hover:text-[var(--text)] transition-colors">FAP</a>
+      <a href="guardrails.html" class="text-[var(--accent2)]">Guardrails</a>
+      <a href="quickstart.html" class="hover:text-[var(--text)] transition-colors">Quickstart</a>
+      <a href="../index.html#status" class="hover:text-[var(--text)] transition-colors">Status</a>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-4xl mx-auto px-6 py-16">
+  <!-- Breadcrumb -->
+  <div class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono mb-8">
+    <a href="../index.html" class="hover:text-[var(--accent2)]">Home</a>
+    <span>/</span>
+    <span class="text-[var(--text)]">Guardrails</span>
+  </div>
+
+  <div class="mb-10">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--muted)] text-xs font-mono mb-5">
+      <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] inline-block"></span>
+      Org guardrail packs
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Guardrails</h1>
+    <p class="text-[var(--muted)] text-lg leading-relaxed max-w-2xl">
+      Autonomous loops need safety floors. Sentigent enforces data-driven YAML guardrail packs
+      on every lap — before any step executes. Opt-in, versioned in git, reviewable by anyone on the team.
+    </p>
+  </div>
+
+  <div class="prose">
+
+    <h2>The problem</h2>
+    <p>
+      A loop that can drive 15 steps autonomously can also autonomously drop a production table, force-push
+      to main, or write secrets to a public file — if nothing is in the way. Static rules hardcoded into
+      the loop itself are brittle: they can't be updated without a code change, they're invisible to
+      teammates, and they don't compose across teams.
+    </p>
+    <p>
+      Sentigent separates the <strong>safety policy</strong> from the loop engine. Guardrail packs are
+      plain YAML files checked into your repo — readable, diffable, and enforced identically on every lap
+      of every loop that loads the pack.
+    </p>
+
+    <h2>How it works</h2>
+    <p>
+      At the start of each lap the loop driver loads all active guardrail packs and evaluates the
+      pending step against every rule. If any rule matches:
+    </p>
+    <ul>
+      <li><strong>block</strong> — the step is refused; the loop records the violation and halts the lap.</li>
+      <li><strong>approve</strong> — the step is paused; a human sign-off is required before execution continues.</li>
+      <li><strong>warn</strong> — the step proceeds, but the violation is logged to the receipt and flagged in the FAP output.</li>
+    </ul>
+    <p>
+      No rule match means the loop proceeds normally. The guardrail evaluation happens <em>before</em>
+      the <code style="color:var(--accent2); background:var(--panel); padding:2px 5px; border-radius:4px; font-size:0.8rem;">claude -p</code>
+      subprocess is spawned for that step — the policy floor is inviolable.
+    </p>
+
+    <div class="info-box">
+      <strong>PolicyWall is sticky.</strong> If any hard rule matches, the step escalates regardless of
+      the CloneResolver's learned confidence score. The inviolable safety floor has its own test suite
+      and cannot be overridden by the learned push-vs-ask path.
+    </div>
+
+    <h2>Pack format</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span class="w-2.5 h-2.5 rounded-full bg-[#ff5f56] inline-block"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e] inline-block"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#27c93f] inline-block"></span>
+        <span class="ml-1">guardrails/default.yaml</span>
+      </div>
+      <pre><code><span style="color:#8a8aa0"># Sentigent guardrail pack
+# Versioned in git. Loaded per-lap by the loop driver.
+# action: block | approve | warn
+# severity: critical | high | medium | low</span>
+
+rules:
+  - id: <span style="color:#c3e88d">irreversible-recursive-delete</span>
+    description: <span style="color:#c3e88d">"rm -rf / rm -fr — cannot be undone"</span>
+    match: <span style="color:#c3e88d">"rm -rf|rm -fr"</span>
+    scope: bash
+    action: <span style="color:#fca5a5">block</span>
+    severity: critical
+
+  - id: <span style="color:#c3e88d">production-deploy</span>
+    description: <span style="color:#c3e88d">"Deploy to prod — requires human sign-off"</span>
+    match: <span style="color:#c3e88d">"kubectl apply|deploy --prod|fly deploy --remote-only"</span>
+    scope: bash
+    action: <span style="color:#fde68a">approve</span>
+    severity: high
+
+  - id: <span style="color:#c3e88d">force-push</span>
+    description: <span style="color:#c3e88d">"git push --force — rewrites shared history"</span>
+    match: <span style="color:#c3e88d">"push --force|push -f"</span>
+    scope: bash
+    action: <span style="color:#fca5a5">block</span>
+    severity: critical
+
+  - id: <span style="color:#c3e88d">secrets-write</span>
+    description: <span style="color:#c3e88d">"Writing to secrets / credentials files"</span>
+    match: <span style="color:#c3e88d">"\\.env|credentials|secrets\\.json|\\.pem|\\.key"</span>
+    scope: write
+    action: <span style="color:#a18bff">warn</span>
+    severity: high
+
+  - id: <span style="color:#c3e88d">drop-table</span>
+    description: <span style="color:#c3e88d">"Destructive DDL on production database"</span>
+    match: <span style="color:#c3e88d">"DROP TABLE|TRUNCATE TABLE|DROP DATABASE"</span>
+    scope: bash
+    action: <span style="color:#fca5a5">block</span>
+    severity: critical</code></pre>
+    </div>
+
+    <h2>Rule fields</h2>
+
+    <div class="bg-[var(--panel)] border border-[var(--border)] rounded-xl overflow-hidden mb-6">
+      <table class="data-table">
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code style="font-size:0.8rem">id</code></td>
+            <td style="color:var(--accent2); font-size:0.8rem">string</td>
+            <td>Unique rule identifier. Used in violation logs and the FAP receipt.</td>
+          </tr>
+          <tr>
+            <td><code style="font-size:0.8rem">description</code></td>
+            <td style="color:var(--accent2); font-size:0.8rem">string</td>
+            <td>Human-readable explanation shown when the rule fires.</td>
+          </tr>
+          <tr>
+            <td><code style="font-size:0.8rem">match</code></td>
+            <td style="color:var(--accent2); font-size:0.8rem">regex</td>
+            <td>Pattern matched against the step's command or file path, depending on scope.</td>
+          </tr>
+          <tr>
+            <td><code style="font-size:0.8rem">scope</code></td>
+            <td style="color:var(--accent2); font-size:0.8rem">bash | write | any</td>
+            <td>Which step types to evaluate. <code style="font-size:0.78rem">any</code> matches all.</td>
+          </tr>
+          <tr>
+            <td><code style="font-size:0.8rem">action</code></td>
+            <td style="color:var(--accent2); font-size:0.8rem">block | approve | warn</td>
+            <td>What happens when the rule matches.</td>
+          </tr>
+          <tr>
+            <td><code style="font-size:0.8rem">severity</code></td>
+            <td style="color:var(--accent2); font-size:0.8rem">critical | high | medium | low</td>
+            <td>Shown in the receipt and violation log. Does not change enforcement — <code style="font-size:0.78rem">block</code> always blocks.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Actions in detail</h2>
+
+    <div class="grid sm:grid-cols-3 gap-4 mb-6">
+      <div class="bg-[var(--panel)] border border-[rgba(248,113,113,0.3)] rounded-xl p-5">
+        <div class="action-pill action-block mb-3">block</div>
+        <p style="margin:0; font-size:0.85rem; line-height:1.6;">
+          Step is refused immediately. The loop records the violation, skips the step, and either
+          halts the lap or moves to the next step depending on <code style="font-size:0.78rem">on_block</code>
+          loop config. No <code style="font-size:0.78rem">claude -p</code> subprocess is spawned.
+        </p>
+      </div>
+      <div class="bg-[var(--panel)] border border-[rgba(250,204,21,0.3)] rounded-xl p-5">
+        <div class="action-pill action-approve mb-3">approve</div>
+        <p style="margin:0; font-size:0.85rem; line-height:1.6;">
+          Loop pauses and writes an approval request to the receipt. Execution resumes only after
+          a human confirms via <code style="font-size:0.78rem">loop_driver approve &lt;step_id&gt;</code>.
+          FAP is not penalised — the ask is attributed to a guardrail, not a blocker.
+        </p>
+      </div>
+      <div class="bg-[var(--panel)] border border-[rgba(161,139,255,0.3)] rounded-xl p-5">
+        <div class="action-pill action-warn mb-3">warn</div>
+        <p style="margin:0; font-size:0.85rem; line-height:1.6;">
+          Step proceeds. The violation is logged with timestamp to the receipt and flagged in
+          the FAP output. Useful for visibility without halting fast-moving loops.
+        </p>
+      </div>
+    </div>
+
+    <h2>Loading a pack</h2>
+    <p>
+      Packs are loaded automatically from <code style="color:var(--accent2); background:var(--panel); padding:2px 6px; border-radius:4px; font-size:0.8rem;">guardrails/</code> in your project root.
+      You can also specify a pack explicitly:
+    </p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span class="w-2.5 h-2.5 rounded-full bg-[#ff5f56] inline-block"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e] inline-block"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#27c93f] inline-block"></span>
+        <span class="ml-1">terminal</span>
+      </div>
+      <pre><code><span style="color:#8a8aa0"># drive with a specific guardrail pack</span>
+<span style="color:#a18bff">python -m sentigent.operator.loop_driver drive &lt;loop_id&gt; \
+  --execute \
+  --guardrails guardrails/default.yaml</span>
+
+<span style="color:#8a8aa0"># drive with multiple packs (all rules are merged)</span>
+<span style="color:#a18bff">python -m sentigent.operator.loop_driver drive &lt;loop_id&gt; \
+  --execute \
+  --guardrails guardrails/default.yaml guardrails/prod-safety.yaml</span></code></pre>
+    </div>
+
+    <h2>Writing your own pack</h2>
+    <p>
+      Copy <code style="color:var(--accent2); background:var(--panel); padding:2px 6px; border-radius:4px; font-size:0.8rem;">guardrails/default.yaml</code>
+      and adjust to your org's invariants. Commit the file. Every engineer and every loop in the repo
+      now uses the same safety floor — no coordination overhead, no per-developer drift.
+    </p>
+    <p>
+      Good candidates for custom rules: internal deploy commands, protected branch patterns, sensitive
+      file paths specific to your stack, compliance-required approval gates.
+    </p>
+
+    <h2>Relationship to learned judgment</h2>
+    <p>
+      Guardrails and the CloneResolver (learned push-vs-ask) operate at different layers.
+      The guardrail pack is evaluated <em>first</em>, before the learned judgment. A <code style="color:var(--accent2); font-size:0.82rem;">block</code>
+      rule cannot be overridden by a high-confidence CloneResolver decision — the safety floor is
+      inviolable. The learned judgment only operates on steps that cleared the guardrail gate.
+    </p>
+
+  </div>
+
+  <!-- Docs nav footer -->
+  <div class="mt-16 pt-8 border-t border-[var(--border)] flex flex-wrap gap-4 justify-between text-sm">
+    <a href="fap.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">← FAP</a>
+    <a href="quickstart.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">Quickstart →</a>
+  </div>
+</main>
+</body>
+</html>

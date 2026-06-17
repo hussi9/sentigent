@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loop Engineering — Sentigent Docs</title>
+  <meta name="description" content="The north star thesis for Sentigent: loop engineering, the Ralph discipline, and the architecture of a durable dark-factory loop." />
+  <link rel="canonical" href="https://sentigent.xyz/docs/loop-engineering.html" />
+  <script src="https://unpkg.com/@tailwindcss/browser@4.1.8/dist/index.global.js"
+          integrity="sha384-8X5W4SD/nWpjc4BXk/HRuQ+rhoTF2Dx9DJ+7I2oQctvF4jSQjwtYIeo6fGqZSGGR"
+          crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg:      #0a0a0f;
+      --panel:   #14141f;
+      --border:  #1e1e2e;
+      --text:    #e6e6f0;
+      --muted:   #8a8aa0;
+      --accent:  #7c5cff;
+      --accent2: #a18bff;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .nav-blur {
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    pre, code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+    .prose h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .prose h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent2);
+      margin-top: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .prose p {
+      color: var(--muted);
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+    .prose p strong {
+      color: var(--text);
+    }
+    .prose ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 1rem;
+    }
+    .prose ul li {
+      color: var(--muted);
+      padding-left: 1.25rem;
+      position: relative;
+      margin-bottom: 0.4rem;
+      line-height: 1.7;
+    }
+    .prose ul li::before {
+      content: "–";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+    .prose blockquote {
+      border-left: 3px solid var(--accent);
+      padding-left: 1rem;
+      margin: 1.5rem 0;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .prose blockquote strong {
+      color: var(--text);
+      font-style: normal;
+    }
+    .prose a {
+      color: var(--accent2);
+      text-decoration: none;
+    }
+    .prose a:hover {
+      text-decoration: underline;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      vertical-align: top;
+      line-height: 1.6;
+    }
+    .data-table td:first-child {
+      color: var(--text);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+    .status-done { color: #4ade80; }
+    .status-wip  { color: #facc15; }
+    .arch-block {
+      background: #0d0d14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      color: #c8c8e0;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav-blur sticky top-0 z-50 border-b border-[#1e1e2e] bg-[rgba(10,10,15,0.85)]">
+  <div class="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+    <a href="../index.html" class="flex items-center gap-2 font-semibold text-[var(--text)]">
+      <span class="inline-block w-4 h-4 rounded-full bg-[var(--accent)]"></span>
+      Sentigent
+    </a>
+    <div class="hidden sm:flex items-center gap-5 text-sm text-[var(--muted)]">
+      <a href="loop-engineering.html" class="text-[var(--accent2)]">Loop</a>
+      <a href="fap.html" class="hover:text-[var(--text)] transition-colors">FAP</a>
+      <a href="guardrails.html" class="hover:text-[var(--text)] transition-colors">Guardrails</a>
+      <a href="quickstart.html" class="hover:text-[var(--text)] transition-colors">Quickstart</a>
+      <a href="../index.html#status" class="hover:text-[var(--text)] transition-colors">Status</a>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-4xl mx-auto px-6 py-16">
+  <!-- Breadcrumb -->
+  <div class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono mb-8">
+    <a href="../index.html" class="hover:text-[var(--accent2)]">Home</a>
+    <span>/</span>
+    <span class="text-[var(--text)]">Loop Engineering</span>
+  </div>
+
+  <div class="mb-10">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--muted)] text-xs font-mono mb-5">
+      <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] inline-block"></span>
+      Conceptual foundation
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Loop Engineering</h1>
+    <p class="text-[var(--muted)] text-lg leading-relaxed max-w-2xl">
+      The 2026 meta for AI coding: stop prompting the agent; design the system that prompts it.
+      A loop that keeps pushing a plan to completion, lap after lap, surviving every session boundary.
+    </p>
+  </div>
+
+  <div class="prose">
+
+    <blockquote>
+      "My job is to write loops. The model is a subroutine; I'm the loop architect."
+      <br /><strong>— Boris Cherny (Anthropic)</strong>, who reported 100% of his 259 PRs in 30 days were
+      written by Claude Code loops, Dec 2025.
+    </blockquote>
+
+    <h2>0. The Output Metric</h2>
+    <p>
+      The dark factory's one number: <strong>given a VISION doc, how long and how faithfully can Sentigent
+      push the plan before it needs a human?</strong> That's <a href="fap.html">FAP — Faithful Autonomous Progress</a>.
+      Everything in the loop architecture serves this metric. It is real, per-run, and impossible to fabricate —
+      it falls straight out of the loop's own state.
+    </p>
+
+    <h2>1. What the field has converged on</h2>
+
+    <h3>The Ralph loop — the seed</h3>
+    <p>
+      <strong>Geoffrey Huntley, 2025.</strong> <code style="color:var(--accent2); background:var(--panel); padding:2px 6px; border-radius:4px; font-size:0.82rem;">while :; do cat PROMPT.md | claude; done</code>.
+      The insight that started it: <strong>progress accumulates in files + git + tests, NOT in the context window.</strong>
+      Each lap gets a fresh context over a re-derived plan. Failures pipe back as a "contextual pressure cooker"
+      that forces the model to fix its own mistakes. Huntley built a whole programming language this way for ~$297.
+    </p>
+
+    <h3>The five-part loop contract</h3>
+    <p>Every production loop has exactly five parts:</p>
+
+    <div class="bg-[var(--panel)] border border-[var(--border)] rounded-xl overflow-hidden mb-6">
+      <table class="data-table">
+        <thead>
+          <tr><th>Part</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>TRIGGER</td><td>Timer (<code style="font-size:0.8rem">every 15m</code>) or event (CI fail, PR comment)</td></tr>
+          <tr><td>SCOPE</td><td>Which repos / files / PRs the loop may touch</td></tr>
+          <tr><td>ACTION</td><td>What the agent does each lap (ideally a named, tested skill)</td></tr>
+          <tr><td>BUDGET</td><td>Max laps, token/$ cap, max sub-agents</td></tr>
+          <tr><td>STOP</td><td>Done-criteria, iteration ceiling, spend limit, no-progress halt</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Open vs closed loops</h3>
+    <p>
+      <strong>Open loop:</strong> agent writes until it says done → demo only. No external verification.
+      The agent is agreeing with itself on repeat.
+    </p>
+    <p>
+      <strong>Closed loop:</strong> runs tests/lint/typecheck each lap; failures feed back into the next
+      lap's prompt → production-grade. <em>"A loop with nothing to push back is the agent agreeing with
+      itself on repeat."</em>
+    </p>
+
+    <h3>Durable state across sessions</h3>
+    <p>
+      Context windows are finite; every reset/compaction loses something, and agents that sense low context
+      do a "rushed finish." The fix: <strong>state-persistence files</strong> that let a new session resume
+      unambiguously:
+    </p>
+    <ul>
+      <li>A <strong>progress log</strong> (what's done)</li>
+      <li><strong>Verification records</strong> (what passed/failed)</li>
+      <li><strong>Next actions</strong> (the stored next step)</li>
+    </ul>
+    <p>
+      Plus <strong>anchor files</strong> re-injected every lap: <code style="color:var(--accent2); font-size:0.82rem;">VISION.md</code> (goal + success criteria),
+      <code style="color:var(--accent2); font-size:0.82rem;">CLAUDE.md</code>/<code style="color:var(--accent2); font-size:0.82rem;">AGENTS.md</code> (rules/guardrails),
+      <code style="color:var(--accent2); font-size:0.82rem;">PROMPT.md</code> (the injected tick).
+      Context reset + structured handoff beat compaction for long runs.
+    </p>
+
+    <h3>Three-agent shape (Anthropic)</h3>
+    <p>
+      Planner (spec) → Generator (implements in sprints) → Evaluator (tests like a user via Playwright,
+      grades on hard thresholds), communicating <strong>through files</strong>. "Sprint contracts" = the
+      generator proposes the work + its own success criteria, evaluator approves, then it builds. Keep it
+      as simple as the model allows.
+    </p>
+
+    <h3>Cost is the new constraint</h3>
+    <p>
+      Uber capped engineers at $1,500/mo after burning the annual budget in 4 months. Controls that matter:
+      hard max-iterations, <strong>no-progress detection</strong> (halt if the same error repeats N×), and a
+      pre-set $/token ceiling.
+    </p>
+
+    <h2>2. The gap nobody has solved — Sentigent's wedge</h2>
+    <p>
+      Every loop <strong>halts or runs off a cliff</strong> at two hard moments:
+    </p>
+    <ul>
+      <li><strong>A blocker</strong> — naive loops stop and page a human (kills autonomy), or barrel ahead and do the wrong thing.</li>
+      <li><strong>No progress</strong> — naive loops either spin forever (burns budget) or stop too early.</li>
+    </ul>
+    <p>
+      The decision "push through this myself vs. stop and ask" is exactly a <strong>judgment</strong> call.
+      It's the one thing a generic loop can't do well. Sentigent has the parts to make that decision
+      <em>learned from your history</em> — that is the differentiated loop:
+    </p>
+    <ul>
+      <li><strong>Ralph</strong> gives autonomy but no judgment (it just re-runs).</li>
+      <li><strong>A bare harness</strong> gives structure but static rules.</li>
+      <li><strong>Sentigent</strong> = a durable loop harness whose push-vs-ask decision is learned + whose per-lap safety is org-enforced.</li>
+    </ul>
+
+    <h2>3. The architecture</h2>
+
+    <div class="arch-block">
+<pre style="margin:0; color:#c8c8e0; white-space:pre; font-size:0.76rem;">        VISION.md (goal + Done-criteria)         org guardrail packs
+                  │                                      │  (per-lap safety)
+                  ▼                                      ▼
+   ┌──────────────── LOOP DRIVER (durable, cross-session) ────────────────┐
+   │  state file: progress log · verification records · NEXT STEP          │
+   │  (atomic, crash-safe)                                                  │
+   │                                                                        │
+   │  each lap:                                                             │
+   │   1. read next step + anchor files (fresh context — Ralph discipline)  │
+   │   2. run a FRESH `claude -p` over just that step                       │
+   │   3. CLOSED-LOOP VERIFY (tests/typecheck/lint);                        │
+   │      failure pipes into next lap's prompt                              │
+   │   4. on blocker → CloneResolver decides push-or-ask                    │
+   │      using LEARNED thresholds                                          │
+   │   5. STOP checks: DoD satisfied? · no-progress (same fail N×)?        │
+   │      · max laps? · budget? · kill?                                     │
+   │   6. atomically persist → next step durably queued                     │
+   └────────────────────────────────────────────────────────────────────────┘
+                  │ every lap logged → real receipt (laps/verifies/resolves/$)
+                  ▼
+        resume(loop_id) picks up at stored next step after ANY session/crash</pre>
+    </div>
+
+    <h3>Implementation status</h3>
+    <div class="bg-[var(--panel)] border border-[var(--border)] rounded-xl overflow-hidden mb-6">
+      <table class="data-table">
+        <thead>
+          <tr><th>Component</th><th>File</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Fresh-context laps (Ralph)</td><td><code style="font-size:0.8rem">operator/loop.py</code></td><td class="status-done">✓ exists</td></tr>
+          <tr><td>Cross-session durable driver</td><td><code style="font-size:0.8rem">operator/loop_driver.py</code></td><td class="status-done">✓ shipped</td></tr>
+          <tr><td>Push-vs-ask on blockers</td><td><code style="font-size:0.8rem">operator/resolver.py</code> CloneResolver</td><td class="status-done">✓ exists</td></tr>
+          <tr><td>Learned push-vs-ask thresholds</td><td><code style="font-size:0.8rem">CloneResolver.thresholds_from_calibration</code></td><td class="status-done">✓ the wedge</td></tr>
+          <tr><td>Done-criteria STOP</td><td><code style="font-size:0.8rem">operator/goal_dod.py</code> GoalDoD</td><td class="status-done">✓ exists</td></tr>
+          <tr><td>Budget / kill STOP</td><td>BudgetGovernor / KillSwitch</td><td class="status-done">✓ exists</td></tr>
+          <tr><td>Org guardrail packs</td><td><code style="font-size:0.8rem">guardrails/*.yaml</code> + <code style="font-size:0.8rem">operator/guardrails.py</code></td><td class="status-done">✓ shipped</td></tr>
+          <tr><td>Closed-loop verify gate</td><td><code style="font-size:0.8rem">verifier.py</code></td><td class="status-done">✓ wired</td></tr>
+          <tr><td>No-progress detection</td><td>loop_driver same-fail-N× check</td><td class="status-done">✓ added</td></tr>
+          <tr><td>FAP receipt</td><td><code style="font-size:0.8rem">loop_driver receipt</code></td><td class="status-done">✓ shipped</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      <strong>P1–P5 are feature-complete.</strong> Next: real-world hardening — run it with <code style="color:var(--accent2); font-size:0.82rem;">--execute</code>
+      on live visions to gather actual FAP, and wire the driver into the MCP <code style="color:var(--accent2); font-size:0.82rem;">operator_*</code>
+      tools so the loop is callable from Claude Code directly.
+    </p>
+
+    <h2>4. Positioning (honest)</h2>
+    <p>
+      Sentigent is <strong>a loop harness with learned judgment</strong>: it keeps pushing your plan across
+      session boundaries (Ralph's autonomy + durable resume), but it knows — from <em>your</em> decision
+      history — when to push through a blocker vs. stop and ask, and it enforces org guardrails on every lap.
+      Ralph is the engine; Sentigent is the engine that doesn't need babysitting and won't drive off a cliff.
+    </p>
+
+    <h2>Sources</h2>
+    <ul>
+      <li><a href="https://www.anthropic.com/engineering/harness-design-long-running-apps" target="_blank" rel="noopener">Anthropic — Harness design for long-running apps</a></li>
+      <li><a href="https://www.codecentric.de/en/knowledge-hub/blog/the-ralph-wiggum-loop-autonomous-code-generation-with-a-fresh-context" target="_blank" rel="noopener">The Ralph Wiggum Loop (codecentric)</a></li>
+      <li><a href="https://github.com/snarktank/ralph" target="_blank" rel="noopener">snarktank/ralph</a></li>
+      <li><a href="https://github.com/ai-boost/awesome-harness-engineering" target="_blank" rel="noopener">awesome-harness-engineering</a></li>
+      <li><a href="https://walkinglabs.github.io/learn-harness-engineering/en/lectures/lecture-05-why-long-running-tasks-lose-continuity/" target="_blank" rel="noopener">Keeping context alive across sessions</a></li>
+      <li><a href="https://www.langchain.com/blog/the-anatomy-of-an-agent-harness" target="_blank" rel="noopener">LangChain — Anatomy of an agent harness</a></li>
+    </ul>
+
+  </div>
+
+  <!-- Docs nav footer -->
+  <div class="mt-16 pt-8 border-t border-[var(--border)] flex flex-wrap gap-4 justify-between text-sm">
+    <a href="../index.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">← Back to home</a>
+    <div class="flex gap-6">
+      <a href="fap.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">FAP →</a>
+      <a href="guardrails.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">Guardrails →</a>
+      <a href="quickstart.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">Quickstart →</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>
