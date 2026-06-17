@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sentigent — how it all fits together (diagrams)</title>
+<meta name="description" content="The big picture and the details of how Sentigent works: the loop, the three context layers, the decision gate, and the open-source vs org tiers." />
+<link rel="canonical" href="https://sentigent.xyz/diagrams" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%237c5cff'/%3E%3C/svg%3E" />
+<style>
+  :root{
+    --bg:#0a0a0f; --panel:#14141f; --panel2:#0f0f18; --border:#23233a;
+    --text:#e9e9f2; --muted:#9a9ab2; --faint:#6a6a82;
+    --accent:#7c5cff; --accent2:#a892ff; --blue:#5b8def; --green:#34d399; --amber:#fbbf24;
+    --radius:14px; --max:1100px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  .grad{background:linear-gradient(120deg,var(--accent2),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(10,10,15,.72);border-bottom:1px solid var(--border)}
+  .navin{display:flex;align-items:center;justify-content:space-between;height:62px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:650}
+  .dot{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));box-shadow:0 0 14px rgba(124,92,255,.6)}
+  .navlinks{display:flex;gap:24px;font-size:14px;color:var(--muted)}
+  .navlinks a:hover{color:var(--text)}
+
+  header.hero{text-align:center;padding:64px 0 30px}
+  header .eyebrow{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent2);margin-bottom:14px}
+  header h1{font-size:clamp(30px,5vw,46px);letter-spacing:-.03em;font-weight:760;line-height:1.08}
+  header p{color:var(--muted);max-width:620px;margin:16px auto 0;font-size:18px}
+
+  .legend{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin:26px 0 10px;font-size:13px;color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:7px}
+  .swatch{width:11px;height:11px;border-radius:3px}
+
+  figure{margin:46px 0;border:1px solid var(--border);border-radius:18px;background:linear-gradient(180deg,#101019,#0c0c14);padding:30px 26px 24px;overflow:hidden}
+  figcaption{margin-top:18px;color:var(--muted);font-size:14.5px;border-top:1px solid var(--border);padding-top:16px}
+  figcaption b{color:var(--text)}
+  .figtitle{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+  .figtitle .num{font-family:ui-monospace,monospace;font-size:12px;color:var(--accent2);border:1px solid var(--border);border-radius:7px;padding:3px 8px}
+  .figtitle h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .tag{font-size:10.5px;font-family:ui-monospace,monospace;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .tag.live{background:rgba(52,211,153,.13);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+  .tag.build{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.3)}
+
+  /* shared diagram primitives */
+  .row{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;justify-content:center}
+  .node{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:14px 16px;text-align:center;min-width:120px;flex:1}
+  .node .k{font-size:14px;font-weight:650}
+  .node .s{font-size:12px;color:var(--muted);margin-top:3px}
+  .node .n{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent2)}
+  .arr{display:grid;place-items:center;color:var(--accent);font-size:20px;padding:0 8px;flex:0 0 auto}
+  .arr.loop{color:var(--accent2)}
+  @media(max-width:740px){.row{flex-direction:column}.arr{transform:rotate(90deg);padding:6px 0}}
+
+  .band{border:1px dashed var(--border);border-radius:12px;padding:18px 16px 16px;position:relative;margin-top:26px}
+  .band-label{position:absolute;top:-10px;left:16px;background:#0c0c14;padding:0 8px;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+
+  .foundations{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:26px}
+  @media(max-width:740px){.foundations{grid-template-columns:repeat(2,1fr)}}
+  .f{background:#11111b;border:1px solid var(--border);border-radius:11px;padding:14px;text-align:center;border-top:3px solid var(--accent)}
+  .f.b{border-top-color:var(--amber)}
+  .f .k{font-size:13.5px;font-weight:650}
+  .f .s{font-size:11.5px;color:var(--muted);margin-top:3px}
+
+  .gradient-bar{height:14px;border-radius:999px;margin:14px 0 8px;background:linear-gradient(90deg,var(--accent),#3aa0d0 45%,var(--green))}
+  .gradient-ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-family:ui-monospace,monospace}
+
+  .layers{display:flex;flex-direction:column;gap:12px}
+  .layer{display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:#11111b;position:relative;overflow:hidden}
+  .layer::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+  .layer.l1::before{background:var(--accent)} .layer.l2::before{background:var(--blue)} .layer.l3::before{background:var(--amber)}
+  .layer .ico{font-size:22px;width:30px;text-align:center;flex:0 0 auto}
+  .layer .body{flex:1}
+  .layer .who{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .layer .k{font-size:16px;font-weight:680;margin-top:1px}
+  .layer .s{font-size:13px;color:var(--muted);margin-top:3px}
+  .merge{text-align:center;color:var(--muted);font-size:14px;margin-top:14px}
+  .merge .mono{color:var(--accent2)}
+
+  .gate{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
+  @media(max-width:740px){.gate{grid-template-columns:1fr}}
+  .gcol{border:1px solid var(--border);border-radius:12px;padding:18px;background:#11111b}
+  .gcol h3{font-size:15px;margin-bottom:10px}
+  .gcol ul{list-style:none;display:flex;flex-direction:column;gap:8px;font-size:13.5px;color:var(--muted)}
+  .gcol li{display:flex;gap:9px;align-items:flex-start}
+  .gcol li b{color:var(--text);font-weight:600}
+  .yes::before{content:"▶";color:var(--green);flex:0 0 auto}
+  .stop::before{content:"■";color:#ff6b6b;flex:0 0 auto}
+
+  .tiers{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:740px){.tiers{grid-template-columns:1fr}}
+  .tier{border:1px solid var(--border);border-radius:14px;padding:22px;background:#11111b}
+  .tier.paid{border-color:var(--accent)}
+  .tier .nm{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent2)}
+  .tier .pr{font-size:24px;font-weight:740;margin:6px 0 12px}
+  .tier ul{list-style:none;display:flex;flex-direction:column;gap:8px;font-size:13.5px;color:var(--muted)}
+  .tier li{display:flex;gap:9px}
+  .tier li::before{content:"✓";color:var(--green)}
+  .tier li.soon::before{content:"○";color:var(--amber)}
+
+  footer{border-top:1px solid var(--border);padding:40px 0;text-align:center;color:var(--faint);font-size:13px;margin-top:40px}
+  footer a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap navin">
+  <a class="brand" href="/"><span class="dot"></span> Sentigent</a>
+  <div class="navlinks">
+    <a href="/#how">How it works</a><a href="/#pricing">Pricing</a><a href="/diagrams">Diagrams</a><a href="https://github.com/hussi9/sentigent">GitHub</a>
+  </div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <p class="eyebrow">The whole picture</p>
+  <h1>How Sentigent <span class="grad">fits together</span></h1>
+  <p>One map of everything that's built, then a closer look at each part. Honest about what's live and what's still being built.</p>
+  <div class="legend">
+    <span class="pill"><span class="swatch" style="background:var(--green)"></span> working today</span>
+    <span class="pill"><span class="swatch" style="background:var(--amber)"></span> building</span>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+  <!-- 1 — BIG PICTURE -->
+  <figure>
+    <div class="figtitle"><span class="num">01</span><h2>The big picture</h2></div>
+
+    <div class="band">
+      <span class="band-label">It improves itself</span>
+      <div class="row">
+        <div class="node"><div class="k">You</div><div class="s">give it a task</div></div>
+        <div class="arr">→</div>
+        <div class="node"><div class="k">The loop runs</div><div class="s">acts · verifies · decides</div></div>
+        <div class="arr">→</div>
+        <div class="node"><div class="k">Result</div><div class="s">work + a score</div></div>
+        <div class="arr">→</div>
+        <div class="node"><div class="k">Learnings</div><div class="s">your answers saved</div></div>
+        <div class="arr loop">↺</div>
+      </div>
+      <p style="text-align:center;color:var(--faint);font-size:12.5px;margin-top:12px">every blocker you answer becomes a precedent → it needs you a little less next time</p>
+    </div>
+
+    <div class="band">
+      <span class="band-label">One run, step by step</span>
+      <div class="row">
+        <div class="node"><div class="n">01</div><div class="k">Plan</div><div class="s">goal + "done"</div></div>
+        <div class="arr">→</div>
+        <div class="node"><div class="n">02</div><div class="k">Act</div><div class="s">fresh context</div></div>
+        <div class="arr">→</div>
+        <div class="node"><div class="n">03</div><div class="k">Verify</div><div class="s">tests its work</div></div>
+        <div class="arr">→</div>
+        <div class="node"><div class="n">04</div><div class="k">Decide</div><div class="s">go on / ask you</div></div>
+        <div class="arr">→</div>
+        <div class="node"><div class="n">05</div><div class="k">Resume</div><div class="s">survives restarts</div></div>
+      </div>
+    </div>
+
+    <div class="band">
+      <span class="band-label">Autonomy grows as it learns you</span>
+      <div class="gradient-bar"></div>
+      <div class="gradient-ends"><span>you-driven · Watch</span><span>Calibrate → Trust</span><span>loop-driven · Hands-off</span></div>
+      <p style="text-align:center;color:var(--faint);font-size:12.5px;margin-top:10px">the loop acts · you stay the gate on the dangerous calls (force-push · prod · secrets)</p>
+    </div>
+
+    <div class="band">
+      <span class="band-label">Foundations — the context it runs on</span>
+      <div class="foundations">
+        <div class="f"><div class="k">Profile</div><div class="s">what you'd do</div></div>
+        <div class="f"><div class="k">Plan</div><div class="s">this project</div></div>
+        <div class="f b"><div class="k">Policy</div><div class="s">org rules</div></div>
+        <div class="f"><div class="k">Local model</div><div class="s">decides as you</div></div>
+        <div class="f"><div class="k">Memory</div><div class="s">on-device</div></div>
+        <div class="f"><div class="k">FAP</div><div class="s">honest score</div></div>
+      </div>
+    </div>
+
+    <figcaption><b>Read it top to bottom:</b> Sentigent runs a loop that improves itself, each run goes Plan→Act→Verify→Decide→Resume, it needs you less as it learns you, and every decision rests on three context layers (Profile · Plan · Policy) plus a local brain, local memory, and one honest score. Five of six foundations are <b>live today</b>; org Policy is <b>building</b>.</figcaption>
+  </figure>
+
+  <!-- 2 — THE RUN LOOP -->
+  <figure>
+    <div class="figtitle"><span class="num">02</span><h2>The run loop, up close</h2><span class="tag live">live</span></div>
+    <div class="row">
+      <div class="node"><div class="k">Plan</div><div class="s">goal + steps + done-criteria, saved to disk</div></div>
+      <div class="arr">→</div>
+      <div class="node"><div class="k">Act</div><div class="s">does one step in a fresh context</div></div>
+      <div class="arr">→</div>
+      <div class="node"><div class="k">Verify</div><div class="s">re-runs your tests / build</div></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <div class="node" style="max-width:260px"><div class="k" style="color:var(--green)">✓ passed</div><div class="s">go to next step →</div></div>
+      <div class="node" style="max-width:260px"><div class="k" style="color:var(--amber)">✗ failed</div><div class="s">self-repair retry, then verify again</div></div>
+      <div class="node" style="max-width:260px"><div class="k" style="color:var(--accent2)">? blocked</div><div class="s">the clone decides: continue or ask you</div></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <div class="node"><div class="k">Resume</div><div class="s">crash, limit, or new session → reloads from disk and keeps going</div></div>
+      <div class="arr loop">↺</div>
+      <div class="node"><div class="k">Repeat</div><div class="s">until every step is done &amp; verified</div></div>
+    </div>
+    <figcaption><b>Why it matters:</b> nothing is "done" until it passes <b>your</b> definition of done, a failure triggers a fix instead of a silent pass, and the whole thing survives the end of a session. <span class="mono">operator/loop_driver.py</span></figcaption>
+  </figure>
+
+  <!-- 3 — THREE LAYERS -->
+  <figure>
+    <div class="figtitle"><span class="num">03</span><h2>The three layers of context</h2></div>
+    <div class="layers">
+      <div class="layer l1"><div class="ico">👤</div><div class="body"><div class="who">Individual · Profile</div><div class="k">What <em>you</em> would do</div><div class="s">your standards + push-vs-ask judgment — written up as a steering file it can re-read</div></div><span class="tag live">live</span></div>
+      <div class="layer l2"><div class="ico">📋</div><div class="body"><div class="who">Project · Plan</div><div class="k">What <em>this work</em> requires</div><div class="s">the goal, the plan, done-criteria, and this repo's conventions</div></div><span class="tag live">live</span></div>
+      <div class="layer l3"><div class="ico">🛡️</div><div class="body"><div class="who">Org · Policy</div><div class="k">What everyone is <em>allowed</em> to do</div><div class="s">hard rules + a governed catalog of tools/skills the team may use</div></div><span class="tag build">building</span></div>
+    </div>
+    <p class="merge">every decision blends all three →&nbsp; <span class="mono">decide = Profile · Plan · Policy</span></p>
+    <figcaption><b>The core idea:</b> the loop never has to guess and never stops to ask the obvious, because it holds the context you'd otherwise supply by hand. <b>The more context it has, the more it can safely do on its own.</b></figcaption>
+  </figure>
+
+  <!-- 4 — DECISION GATE -->
+  <figure>
+    <div class="figtitle"><span class="num">04</span><h2>How it decides: act, ask, or never</h2><span class="tag live">live</span></div>
+    <div class="gate">
+      <div class="gcol">
+        <h3>The clone (soft judgment)</h3>
+        <ul>
+          <li class="yes"><span><b>Confident it knows your call</b> → does it, in your voice</span></li>
+          <li class="yes"><span><b>Unsure</b> → pauses and asks you (and learns from your answer)</span></li>
+          <li class="yes"><span>Confidence bar is <b>learned per category</b> — it rises where you've overridden it before</span></li>
+        </ul>
+      </div>
+      <div class="gcol">
+        <h3>The policy wall (hard, deterministic)</h3>
+        <ul>
+          <li class="stop"><span><b>force-push, prod-DB, secrets, rm, external sends</b></span></li>
+          <li class="stop"><span>Always stop for you — <b>regardless of confidence</b></span></li>
+          <li class="stop"><span>The clone <b>can never</b> clear these on its own</span></li>
+        </ul>
+      </div>
+    </div>
+    <figcaption><b>Two layers of safety:</b> a learned judgment on top, an inviolable rule-wall underneath. That's what lets it run unattended without driving off a cliff. <span class="mono">operator/resolver.py · core/policy_engine</span></figcaption>
+  </figure>
+
+  <!-- 5 — TIERS -->
+  <figure>
+    <div class="figtitle"><span class="num">05</span><h2>Free for you · paid for the org</h2></div>
+    <div class="tiers">
+      <div class="tier">
+        <div class="nm">Open source — free</div>
+        <div class="pr">Individual + Project</div>
+        <ul>
+          <li>The loop, the clone, FAP — on your machine</li>
+          <li>Your Profile + per-project Plan &amp; guardrails</li>
+          <li>Auto-written steering file (AGENTS.md)</li>
+          <li>MIT · nothing leaves your computer</li>
+        </ul>
+      </div>
+      <div class="tier paid">
+        <div class="nm">SaaS — paid</div>
+        <div class="pr">Org · Policy</div>
+        <ul>
+          <li class="soon">Org rules enforced across every agent</li>
+          <li class="soon">Capability registry (approved skills · MCP · tools)</li>
+          <li class="soon">Trace &amp; audit · budgets · approval inbox</li>
+          <li class="soon">Team-shared profiles &amp; an org knowledge base</li>
+        </ul>
+      </div>
+    </div>
+    <figcaption><b>Open-core, mapped to the layers:</b> the part that helps one developer ship is free forever; the part that <b>governs a whole organization</b> is the paid tier. Same split AWS "frontier teams" prove companies pay for — Sentigent does it bottom-up and open.</figcaption>
+  </figure>
+
+</main>
+
+<footer><div class="wrap">
+  <a href="/">← Back to home</a> &nbsp;·&nbsp; <a href="https://github.com/hussi9/sentigent">GitHub</a>
+  <div style="margin-top:12px">Sentigent · free &amp; open source · live = working today, building = on the roadmap</div>
+</div></footer>
+
+</body>
+</html>

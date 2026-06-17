@@ -243,41 +243,58 @@ sentigent_profile(action="get")
 sentigent_prove(days=90)
 # → Full proof report with top catches, Brier score, accuracy trajectory
 
-# Collective intelligence (Layer 3)
+# Collective intelligence (cross-org, opt-in)
 sentigent_collective(action="status")
 # → Pool: 0 patterns (opt-in to contribute your anonymized patterns)
 ```
 
 ---
 
-## The Three-Layer Learning Stack
+## Three layers of context
+
+> 🗺️ **The whole picture in diagrams:** https://sentigent.xyz/diagrams · written form in
+> [docs/ARCHITECTURE-OVERVIEW.md](docs/ARCHITECTURE-OVERVIEW.md).
+
+Every call the loop makes is the product of three context layers. They don't
+overlap — each has a distinct owner, lifespan, and the question it answers:
 
 ```
-Layer 3: COLLECTIVE INTELLIGENCE
-  Anonymized patterns from orgs that opted in.
-  "Across all deployments, force pushes after 5pm on Fridays
-   are 4x more likely to be accidental."
+ORG · Policy          What everyone is ALLOWED to do        [building]
+  Hard rules it can never auto-clear (force-push, prod-DB, secrets) +
+  a governed catalog of the skills/MCP/tools your agents may use.
+  Owned by org admins · binds across all people and projects.
 
-Layer 2: ORGANIZATIONAL WISDOM
-  All agents in your org share a single learning surface.
-  "Your security team has set a policy: all deploys require
-   human escalation. Your PM profile weights delivery_speed=0.8."
+PROJECT · Plan        What THIS work requires               [live]
+  The goal, the phased plan, per-step done-criteria, repo conventions
+  and guardrails. Owned by the repo · shared by everyone on it.
 
-Layer 1: AGENT INTUITION
-  This specific agent's 847 decisions and what it learned.
-  "This agent has learned that 'cleanup' tasks touching node_modules
-   are safe to proceed; 'cleanup' tasks near .env files need slow_down."
+INDIVIDUAL · Profile  What YOU would do                     [live]
+  Your standards, preferences, and push-vs-ask judgment — the model-of-you.
+  Owned by you · travels with you across every project · local, <50ms.
 ```
 
-All three layers are live and running. Layer 1 stores to local SQLite (<50ms
-latency, zero network dependency). Layer 2 syncs to Supabase for org-wide
-sharing. Layer 3 accepts opt-in anonymized contributions.
+The decision rule is the whole product in one line:
+
+> **decide = Profile · Plan · Policy** — at every blocker the clone answers
+> *what **I'd** do, given **this plan**, within **the org's rules***. That's why it
+> can keep going without paging you: it already holds the context you'd supply.
+
+**Context earns autonomy.** The more the loop knows across these three layers, the more
+it can safely do without you — the same principle "frontier teams" report (*"the richer
+the context, the more autonomy an agent can safely exercise"*). The difference: those
+teams **hand-write** their steering files; Sentigent **writes yours for you** from how you
+actually work — `python scripts/export_steering.py` emits a standard `AGENTS.md` any
+harness can read, and keeps it current instead of letting it rot.
+
+**Status:** Individual (Profile) and Project (Plan) are live today. Org (Policy) is
+scattered primitives now — the unified policy + capability registry is the next build.
+Local-first stays the default; sharing up to the org layer is opt-in.
 
 ---
 
-## Org Governance (Layer 2)
+## Org Governance — The Control Plane
 
-For teams deploying multiple agents, Sentigent provides org-level controls:
+For teams deploying multiple agents, the Control Plane provides org-level controls:
 
 ### Policies — Rules That Override All Agents
 
@@ -388,7 +405,7 @@ YOUR ENVIRONMENT                              SUPABASE (your account)
 ┌─────────────────────────────────┐          ┌────────────────────────────┐
 │  Agent → Hooks → MCP Server     │          │  org_policies              │
 │  ┌─────────────────────────┐    │  async   │  org_profiles              │
-│  │  Layer 1: SQLite        │────┼─────────▶│  synced_episodes           │
+│  │  Agent (local): SQLite  │────┼─────────▶│  synced_episodes           │
 │  │  • episodes (<50ms)     │    │          │  org_patterns              │
 │  │  • procedural_rules     │◀───┼──────────│  org_baselines             │
 │  │  • baselines            │    │  pull    │  policy_violations         │
@@ -402,20 +419,20 @@ YOUR ENVIRONMENT                              SUPABASE (your account)
 
 - **Hot path (<50ms):** Signal computation, decision gate, policy check — all local.
 - **Warm path (on outcome record):** Episodes synced to Supabase for org aggregation.
-- **Cold path (opt-in):** Anonymized patterns contributed to Layer 3 pool.
+- **Cold path (opt-in):** Anonymized patterns contributed to the Collective Intelligence pool.
 
 ---
 
 ## Roadmap
 
 - [x] Core engine (5 signals, decision gate, Brier calibration)
-- [x] Layer 1: Per-agent episodic + procedural learning (SQLite)
+- [x] Agent Intuition: per-agent episodic + procedural learning (SQLite)
 - [x] Claude Code integration (MCP + hooks, 18 tools)
-- [x] Layer 2: Org-wide policies + profiles (Supabase)
-- [x] Layer 2: Row-level security (multi-tenant isolation)
+- [x] Organizational Wisdom: org-wide policies + profiles (Supabase)
+- [x] Organizational Wisdom: row-level security (multi-tenant isolation)
 - [x] Proof of value report (prove command, top catches, Brier score)
 - [x] Prompt health analysis (correlate task descriptions with outcomes)
-- [x] Layer 3: Cross-org collective intelligence (opt-in, anonymized)
+- [x] Collective Intelligence: cross-org pool (opt-in, anonymized)
 - [x] Web dashboard (overview, patterns, policies, proof, profile, prompt health)
 - [x] M1: Intent synthesis from memory (`sentigent_intent` tool)
 - [x] M2: Skill routing at session start (PreToolUse hook)
