@@ -103,8 +103,10 @@ class CloneResolver:
 
     # ---- retrieval ----------------------------------------------------------
     def retrieve(self, blocker_text: str, category: str = "", k: int = 5) -> list[dict]:
-        """Top-k precedents most similar to the blocker. Keyword overlap, with a
-        boost for same-category precedents. Pure + deterministic (testable)."""
+        """Top-k precedents most similar to the blocker. Tries semantic (embedding
+        cosine) ranking first — so 'can't push to prod' matches 'deploy blocked' even
+        with zero shared words — and falls back to keyword overlap if embeddings are
+        unavailable. Same-category precedents get a small boost. Fail-soft + testable."""
         if self.store is None:
             return []
         try:
@@ -113,6 +115,13 @@ class CloneResolver:
             return []
         if not rows:
             return []
+        sem = self._retrieve_semantic(rows, blocker_text, category, k)
+        if sem is not None:
+            return sem
+        return self._retrieve_keyword(rows, blocker_text, category, k)
+
+    def _retrieve_keyword(self, rows: list[dict], blocker_text: str,
+                          category: str, k: int) -> list[dict]:
         bt = _tokens(blocker_text)
         scored: list[tuple[float, dict]] = []
         for r in rows:
@@ -124,6 +133,31 @@ class CloneResolver:
                 scored.append((score, r))
         scored.sort(key=lambda x: x[0], reverse=True)
         return [r for _, r in scored[:k]]
+
+    def _retrieve_semantic(self, rows: list[dict], blocker_text: str,
+                           category: str, k: int) -> list[dict] | None:
+        """Embedding-cosine ranking. Returns None (→ keyword fallback) if the
+        embedder isn't available or anything goes wrong — never raises."""
+        try:
+            from sentigent.routing.embeddings import cosine_sim, encode
+            q = encode(blocker_text)
+            if not q:
+                return None
+            scored: list[tuple[float, dict]] = []
+            for r in rows:
+                emb = encode(str(r.get("blocker", "")))
+                if not emb:
+                    continue
+                score = cosine_sim(q, emb)
+                if category and str(r.get("category", "")) == category:
+                    score += 0.05
+                scored.append((score, r))
+            if not scored:
+                return None
+            scored.sort(key=lambda x: x[0], reverse=True)
+            return [r for _, r in scored[:k]]
+        except Exception:
+            return None
 
     # ---- prompt -------------------------------------------------------------
     def _profile_block(self) -> str:

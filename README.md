@@ -1,58 +1,92 @@
 # Sentigent
 
-**The judgment layer that learns — and proves it.**
+**Intelligence is a commodity. Your learning loop isn't.**
 
-> Audience: teams and enterprise users who need governance, judgment,
-> guardrails, observability, and proof around AI agents. Individual developers
-> can start free, but the product is optimized for shared intelligence and
-> organizational deployment, not personal workflow routing.
+Sentigent is a **durable loop engine** (a "dark factory") that drives a plan forward
+across every Claude Code session boundary — and learns, from your own decision history,
+when to push through a blocker versus stop and ask. The model is rentable. The loop you
+own — your encoded workflows, your judgment, your guardrails — is the moat.
 
-Sentigent gives AI agents the one thing they can't get from a larger model
-or a better prompt: *judgment built from experience.*
+> **The industry direction (the Nadella / Microsoft framing, 2026):** the AI era won't
+> be won by whoever has the best *model* — intelligence is becoming a commodity. It's
+> won by whoever compounds **human capital + token capital** the fastest, via the
+> strongest **learning loop between humans and AI.** Sentigent is that loop, as software
+> you install, local-first.
 
-Install it once. It starts watching, evaluating, and learning immediately.
-After 30 days, your agent is provably better. After 90 days, you have the
-numbers to show your team — exactly which bad decisions it stopped, and how
-its accuracy improved.
+The puzzle, mapped:
 
----
-
-## Positioning
-
-- **Best for:** engineering teams, platform owners, enterprise agent deployments
-- **Core promise:** make agents more secure, more governable, more measurable, and more organizationally useful
-- **Category framing:** governance with guardrails, judgment, and proof
-- **Not the same as skills-master:** `skills-master` helps an individual operator choose the right capability or execution lane; Sentigent helps teams and enterprises trust, govern, and prove agent behavior
+| Industry concept | Sentigent |
+|---|---|
+| **Token Capital** — intelligence encoded into systems (workflows, evals, playbooks, memory) | durable loop state + opt-in org guardrail packs + a local brain that remembers every decision |
+| **The Learning Loop** — human seeds → AI captures → applies at scale → learns from outcomes → compounds | `loop_driver` runs fresh-context laps, verifies each against your own done-criteria, records what worked as **FAP** |
+| **The moat test** — "switch models tomorrow, what do you lose? Nothing = no moat" | the answer becomes *"years of encoded judgment, guardrails, and faithful progress"* — model-independent capital |
 
 ---
 
-## Proof, Not Promises
+## The one honest number — FAP (Faithful Autonomous Progress)
 
-The hardest thing about AI governance is proving it works. Sentigent solves this:
+Sentigent reports exactly one headline metric, and it's impossible to fabricate — it
+falls straight out of the loop's own persisted state: **how far and how faithfully it
+drives a plan before it needs you.**
 
-```bash
-sentigent prove --days 90
-
-═══════════════════════════════════════════════════════
-Sentigent Proof of Value — Last 90 Days
-═══════════════════════════════════════════════════════
-
-Judgment Score:        0.94  (was 0.68 on day 1)
-Accuracy improvement:  +38%  in 90 days
-
-Top catches (decisions confirmed correct by outcome):
-  1. force_push_block   — 12 catches  (100% confirmed)  P(correct)=0.96
-  2. deploy_escalation  —  8 catches  (87.5% confirmed) P(correct)=0.88
-  3. env_write_slow     —  5 catches  (100% confirmed)  P(correct)=0.98
-
-Brier Score: 0.087  (0.25 = random, 0.0 = perfect)
-90-day improvement: -0.163
-
-False negative rate: 3.2%  (decisions marked proceed that should have escalated)
-═══════════════════════════════════════════════════════
+```text
+SENTIGENT LOOP RECEIPT — Faithful Autonomous Progress across runs
+────────────────────────────────────────────────────────────
+  loop             FAP  dist   fid  auto  asks  goal
+  loop_83cc8641   100%  100%  100%  100%     0  Write a pytest suite for loop_driver
+────────────────────────────────────────────────────────────
+  1 loop · 1 completed · mean FAP 100% · paged you 0×
+  FAP over time  █  insufficient data — need ≥4 runs to show a trend (have 1)
 ```
 
-This is the data that answers "Is our AI governance working?"
+- **Distance** = steps done ÷ total · **Fidelity** = verified ÷ done · **Autonomy** = self-resolved ÷ blockers faced
+- **FAP** = verified-with-zero-help ÷ total · **Faithful streak** = longest hands-off verified run
+- **FAP over time** = is the loop getting smarter? (compounding ↑ / flat / regressing — honest about insufficient data)
+
+**Honest status.** Proven: real cross-session resume, per-step verify gates, and real
+`claude -p` runs completing real code — the loop wrote its own test suite (`tests/test_loop_driver.py`,
+FAP 100%, 0 asks, independently re-verified). The frontier we're building: proving FAP
+*compounds* across many runs as the learned push-vs-ask judgment improves. We report only
+numbers the loop actually produced — no fabricated "judgment score."
+
+---
+
+## Quickstart
+
+```bash
+uv pip install sentigent
+
+# seed a plan (durable across sessions; each step can carry its own done-criteria)
+python -m sentigent.operator.loop_driver start --goal "Ship feature X with passing tests"
+
+# drive it — fresh-context laps, closed-loop verify each step (dry-run unless --execute)
+python -m sentigent.operator.loop_driver drive <loop_id> --execute
+
+# the scoreboard
+python -m sentigent.operator.loop_driver receipt
+```
+
+Also exposed over MCP (`loop_start` / `loop_drive` / `loop_resume` / `loop_status` /
+`loop_receipt`) so the loop is callable from inside Claude Code. Local-first: your plans,
+decisions, and brain stay on your machine.
+
+---
+
+## For teams — guardrails you can enforce
+
+Loops shouldn't drive off a cliff. Sentigent ships **org guardrail packs** — data-driven
+YAML rules (`block` / `approve` / `warn`) evaluated on every lap. Encode your org's safety
+invariants once; every autonomous loop respects them. Opt-in, versioned, reviewable in git.
+
+---
+
+## The wedge vs. raw loops
+
+| | What you get |
+|---|---|
+| **Raw Ralph loop** | autonomy, but no judgment — it just re-runs; model-coupled |
+| **A bare harness** | structure, but static rules — you babysit the hard moments |
+| **Sentigent** | durable cross-session loop + push-vs-ask learned from *your* history + org guardrails per lap + an honest FAP receipt |
 
 ---
 

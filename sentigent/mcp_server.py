@@ -3123,6 +3123,195 @@ def operator_kill(run_id: int = 0, agent_id: str = "", org_id: str = "") -> str:
         return json.dumps({"error": str(exc)})
 
 
+# loop_* — the DURABLE cross-session dark-factory loop (loop_driver). Unlike
+# operator_loop (one in-process run to DoD), these persist the next step to disk
+# so a FRESH `claude -p`/session resumes the plan after the session ends or the
+# process dies. Each step carries its own done-criteria; progress is reported as
+# FAP (Faithful Autonomous Progress), including a FAP-over-time trend.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# MCP input is UNTRUSTED. Free-form shell gates (verify_cmd / per-step ':: cmd') would
+# be a command-injection / RCE vector reachable by any MCP client, so they are refused
+# by default. A human who wants shell gates can opt in with SENTIGENT_LOOP_MCP_ALLOW_SHELL=1
+# (and should pair it with execute via the CLI, where they typed the command themselves).
+_MCP_ALLOW_SHELL = os.environ.get("SENTIGENT_LOOP_MCP_ALLOW_SHELL", "0") == "1"
+
+
+def _parse_loop_steps(steps: str, allow_shell: bool = False) -> list:
+    """Steps come as text. Accept a JSON array, OR newline-separated lines where each
+    line is 'do this' or 'do this :: verify_command' (the per-step gate). When
+    allow_shell is False (the MCP default), per-step ':: verify' gates are DROPPED —
+    the shell string is never executed from untrusted MCP input."""
+    steps = (steps or "").strip()
+    if not steps:
+        return []
+    if steps.startswith("["):
+        try:
+            parsed = json.loads(steps)
+            if not allow_shell:
+                parsed = [{"text": s.get("text", ""), } if isinstance(s, dict) else s
+                          for s in parsed]
+            return parsed
+        except Exception:
+            pass
+    out = []
+    for line in steps.splitlines():
+        line = line.strip().lstrip("-*0123456789. ").strip()
+        if not line:
+            continue
+        if " :: " in line and allow_shell:
+            text, _, verify = line.partition(" :: ")
+            out.append({"text": text.strip(), "verify": verify.strip()})
+        elif " :: " in line:
+            out.append(line.partition(" :: ")[0].strip())   # drop the shell gate
+        else:
+            out.append(line)
+    return out
+
+
+def _safe_loop_cwd(cwd: str) -> str:
+    """The loop's cwd becomes the working dir for `claude -p` and anchor reads, so an
+    arbitrary path from MCP is an RCE vector. Default to the server's cwd; allow other
+    paths only if they sit under a configured root (SENTIGENT_LOOP_ALLOWED_ROOTS,
+    colon-separated). Raises ValueError otherwise."""
+    base = os.getcwd()
+    if not cwd or os.path.abspath(cwd) == os.path.abspath(base):
+        return base
+    target = os.path.abspath(cwd)
+    roots = [r for r in os.environ.get("SENTIGENT_LOOP_ALLOWED_ROOTS", "").split(":") if r]
+    for r in roots:
+        r = os.path.abspath(r)
+        if target == r or target.startswith(r + os.sep):
+            return target
+    raise ValueError(
+        "cwd not allowed — set SENTIGENT_LOOP_ALLOWED_ROOTS to permit paths outside the "
+        "server's working directory")
+
+
+# execute=True over MCP runs real `claude -p` from an attacker-influenced plan/cwd —
+# that's RCE-equivalent. Refuse it unless a human opted in out-of-band.
+_MCP_ALLOW_EXECUTE = os.environ.get("SENTIGENT_LOOP_MCP_ALLOW_EXECUTE", "0") == "1"
+
+
+def _mcp_execute_guard(execute: bool) -> str:
+    if execute and not _MCP_ALLOW_EXECUTE:
+        return json.dumps({"error": "execute=True is disabled over MCP. Set "
+                           "SENTIGENT_LOOP_MCP_ALLOW_EXECUTE=1 to allow real laps from "
+                           "MCP, or drive the loop from the CLI. Dry-run (execute=False) "
+                           "works without it."})
+    return ""
+
+
+@mcp.tool()
+def loop_start(goal: str, steps: str = "", cwd: str = "",
+               anchor_files: str = "", guardrails: bool = False,
+               max_attempts: int = 3) -> str:
+    """Seed a DURABLE cross-session loop (the dark factory). Stores the plan + the
+    next step to disk so a fresh session can resume it after this one ends.
+
+    steps: a JSON array, OR newline-separated lines. (Per-step shell gates 'text :: cmd'
+    and free-form verify commands are IGNORED over MCP for safety — set
+    SENTIGENT_LOOP_MCP_ALLOW_SHELL=1, or use the CLI, to attach real gates.) cwd must be
+    the server's working dir or under SENTIGENT_LOOP_ALLOWED_ROOTS. anchor_files:
+    comma-separated RELATIVE paths under cwd (VISION.md, CLAUDE.md…) re-injected each lap.
+    guardrails=True enforces org guardrail packs per lap. Returns the loop_id + status."""
+    try:
+        from sentigent.operator import loop_driver as L
+        safe_cwd = _safe_loop_cwd(cwd)
+        parsed = _parse_loop_steps(steps, allow_shell=_MCP_ALLOW_SHELL) or [goal]
+        # anchors: relative-only, no traversal (driver re-checks, but reject early too)
+        anchors = [a.strip() for a in anchor_files.split(",")
+                   if a.strip() and not os.path.isabs(a.strip()) and ".." not in a.strip().split("/")]
+        st = L.start(goal, parsed, cwd=safe_cwd, verify_cmd="",
+                     anchor_files=anchors, max_attempts=max_attempts, guardrails=guardrails)
+        note = "" if _MCP_ALLOW_SHELL else " (shell gates ignored — set SENTIGENT_LOOP_MCP_ALLOW_SHELL=1 to enable)"
+        return L.status_line(st) + "\n\n" + json.dumps(
+            {"loop_id": st["loop_id"], "steps": len(st["steps"]),
+             "next": f"loop_drive(loop_id) to dry-run{note}"})
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@mcp.tool()
+def loop_drive(loop_id: str, execute: bool = False, max_steps: int = 50,
+               timeout: int = 1800) -> str:
+    """Drive a loop forward, lap after lap, until done / blocked / max / budget.
+    DRY-RUN by default (execute=False) — no `claude -p`. execute=True runs real laps and
+    is REFUSED over MCP unless SENTIGENT_LOOP_MCP_ALLOW_EXECUTE=1 (RCE safety). Returns
+    the status line + FAP metrics. Safe to call again later (even from a new session)."""
+    try:
+        from sentigent.operator import loop_driver as L
+        blocked = _mcp_execute_guard(execute)
+        if blocked:
+            return blocked
+        st = L.drive(loop_id, execute=execute, max_steps=max_steps, timeout=timeout)
+        return L.status_line(st) + "\n\n" + json.dumps(L.metrics(st))
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@mcp.tool()
+def loop_resume(loop_id: str, execute: bool = False, max_steps: int = 50,
+                timeout: int = 1800) -> str:
+    """Resume a loop after a session ended, a crash, or a human answer to a blocker.
+    Reads the durable state from disk and continues from the stored next step. execute=True
+    is REFUSED over MCP unless SENTIGENT_LOOP_MCP_ALLOW_EXECUTE=1. Same return shape as
+    loop_drive."""
+    try:
+        from sentigent.operator import loop_driver as L
+        blocked = _mcp_execute_guard(execute)
+        if blocked:
+            return blocked
+        st = L.resume(loop_id, execute=execute, max_steps=max_steps, timeout=timeout)
+        return L.status_line(st) + "\n\n" + json.dumps(L.metrics(st))
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@mcp.tool()
+def loop_answer(loop_id: str, decision: str) -> str:
+    """Answer a loop's open blocker AS the human (approve / skip / takeover). Records the
+    precedent AND scores the clone's attempt (calibration) so the loop's push-vs-ask
+    judgment learns from this real outcome — then reopens the step and sets the loop back
+    to running so loop_drive/loop_resume continues. Returns what was learned + new status."""
+    try:
+        from sentigent.operator import loop_driver as L
+        return json.dumps(L.answer(loop_id, decision))
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@mcp.tool()
+def loop_status(loop_id: str) -> str:
+    """Where is this loop? Returns the status line (goal · next step · FAP) + metrics
+    for one loop, read straight from its persisted state."""
+    try:
+        from sentigent.operator import loop_driver as L
+        st = L.load(loop_id)
+        return L.status_line(st) + "\n\n" + json.dumps(L.metrics(st))
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+@mcp.tool()
+def loop_receipt() -> str:
+    """The dark-factory scoreboard across ALL loops: per-run FAP/distance/fidelity,
+    means, and the FAP-over-time trend (is the system getting smarter?). Real numbers
+    only — each row is computed from that loop's own persisted state."""
+    try:
+        import io
+        from contextlib import redirect_stdout
+        from sentigent.operator import loop_driver as L
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            L.print_receipt()
+        return buf.getvalue() + "\n" + json.dumps(L.receipt()["aggregate"])
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+
+
 def main() -> None:
     """Run the MCP server."""
     mcp.run()

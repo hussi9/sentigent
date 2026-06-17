@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quickstart — Sentigent Docs</title>
+  <meta name="description" content="Get Sentigent running in minutes: install, seed a plan, drive it with real claude -p laps, and read the FAP receipt." />
+  <link rel="canonical" href="https://sentigent.xyz/docs/quickstart.html" />
+  <script src="https://unpkg.com/@tailwindcss/browser@4.1.8/dist/index.global.js"
+          integrity="sha384-8X5W4SD/nWpjc4BXk/HRuQ+rhoTF2Dx9DJ+7I2oQctvF4jSQjwtYIeo6fGqZSGGR"
+          crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg:      #0a0a0f;
+      --panel:   #14141f;
+      --border:  #1e1e2e;
+      --text:    #e6e6f0;
+      --muted:   #8a8aa0;
+      --accent:  #7c5cff;
+      --accent2: #a18bff;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .nav-blur {
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    pre, code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+    .prose h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .prose h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent2);
+      margin-top: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .prose p {
+      color: var(--muted);
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+    .prose p strong { color: var(--text); }
+    .prose ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 1rem;
+    }
+    .prose ul li {
+      color: var(--muted);
+      padding-left: 1.25rem;
+      position: relative;
+      margin-bottom: 0.4rem;
+      line-height: 1.7;
+    }
+    .prose ul li::before {
+      content: "–";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+    .prose ul li strong { color: var(--text); }
+    .prose a {
+      color: var(--accent2);
+      text-decoration: none;
+    }
+    .prose a:hover { text-decoration: underline; }
+
+    /* Step counter */
+    .steps { counter-reset: step; }
+    .step {
+      counter-increment: step;
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      gap: 0 20px;
+      margin-bottom: 2rem;
+    }
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--panel);
+      border: 1px solid var(--accent);
+      color: var(--accent2);
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .step-num::before { content: counter(step); }
+    .step-body h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 6px;
+    }
+    .step-body p {
+      color: var(--muted);
+      font-size: 0.875rem;
+      line-height: 1.7;
+      margin: 0 0 10px;
+    }
+    .step-body p strong { color: var(--text); }
+
+    /* Code blocks */
+    .code-block {
+      background: #0d0d14;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .code-block-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .code-block-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .code-block-header .label {
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      margin-left: 4px;
+    }
+    .code-block pre {
+      padding: 18px 22px;
+      font-size: 0.82rem;
+      line-height: 1.85;
+      overflow-x: auto;
+      margin: 0;
+      color: #c8c8e0;
+    }
+
+    /* Inline code */
+    .ic {
+      color: var(--accent2);
+      background: var(--panel);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    /* Info / note boxes */
+    .note-box {
+      background: rgba(124,92,255,0.06);
+      border: 1px solid rgba(124,92,255,0.25);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: var(--muted);
+      font-size: 0.875rem;
+      line-height: 1.7;
+      margin-bottom: 1rem;
+    }
+    .note-box strong { color: var(--text); }
+
+    /* Receipt */
+    .receipt-block {
+      background: #0d0d14;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 22px;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.8rem;
+      line-height: 1.8;
+      color: #c8c8e0;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+    }
+
+    /* Flag table */
+    .flag-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .flag-table th {
+      text-align: left;
+      padding: 8px 14px;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.73rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+    }
+    .flag-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      vertical-align: top;
+      line-height: 1.6;
+    }
+    .flag-table td:first-child {
+      color: var(--accent2);
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+    .flag-table tr:last-child td { border-bottom: none; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav-blur sticky top-0 z-50 border-b border-[#1e1e2e] bg-[rgba(10,10,15,0.85)]">
+  <div class="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+    <a href="../index.html" class="flex items-center gap-2 font-semibold text-[var(--text)]">
+      <span class="inline-block w-4 h-4 rounded-full bg-[var(--accent)]"></span>
+      Sentigent
+    </a>
+    <div class="hidden sm:flex items-center gap-5 text-sm text-[var(--muted)]">
+      <a href="loop-engineering.html" class="hover:text-[var(--text)] transition-colors">Loop</a>
+      <a href="fap.html" class="hover:text-[var(--text)] transition-colors">FAP</a>
+      <a href="guardrails.html" class="hover:text-[var(--text)] transition-colors">Guardrails</a>
+      <a href="quickstart.html" class="text-[var(--accent2)]">Quickstart</a>
+      <a href="../index.html#status" class="hover:text-[var(--text)] transition-colors">Status</a>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-4xl mx-auto px-6 py-16">
+  <!-- Breadcrumb -->
+  <div class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono mb-8">
+    <a href="../index.html" class="hover:text-[var(--accent2)]">Home</a>
+    <span>/</span>
+    <span class="text-[var(--text)]">Quickstart</span>
+  </div>
+
+  <div class="mb-10">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--muted)] text-xs font-mono mb-5">
+      <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] inline-block"></span>
+      Get running in minutes
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Quickstart</h1>
+    <p class="text-[var(--muted)] text-lg leading-relaxed max-w-2xl">
+      Install Sentigent, seed a plan, drive it with real
+      <code class="ic">claude -p</code> laps, and read the FAP receipt.
+      No cloud setup required. Everything runs locally.
+    </p>
+  </div>
+
+  <!-- Prerequisites -->
+  <div class="note-box mb-10">
+    <strong>Prerequisites:</strong> Python 3.11+, <code class="ic">uv</code> or <code class="ic">pip</code>,
+    and <code class="ic">claude</code> CLI installed and authenticated
+    (<code class="ic">claude --version</code> should work). Ollama is optional — only needed for the
+    local CloneResolver push-vs-ask path.
+  </div>
+
+  <div class="steps">
+
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-num"></div>
+      <div class="step-body">
+        <h3>Install</h3>
+        <p>Install with <code class="ic">uv</code> (recommended) or plain pip.</p>
+        <div class="code-block">
+          <div class="code-block-header">
+            <div class="dot" style="background:#ff5f56"></div>
+            <div class="dot" style="background:#ffbd2e"></div>
+            <div class="dot" style="background:#27c93f"></div>
+            <span class="label">terminal</span>
+          </div>
+          <pre><code><span style="color:#8a8aa0"># recommended</span>
+<span style="color:#a18bff">uv pip install sentigent</span>
+
+<span style="color:#8a8aa0"># or with pip</span>
+<span style="color:#a18bff">pip install sentigent</span></code></pre>
+        </div>
+        <p>
+          Sentigent is local-first. No API keys required for the loop driver itself. Your plans,
+          decisions, and FAP data stay on your machine in a local SQLite brain.
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="step-num"></div>
+      <div class="step-body">
+        <h3>Seed a plan</h3>
+        <p>
+          Give the loop driver a goal. It creates a durable state file that survives session ends,
+          crashes, and reboots. This is the <strong>VISION.md equivalent</strong> encoded into the
+          loop's state.
+        </p>
+        <div class="code-block">
+          <div class="code-block-header">
+            <div class="dot" style="background:#ff5f56"></div>
+            <div class="dot" style="background:#ffbd2e"></div>
+            <div class="dot" style="background:#27c93f"></div>
+            <span class="label">terminal</span>
+          </div>
+          <pre><code><span style="color:#a18bff">python -m sentigent.operator.loop_driver start \
+  --goal <span style="color:#c3e88d">"Ship feature X with passing tests"</span></span>
+
+<span style="color:#8a8aa0"># output:</span>
+<span style="color:#c8c8e0">loop_id: loop_83cc8641
+state:   ~/.sentigent/loops/loop_83cc8641.json
+status:  pending</span></code></pre>
+        </div>
+        <p>
+          The <code class="ic">loop_id</code> is your handle for this plan. Use it in all subsequent
+          commands. The state file is atomic — a partial write never corrupts it.
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="step-num"></div>
+      <div class="step-body">
+        <h3>Drive it</h3>
+        <p>
+          Start the loop. Each lap spawns a fresh <code class="ic">claude -p</code> subprocess over
+          exactly one step, then runs the verify gate (your project's tests/lint/typecheck) before
+          marking it done. The loop persists state atomically after every lap — safe to kill at any point.
+        </p>
+        <div class="code-block">
+          <div class="code-block-header">
+            <div class="dot" style="background:#ff5f56"></div>
+            <div class="dot" style="background:#ffbd2e"></div>
+            <div class="dot" style="background:#27c93f"></div>
+            <span class="label">terminal</span>
+          </div>
+          <pre><code><span style="color:#a18bff">python -m sentigent.operator.loop_driver drive loop_83cc8641 --execute</span>
+
+<span style="color:#8a8aa0"># each lap prints:</span>
+<span style="color:#c8c8e0">[lap 1/? ] running step: write test scaffold
+[lap 1/? ] verify gate: pytest tests/ ... PASSED (19 tests)
+[lap 1/? ] step verified — persisting next step
+[lap 2/? ] running step: implement loop_driver.start()
+...</span></code></pre>
+        </div>
+
+        <div class="note-box" style="margin-top: 0.75rem;">
+          <strong>--execute flag:</strong> without it, the loop runs in dry-run mode — it plans and
+          verifies but does not spawn real <code class="ic">claude -p</code> subprocesses. Use dry-run
+          to inspect the plan before committing to execution.
+        </div>
+
+        <h3 style="margin-top: 1.25rem;">Flags reference</h3>
+        <div class="bg-[var(--panel)] border border-[var(--border)] rounded-xl overflow-hidden mb-4">
+          <table class="flag-table">
+            <thead><tr><th>Flag</th><th>Default</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>--execute</td>
+                <td style="color:var(--muted)">off</td>
+                <td>Spawn real <code class="ic" style="font-size:0.75rem">claude -p</code> subprocesses. Required for live runs.</td>
+              </tr>
+              <tr>
+                <td>--max-laps</td>
+                <td style="color:var(--muted)">50</td>
+                <td>Hard cap on laps per drive call. Loop halts cleanly at ceiling.</td>
+              </tr>
+              <tr>
+                <td>--guardrails</td>
+                <td style="color:var(--muted)">auto</td>
+                <td>Path(s) to guardrail YAML packs. Auto-discovers <code class="ic" style="font-size:0.75rem">guardrails/</code> in project root.</td>
+              </tr>
+              <tr>
+                <td>--no-progress-halt</td>
+                <td style="color:var(--muted)">3</td>
+                <td>Halt if the same verify failure repeats N times in a row. Prevents burn loops.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Resume -->
+    <div class="step">
+      <div class="step-num"></div>
+      <div class="step-body">
+        <h3>Resume after any interruption</h3>
+        <p>
+          The loop stores the next queued step atomically before each lap ends. If the session ends,
+          your machine restarts, or you manually kill the process — just run <code class="ic">drive</code>
+          again with the same <code class="ic">loop_id</code>. It picks up exactly where it left off.
+        </p>
+        <div class="code-block">
+          <div class="code-block-header">
+            <div class="dot" style="background:#ff5f56"></div>
+            <div class="dot" style="background:#ffbd2e"></div>
+            <div class="dot" style="background:#27c93f"></div>
+            <span class="label">terminal</span>
+          </div>
+          <pre><code><span style="color:#8a8aa0"># session ended, machine restarted — resume seamlessly</span>
+<span style="color:#a18bff">python -m sentigent.operator.loop_driver drive loop_83cc8641 --execute</span>
+
+<span style="color:#c8c8e0">resuming loop_83cc8641 at step 4/7 (3 verified, 0 asks)</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Receipt -->
+    <div class="step">
+      <div class="step-num"></div>
+      <div class="step-body">
+        <h3>Read the honest scoreboard</h3>
+        <p>
+          When the loop finishes (or at any point during a run), print the FAP receipt. It aggregates
+          across all loops you've run — distance, fidelity, autonomy, and the headline FAP for each.
+        </p>
+        <div class="code-block">
+          <div class="code-block-header">
+            <div class="dot" style="background:#ff5f56"></div>
+            <div class="dot" style="background:#ffbd2e"></div>
+            <div class="dot" style="background:#27c93f"></div>
+            <span class="label">terminal</span>
+          </div>
+          <pre><code><span style="color:#a18bff">python -m sentigent.operator.loop_driver receipt</span></code></pre>
+        </div>
+
+        <div class="receipt-block">
+          <div style="color:var(--accent2); font-weight:600; margin-bottom:8px;">SENTIGENT LOOP RECEIPT — Faithful Autonomous Progress across runs</div>
+          <div style="color:var(--muted)">────────────────────────────────────────────────────────────</div>
+          <div style="color:var(--muted); margin:4px 0;">loop&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FAP&nbsp;&nbsp;dist&nbsp;&nbsp;&nbsp;fid&nbsp;&nbsp;auto&nbsp;&nbsp;asks&nbsp;&nbsp;goal</div>
+          <div style="color:var(--text); margin:4px 0;">loop_83cc8641&nbsp;&nbsp; 100%&nbsp;&nbsp;100%&nbsp;&nbsp;100%&nbsp;&nbsp;100%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;Write a pytest suite for loop_driver</div>
+          <div style="color:var(--muted)">────────────────────────────────────────────────────────────</div>
+          <div style="color:var(--muted); margin-top:6px;">1 loop &nbsp;·&nbsp; 1 completed &nbsp;·&nbsp; mean FAP 100% &nbsp;·&nbsp; paged you 0×</div>
+        </div>
+
+        <p>
+          Every number in the receipt was logged by the loop itself during execution. Nothing is
+          inferred or estimated. See <a href="fap.html">the FAP doc</a> for the full metric definitions.
+        </p>
+      </div>
+    </div>
+
+  </div><!-- /steps -->
+
+  <div class="prose">
+
+    <h2>Using from Claude Code (MCP)</h2>
+    <p>
+      The loop driver is also exposed over MCP so it's callable from inside a Claude Code session
+      without switching to a terminal. The same durable state file backs both interfaces — starting
+      a loop via MCP and driving it via CLI (or vice versa) works transparently.
+    </p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <div class="dot" style="background:#ff5f56"></div>
+        <div class="dot" style="background:#ffbd2e"></div>
+        <div class="dot" style="background:#27c93f"></div>
+        <span class="label">claude code session</span>
+      </div>
+      <pre><code><span style="color:#8a8aa0"># from inside a Claude Code session, call the MCP tools directly:</span>
+
+<span style="color:#a18bff">operator_start(goal="Ship feature X with passing tests")</span>
+<span style="color:#8a8aa0"># → { loop_id: "loop_83cc8641", status: "pending" }</span>
+
+<span style="color:#a18bff">operator_status(loop_id="loop_83cc8641")</span>
+<span style="color:#8a8aa0"># → { step: 3, total: 7, verified: 2, asks: 0, fap: 0.28 }</span>
+
+<span style="color:#a18bff">operator_resume(loop_id="loop_83cc8641")</span>
+<span style="color:#8a8aa0"># → drives the next lap inline</span></code></pre>
+    </div>
+
+    <h2>Adding guardrails</h2>
+    <p>
+      Drop a YAML file in <code class="ic">guardrails/</code> in your project root. The loop driver
+      picks it up automatically on the next drive call. See the <a href="guardrails.html">Guardrails doc</a>
+      for the full format and available actions.
+    </p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <div class="dot" style="background:#ff5f56"></div>
+        <div class="dot" style="background:#ffbd2e"></div>
+        <div class="dot" style="background:#27c93f"></div>
+        <span class="label">guardrails/my-org.yaml</span>
+      </div>
+      <pre><code>rules:
+  - id: <span style="color:#c3e88d">no-force-push</span>
+    match: <span style="color:#c3e88d">"push --force|push -f"</span>
+    scope: bash
+    action: <span style="color:#fca5a5">block</span>
+    severity: critical
+
+  - id: <span style="color:#c3e88d">prod-deploy-gate</span>
+    match: <span style="color:#c3e88d">"deploy --prod|kubectl apply"</span>
+    scope: bash
+    action: <span style="color:#fde68a">approve</span>
+    severity: high</code></pre>
+    </div>
+
+    <h2>What to try next</h2>
+    <ul>
+      <li><a href="loop-engineering.html">Loop Engineering</a> — the full architecture and field survey</li>
+      <li><a href="fap.html">FAP</a> — metric definitions, what it proves, what it doesn't</li>
+      <li><a href="guardrails.html">Guardrails</a> — org safety packs in detail</li>
+      <li><a href="https://github.com/hussi9/sentigent" target="_blank" rel="noopener">GitHub</a> — source, issues, and contributing</li>
+    </ul>
+
+  </div>
+
+  <!-- Docs nav footer -->
+  <div class="mt-16 pt-8 border-t border-[var(--border)] flex flex-wrap gap-4 justify-between text-sm">
+    <a href="guardrails.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">← Guardrails</a>
+    <a href="../index.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">Back to home →</a>
+  </div>
+</main>
+</body>
+</html>

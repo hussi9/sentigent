@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAP — Faithful Autonomous Progress · Sentigent Docs</title>
+  <meta name="description" content="FAP is the one honest number that falls out of Sentigent's loop state: how far and how faithfully the loop drives a plan before it needs a human." />
+  <link rel="canonical" href="https://sentigent.xyz/docs/fap.html" />
+  <script src="https://unpkg.com/@tailwindcss/browser@4.1.8/dist/index.global.js"
+          integrity="sha384-8X5W4SD/nWpjc4BXk/HRuQ+rhoTF2Dx9DJ+7I2oQctvF4jSQjwtYIeo6fGqZSGGR"
+          crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg:      #0a0a0f;
+      --panel:   #14141f;
+      --border:  #1e1e2e;
+      --text:    #e6e6f0;
+      --muted:   #8a8aa0;
+      --accent:  #7c5cff;
+      --accent2: #a18bff;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .nav-blur {
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    pre, code {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+    .prose h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .prose h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent2);
+      margin-top: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .prose p {
+      color: var(--muted);
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+    .prose p strong {
+      color: var(--text);
+    }
+    .prose ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 1rem;
+    }
+    .prose ul li {
+      color: var(--muted);
+      padding-left: 1.25rem;
+      position: relative;
+      margin-bottom: 0.4rem;
+      line-height: 1.7;
+    }
+    .prose ul li::before {
+      content: "–";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+    .prose ul li strong {
+      color: var(--text);
+    }
+    .prose blockquote {
+      border-left: 3px solid var(--accent);
+      padding-left: 1rem;
+      margin: 1.5rem 0;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .receipt-block {
+      background: #0d0d14;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 24px;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.82rem;
+      line-height: 1.8;
+      color: #c8c8e0;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+    }
+    .candor-box {
+      background: #0f0f1a;
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+    .candor-box strong {
+      color: var(--text);
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 600px) {
+      .metric-grid { grid-template-columns: 1fr; }
+    }
+    .metric-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .metric-card.headline {
+      border-color: var(--accent);
+      grid-column: 1 / -1;
+    }
+    .metric-label {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.78rem;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .metric-card.headline .metric-label {
+      color: var(--accent2);
+      font-weight: 700;
+    }
+    .metric-def {
+      font-size: 0.875rem;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .metric-answers {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      vertical-align: top;
+      line-height: 1.6;
+    }
+    .data-table td:first-child {
+      color: var(--text);
+      font-weight: 600;
+      white-space: nowrap;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.82rem;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav-blur sticky top-0 z-50 border-b border-[#1e1e2e] bg-[rgba(10,10,15,0.85)]">
+  <div class="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+    <a href="../index.html" class="flex items-center gap-2 font-semibold text-[var(--text)]">
+      <span class="inline-block w-4 h-4 rounded-full bg-[var(--accent)]"></span>
+      Sentigent
+    </a>
+    <div class="hidden sm:flex items-center gap-5 text-sm text-[var(--muted)]">
+      <a href="loop-engineering.html" class="hover:text-[var(--text)] transition-colors">Loop</a>
+      <a href="fap.html" class="text-[var(--accent2)]">FAP</a>
+      <a href="guardrails.html" class="hover:text-[var(--text)] transition-colors">Guardrails</a>
+      <a href="quickstart.html" class="hover:text-[var(--text)] transition-colors">Quickstart</a>
+      <a href="../index.html#status" class="hover:text-[var(--text)] transition-colors">Status</a>
+    </div>
+  </div>
+</nav>
+
+<main class="max-w-4xl mx-auto px-6 py-16">
+  <!-- Breadcrumb -->
+  <div class="flex items-center gap-2 text-xs text-[var(--muted)] font-mono mb-8">
+    <a href="../index.html" class="hover:text-[var(--accent2)]">Home</a>
+    <span>/</span>
+    <a href="loop-engineering.html" class="hover:text-[var(--accent2)]">Loop Engineering</a>
+    <span>/</span>
+    <span class="text-[var(--text)]">FAP</span>
+  </div>
+
+  <div class="mb-10">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--border)] bg-[var(--panel)] text-[var(--muted)] text-xs font-mono mb-5">
+      <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] inline-block"></span>
+      The one honest number
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+      FAP — Faithful Autonomous Progress
+    </h1>
+    <p class="text-[var(--muted)] text-lg leading-relaxed max-w-2xl">
+      One number, impossible to fabricate, that falls straight out of the loop's own state: how far and
+      how faithfully Sentigent drives a plan before it needs you.
+    </p>
+  </div>
+
+  <div class="prose">
+
+    <h2>Why a new metric</h2>
+    <p>
+      Every AI tool ships with a number. Most of those numbers are fabricated — a model quality score,
+      a "judgment score," an accuracy percentage measured on a synthetic eval set. They mean nothing
+      about what actually happened in your codebase.
+    </p>
+    <p>
+      FAP is different. <strong>It falls straight out of the loop's own state.</strong> You can verify
+      every component yourself: count the steps in your plan, check which ones have verified test runs,
+      count how many times the loop paged you. The math is trivial. The fabrication surface is zero.
+    </p>
+    <p>
+      This replaces every fabricated "judgment score" we previously published. The only number we report
+      is the one the loop actually produced.
+    </p>
+
+    <h2>The five axes</h2>
+
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-label">Distance</div>
+        <div class="metric-def">plan steps completed ÷ total steps</div>
+        <div class="metric-answers">Answers: how long did it run?</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Fidelity</div>
+        <div class="metric-def">steps that passed verification ÷ steps done</div>
+        <div class="metric-answers">Answers: how faithfully? (no drift/breakage)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Autonomy</div>
+        <div class="metric-def">blockers self-resolved ÷ blockers faced</div>
+        <div class="metric-answers">Answers: did it need you?</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Faithful Streak</div>
+        <div class="metric-def">longest unbroken run of verified steps with no ask</div>
+        <div class="metric-answers">Answers: longest hands-off span</div>
+      </div>
+      <div class="metric-card headline">
+        <div class="metric-label">FAP (headline)</div>
+        <div class="metric-def">verified steps reached with zero human help ÷ total steps</div>
+        <div class="metric-answers">Range 0–1. The product's job is to push this upward as the learned push-vs-ask judgment improves.</div>
+      </div>
+    </div>
+
+    <h2>What high FAP looks like vs what it doesn't</h2>
+
+    <div class="bg-[var(--panel)] border border-[var(--border)] rounded-xl overflow-hidden mb-6">
+      <table class="data-table">
+        <thead>
+          <tr><th>Scenario</th><th>Distance</th><th>Fidelity</th><th>FAP</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>12/15 steps, all verified, 0 asks</td>
+            <td style="color:#4ade80">80%</td>
+            <td style="color:#4ade80">100%</td>
+            <td style="color:#4ade80">80%</td>
+            <td style="color:var(--muted); font-size:0.8rem">Good — high distance + perfect fidelity</td>
+          </tr>
+          <tr>
+            <td>12/15 steps, all verified, 1 ask</td>
+            <td style="color:#4ade80">80%</td>
+            <td style="color:#4ade80">100%</td>
+            <td style="color:#facc15">73%</td>
+            <td style="color:var(--muted); font-size:0.8rem">One ask cost 1 step of FAP credit</td>
+          </tr>
+          <tr>
+            <td>15/15 steps "done", 7 fail verification</td>
+            <td style="color:#4ade80">100%</td>
+            <td style="color:#f87171">53%</td>
+            <td style="color:#f87171">53%</td>
+            <td style="color:var(--muted); font-size:0.8rem">High distance, low fidelity — not faithful</td>
+          </tr>
+          <tr>
+            <td>15/15, all verified, 0 asks</td>
+            <td style="color:#4ade80">100%</td>
+            <td style="color:#4ade80">100%</td>
+            <td style="color:#4ade80">100%</td>
+            <td style="color:var(--muted); font-size:0.8rem">Dark factory — what we're building toward</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>The real receipt</h2>
+    <p>
+      The receipt below is real. It was produced by running <code style="color:var(--accent2); background:var(--panel); padding:2px 6px; border-radius:4px; font-size:0.82rem;">loop_driver receipt</code>
+      after the loop wrote a pytest suite for itself — a real <code style="color:var(--accent2); font-size:0.82rem;">claude -p</code> run,
+      real test subprocess, real verification gate. 19 tests pass on re-run independently.
+    </p>
+
+    <div class="receipt-block">
+      <div style="color:var(--accent2); font-weight:600; margin-bottom:8px;">SENTIGENT LOOP RECEIPT — Faithful Autonomous Progress across runs</div>
+      <div style="color:var(--muted);">────────────────────────────────────────────────────────────</div>
+      <div style="color:var(--muted); margin:4px 0;">loop&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FAP&nbsp;&nbsp;dist&nbsp;&nbsp;&nbsp;fid&nbsp;&nbsp;auto&nbsp;&nbsp;asks&nbsp;&nbsp;goal</div>
+      <div style="color:var(--text); margin:4px 0;">loop_83cc8641&nbsp;&nbsp; 100%&nbsp;&nbsp;100%&nbsp;&nbsp;100%&nbsp;&nbsp;100%&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;Write a pytest suite for loop_driver</div>
+      <div style="color:var(--muted);">────────────────────────────────────────────────────────────</div>
+      <div style="color:var(--muted); margin-top:6px;">1 loop &nbsp;·&nbsp; 1 completed &nbsp;·&nbsp; mean FAP 100% &nbsp;·&nbsp; paged you 0×</div>
+    </div>
+
+    <h2>Honest scope</h2>
+
+    <div class="candor-box">
+      <p style="margin-bottom:8px;"><strong>What this receipt proves:</strong></p>
+      <ul style="list-style:none; padding:0; margin:0;">
+        <li style="padding-left:1.25rem; position:relative; margin-bottom:6px; line-height:1.6;">
+          <span style="position:absolute; left:0; color:var(--accent);">✓</span>
+          Real cross-session resume: the loop state was persisted atomically and picked up after session end.
+        </li>
+        <li style="padding-left:1.25rem; position:relative; margin-bottom:6px; line-height:1.6;">
+          <span style="position:absolute; left:0; color:var(--accent);">✓</span>
+          Per-step verify gate: a step was only marked done after the real test subprocess passed.
+        </li>
+        <li style="padding-left:1.25rem; position:relative; margin-bottom:6px; line-height:1.6;">
+          <span style="position:absolute; left:0; color:var(--accent);">✓</span>
+          Zero human asks: the loop self-resolved every blocker it encountered.
+        </li>
+        <li style="padding-left:1.25rem; position:relative; margin-bottom:6px; line-height:1.6;">
+          <span style="position:absolute; left:0; color:var(--accent);">✓</span>
+          Independent re-verification: 19 tests pass on a clean re-run after the session ended.
+        </li>
+      </ul>
+      <p style="margin-top:12px; margin-bottom:0;"><strong>What we haven't proven yet:</strong> FAP compounding upward across many diverse runs as the learned push-vs-ask judgment improves. That's the frontier we're actively building. We will publish the data when we have it.</p>
+    </div>
+
+    <h2>How FAP is computed</h2>
+    <p>
+      The receipt is generated by <code style="color:var(--accent2); background:var(--panel); padding:2px 6px; border-radius:4px; font-size:0.82rem;">python -m sentigent.operator.loop_driver receipt</code>.
+      It reads the loop's own state file — the same file that drives resume — and aggregates across all
+      recorded runs. Nothing is inferred from model outputs; every data point is a logged event
+      (step started, step verified, blocker raised, human paged).
+    </p>
+
+    <h3>The formula</h3>
+    <div class="bg-[var(--panel)] border border-[var(--border)] rounded-xl p-5 font-mono text-sm mb-6" style="line-height:2;">
+      <div><span style="color:var(--muted);">distance  =</span> <span style="color:var(--text);">steps_done / total_steps</span></div>
+      <div><span style="color:var(--muted);">fidelity  =</span> <span style="color:var(--text);">steps_verified / steps_done</span></div>
+      <div><span style="color:var(--muted);">autonomy  =</span> <span style="color:var(--text);">blockers_resolved / blockers_faced</span></div>
+      <div style="border-top: 1px solid var(--border); margin-top:8px; padding-top:8px;">
+        <span style="color:var(--accent2); font-weight:700;">FAP</span>
+        <span style="color:var(--muted);"> = </span>
+        <span style="color:var(--text);">steps_verified_with_zero_asks / total_steps</span>
+      </div>
+    </div>
+
+    <h2>The product goal</h2>
+    <p>
+      <strong>The product's job is to push FAP and the faithful streak upward over time</strong> — as the
+      loop runs more plans, the CloneResolver's learned push-vs-ask thresholds improve, meaning fewer
+      unnecessary asks, fewer cliff-drives, and longer unbroken verified streaks. FAP is the measure of
+      whether that's actually happening. No synthetic eval set. No held-out benchmark. Just: did the loop
+      do the work, verify it, and not need you?
+    </p>
+
+  </div>
+
+  <!-- Docs nav footer -->
+  <div class="mt-16 pt-8 border-t border-[var(--border)] flex flex-wrap gap-4 justify-between text-sm">
+    <a href="loop-engineering.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">← Loop Engineering</a>
+    <div class="flex gap-6">
+      <a href="guardrails.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">Guardrails →</a>
+      <a href="quickstart.html" class="text-[var(--muted)] hover:text-[var(--accent2)] transition-colors">Quickstart →</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>
