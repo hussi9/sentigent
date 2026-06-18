@@ -115,6 +115,24 @@ now explicit on the roadmap:
   **steering file** (`export_steering.py` → `AGENTS.md`): Sentigent *generates* steering files
   from real behaviour rather than making people hand-maintain them — the wedge vs. hand-built
   frontier-team context.
+- **X3 — ARD interop (Google Cloud Agentic Resource Discovery).** ARD is the emerging open
+  standard for agents to **discover** capabilities across the web and **verify** the publisher's
+  identity (a domain hosts a signed `/.well-known/ai-catalog.json`; registries index catalogs;
+  agents connect via MCP / A2A / API). It is *discovery + trust* — the layer **below** Sentigent's
+  *governance + judgment*. The fit: **ARD finds & verifies a capability → Org · Policy decides if
+  it's approved + in budget → the clone decides act-vs-ask.** Three moves, cheapest first:
+  - **(a) Publish** Sentigent as an ARD catalog — `/.well-known/ai-catalog.json` on the project
+    domain describing our MCP capabilities (`operator_*`, `loop_*`, `clone_*`, `sentigent_evaluate`),
+    domain = cryptographic identity. Same "publish from real behaviour" move as the steering file;
+    makes Sentigent discoverable + verifiable in the agent web. *(Draft authored: `docs/ard/`.)*
+  - **(b) Consume** ARD as the discovery backend for the Org · Policy capability registry (R2) —
+    adopt the open catalog format instead of inventing a silo; Policy adds approved/budgeted on top.
+  - **(c) Verify-gate** — an external capability that is not ARD-verified → escalate. Verified
+    provenance "earns autonomy," consistent with the steering-file/autonomy framing.
+
+  Guardrail: consume the **open spec** and self-host the catalog — never require Google's managed
+  *Agent Registry* / Gemini Enterprise. Stays local-first/OSS. ARD is brand-new, so lock in the
+  cheap reversible moves (a, c) and let the spec stabilize before the deep registry build (b).
 
 ## Honesty line
 Individual (Profile) and Project (Plan) are **live and proven**. Org (Policy) is **scattered
