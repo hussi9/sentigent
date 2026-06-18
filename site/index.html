@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>document.documentElement.classList.add('js')</script>
 <title>Sentigent — the open-source loop that drives your AI coding agent to done</title>
 <meta name="description" content="Your AI coding agent forgets when the session ends, keeps asking permission, and stops at the first blocker. Sentigent carries the plan across sessions, decides go-or-ask the way you would, and reports one honest number when it's finished. MIT, local-first.">
 <meta property="og:title" content="Sentigent — drive your AI coding agent to done">
@@ -94,7 +95,7 @@
   pre .m{color:var(--tx-4)}  /* muted */
 
   /* ---- section scaffold ---- */
-  section{padding:64px 0;border-top:1px solid var(--border-soft)}
+  section{padding:64px 0;border-top:1px solid var(--border-soft);scroll-margin-top:72px}
   .sec-head{max-width:660px;margin-bottom:40px}
   .sec-head .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
   .sec-head h2{font-size:clamp(28px,3.6vw,40px);margin-top:12px}
@@ -159,6 +160,27 @@
     .cards,.layers,.price{grid-template-columns:1fr}
     .tabs{display:none}
     .hero{padding:56px 0 40px}
+  }
+
+  /* ---- motion (additive; content is always visible without JS / with reduced-motion) ---- */
+  @keyframes drift{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-20px,0)}}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,204,95,.5)}50%{box-shadow:0 0 0 7px rgba(0,204,95,0)}}
+  @keyframes sweep{0%{left:-32%}100%{left:130%}}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+  @media (prefers-reduced-motion: no-preference){
+    .hero::before{animation:drift 16s ease-in-out infinite}
+    .brand .dot{animation:pulse 2.6s ease-in-out infinite}
+    .btn-primary{position:relative;overflow:hidden}
+    .btn-primary::after{content:"";position:absolute;top:0;left:-120%;width:55%;height:100%;
+      background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-18deg);animation:sweep 5.5s ease-in-out 1.2s infinite}
+    .loop{position:relative;overflow:hidden}
+    .loop::after{content:"";position:absolute;top:0;bottom:0;width:26%;left:-32%;pointer-events:none;
+      background:linear-gradient(90deg,transparent,rgba(0,204,95,.12),transparent);animation:sweep 4.8s linear infinite}
+    .install code::after{content:"▍";color:var(--accent);margin-left:2px;animation:blink 1.1s step-end infinite}
+    .js .reveal{opacity:0;transform:translateY(18px)}
+    .js .reveal.in{opacity:1;transform:none;transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+    .js .reveal.d1{transition-delay:.08s}
+    .js .reveal.d2{transition-delay:.16s}
   }
 </style>
 </head>
@@ -228,7 +250,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="kicker">Why it finishes</div>
-      <h2>Build your way. Stay in control. Deliver outcomes that work.</h2>
+      <h2>Build your way. Deliver outcomes that work. Stay in control.</h2>
       <p>Three things a raw loop can't do on its own — and the reason Sentigent doesn't need babysitting and won't drive off a cliff.</p>
     </div>
 
@@ -256,7 +278,27 @@
 
       <div class="pillar">
         <div class="pillar-txt">
-          <div class="num">02 — ORG · POLICY</div>
+          <div class="num">02 — PROJECT · PLAN</div>
+          <h3>Deliver outcomes that work</h3>
+          <p class="lead">Every step carries its own done-criteria, and nothing counts until it verifies.
+            When the run ends you get <strong>FAP</strong> — Faithful Autonomous Progress — one honest number, not a made-up confidence score.</p>
+        </div>
+        <div class="code">
+          <div class="code-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="f">per-step gates → FAP receipt</span></div>
+<pre><span class="c"># each step has its own gate; fail → self-repair retry</span>
+steps:
+  - write parser   <span class="m">verify: pytest tests/test_parse.py</span>
+  - add tests      <span class="m">verify: pytest -q</span>
+  - wire the CLI   <span class="m">verify: sentigent --help</span>
+
+<span class="k">sentigent</span> loop receipt
+<span class="g">FAP = verified-with-no-help ÷ total</span>  <span class="m"># real, per run</span></pre>
+        </div>
+      </div>
+
+      <div class="pillar">
+        <div class="pillar-txt">
+          <div class="num">03 — ORG · POLICY</div>
           <h3>Stay in control</h3>
           <p class="lead">A hard wall the loop can never auto-clear. Force-push, production databases,
             secrets, <code>rm&nbsp;-rf</code>, anything that leaves your machine — those always stop and ask you. Humans set intent; the agent acts; you gate the rest.</p>
@@ -272,26 +314,6 @@
   - <span class="g">external_send</span>
 
 <span class="c"># the loop pauses, asks you, and remembers your answer.</span></pre>
-        </div>
-      </div>
-
-      <div class="pillar">
-        <div class="pillar-txt">
-          <div class="num">03 — PROJECT · PLAN</div>
-          <h3>Deliver outcomes that work</h3>
-          <p class="lead">Every step carries its own done-criteria, and nothing counts until it verifies.
-            When the run ends you get <strong>FAP</strong> — Faithful Autonomous Progress — one honest number, not a made-up confidence score.</p>
-        </div>
-        <div class="code">
-          <div class="code-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="f">per-step gates → FAP receipt</span></div>
-<pre><span class="c"># each step has its own gate; fail → self-repair retry</span>
-steps:
-  - write parser   <span class="m">verify: pytest tests/test_parse.py</span>
-  - add tests      <span class="m">verify: pytest -q</span>
-  - wire the CLI   <span class="m">verify: sentigent --help</span>
-
-<span class="k">sentigent</span> loop receipt
-<span class="g">FAP = verified-with-no-help ÷ total</span>  <span class="m"># real, per run</span></pre>
         </div>
       </div>
 
@@ -357,7 +379,7 @@ steps:
         <ul><li>Goal + plan + done-criteria</li><li>Repo guardrails</li><li>Durable across sessions</li></ul>
       </div>
       <div class="layer">
-        <div class="tag">Your team · <span class="paid">paid, opt-in</span></div>
+        <div class="tag">Your team · <span class="free">free, self-host</span></div>
         <h3>Org · Policy</h3>
         <ul><li>Hard rules that never bend</li><li>Approved tools &amp; budgets</li><li>One audit trail</li></ul>
       </div>
@@ -371,36 +393,36 @@ steps:
 <section id="pricing">
   <div class="wrap">
     <div class="sec-head" style="margin-left:auto;margin-right:auto;text-align:center">
-      <div class="kicker">Open-core</div>
-      <h2>Free for you. Paid only for the org.</h2>
-      <p style="margin-left:auto;margin-right:auto">The individual and project layers are free and run on your machine — forever.
-        You only pay when a team needs one shared control plane.</p>
+      <div class="kicker">Pricing</div>
+      <h2>Free and open source — top to bottom.</h2>
+      <p style="margin-left:auto;margin-right:auto">All three layers run on your machine for free, forever. If a team would
+        rather not self-host the org control plane, a managed version will come later — but everything works free today.</p>
     </div>
     <div class="price">
       <div class="plan feat">
         <div class="pn">Open source</div>
         <div class="pp">$0 <small>/ forever</small></div>
-        <p class="muted">Everything you need to drive your own agent.</p>
+        <p class="muted">The whole thing — nothing held back.</p>
         <ul>
           <li>The full loop — Plan → Act → Verify → Decide → Resume</li>
           <li>Individual · Profile (your judgment, your steering file)</li>
           <li>Project · Plan with per-step done-criteria</li>
+          <li>Org · Policy — rules, registry, budgets, audit trail (self-host)</li>
           <li>The policy wall on dangerous actions</li>
-          <li>FAP receipts · local SQLite memory</li>
-          <li>Runs fully local — MIT licensed</li>
+          <li>FAP receipts · local SQLite memory · MIT licensed</li>
         </ul>
         <a class="btn btn-primary" href="#quickstart">Install it</a>
       </div>
       <div class="plan">
-        <div class="pn">For teams</div>
-        <div class="pp">Org · Policy <small>· in development</small></div>
-        <p class="muted">Make your whole team a frontier team.</p>
+        <div class="pn">Managed</div>
+        <div class="pp">Later <small>· optional, not yet</small></div>
+        <p class="muted">For teams who'd rather not run the org control plane themselves.</p>
         <ul>
-          <li>Org-wide policy &amp; capability registry</li>
-          <li>Approved skills / MCP / tools + budgets</li>
+          <li>Hosted Org · Policy control plane</li>
           <li>Shared org knowledge base across projects</li>
-          <li>One audit trail of every decision</li>
           <li>Parallel / async runs from a backlog</li>
+          <li>Everything here is already free to self-host</li>
+          <li>We'll only launch this if teams ask for it</li>
         </ul>
         <a class="btn btn-ghost" href="https://github.com/hussi9/sentigent" target="_blank" rel="noopener">Follow along</a>
       </div>
@@ -442,6 +464,22 @@ steps:
     </div>
   </div>
 </footer>
+
+<script>
+/* Scroll-reveal: additive only. Without JS or with reduced-motion, everything is fully visible. */
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!('IntersectionObserver' in window)) return;
+  document.addEventListener('DOMContentLoaded', function(){
+    var els = document.querySelectorAll('.sec-head, .pillar, .card, .loop, .layer, .plan');
+    els.forEach(function(e, i){ e.classList.add('reveal'); if (i % 3 === 1) e.classList.add('d1'); if (i % 3 === 2) e.classList.add('d2'); });
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    els.forEach(function(e){ io.observe(e); });
+  });
+})();
+</script>
 
 </body>
 </html>

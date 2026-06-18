@@ -59,5 +59,7 @@ real answers per category to accumulate.
 | Foundations (Operating Model · People · Platform · Governance · Security · Context) | Profile · Plan · Policy · Local model · Memory · FAP |
 
 Two honest differences: **(1)** you're at the center, not a consulting team; **(2)** AWS
-sells it top-down (paid consulting), Sentigent is bottom-up and open source — free for the
-individual, paid only for the org control plane. See `docs/ROADMAP-STATEFUL-AGENT-OS.md`.
+sells it top-down (paid consulting), Sentigent is bottom-up and **fully open source — all
+three layers, including Org · Policy, are free and self-hostable**. The only thing that may
+ever be paid is an optional *managed* control plane for teams who'd rather not self-host —
+and only if teams ask for it. See `docs/ROADMAP-STATEFUL-AGENT-OS.md`.
