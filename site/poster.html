@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Loop Engineering — Sentigent</title>
+<meta name="description" content="Loop Engineering applied to Sentigent: the six building blocks plus memory, the Context → Harness → Loop maturity model, and the open-source loop that drives your coding agent to done." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2300cc5f'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* design tokens, copied from site/diagrams.html (house style) */
+  :root{
+    --bg:#0E0E0E; --panel:#181818; --panel2:#141414; --border:#2a2a2a;
+    --text:#ffffff; --muted:#9aa3ad; --faint:#6b7178;
+    --accent:#00cc5f; --accent2:#00FF77; --blue:#5b8def; --green:#00cc5f; --amber:#ffcf6b;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    width:880px;
+    background:
+      radial-gradient(1100px 520px at 50% -120px, rgba(0,204,95,.10), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    line-height:1.55;-webkit-font-smoothing:antialiased;letter-spacing:-.011em;
+    padding:54px 52px 40px;
+  }
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
+
+  /* status tags */
+  .tag{font-size:10.5px;font-family:ui-monospace,monospace;padding:2px 9px;border-radius:999px;white-space:nowrap;font-weight:600}
+  .tag.live{background:rgba(52,211,153,.13);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+  .tag.build{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.3)}
+
+  /* ── MASTHEAD ── */
+  .rule{width:64px;height:4px;border-radius:999px;background:linear-gradient(90deg,var(--accent2),var(--accent));box-shadow:0 0 16px rgba(0,204,95,.55);margin-bottom:20px}
+  .eyebrow{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent2);margin-bottom:12px}
+  h1.title{font-size:78px;line-height:.98;font-weight:900;letter-spacing:-.035em}
+  h1.title .grad{background:linear-gradient(120deg,var(--accent2),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .subtitle{font-size:22px;color:var(--text);font-weight:600;margin-top:18px;letter-spacing:-.015em;max-width:680px}
+  .standfirst{font-size:15.5px;color:var(--muted);margin-top:14px;max-width:700px;line-height:1.6}
+  .standfirst b{color:var(--text);font-weight:650}
+  .standfirst .mono{color:var(--accent2);font-size:13.5px}
+
+  /* ── SECTION HEADERS ── */
+  .sec{margin-top:46px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:20px}
+  .sec-head .skw{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .sec-head h2{font-size:25px;font-weight:760;letter-spacing:-.02em;line-height:1.15}
+  .sec-head h2 em{font-style:normal;color:var(--accent2)}
+
+  /* ── 6 BLOCKS GRID ── */
+  .grid6{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .card{position:relative;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,#171717,#121212);padding:18px 17px 16px;display:flex;flex-direction:column}
+  .card .top{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+  .chip{font-family:ui-monospace,monospace;font-size:14px;font-weight:700;color:#06140d;background:linear-gradient(135deg,var(--accent2),var(--accent));width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto;box-shadow:0 0 12px rgba(0,204,95,.35)}
+  .card h3{font-size:16.5px;font-weight:720;letter-spacing:-.01em;flex:1}
+  .card .tag{margin-left:auto}
+  .card ul{list-style:none;display:flex;flex-direction:column;gap:6px;margin-top:2px}
+  .card li{font-size:12.8px;color:var(--muted);line-height:1.45;padding-left:14px;position:relative}
+  .card li::before{content:"›";position:absolute;left:0;color:var(--accent);font-weight:700}
+  .card li b{color:var(--text);font-weight:600}
+  .card li .mono{color:var(--accent2);font-size:11.5px}
+
+  /* ── MATURITY STACK ── */
+  .stackwrap{display:grid;grid-template-columns:34px 1fr;gap:16px;align-items:stretch}
+  .axis{position:relative;border-radius:10px;background:linear-gradient(180deg,var(--amber),var(--blue) 52%,var(--accent));box-shadow:0 0 18px rgba(0,204,95,.2)}
+  .axis .lab{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-90deg);white-space:nowrap;font-family:ui-monospace,monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#0b0b0b;font-weight:700}
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .tier{position:relative;border:1px solid var(--border);border-radius:14px;background:#151515;padding:18px 20px;overflow:hidden}
+  .tier::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px}
+  .tier.t1::before{background:var(--amber)}
+  .tier.t2::before{background:var(--blue)}
+  .tier.t3::before{background:var(--accent)}
+  .tier .th{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .tier .lvl{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .tier h3{font-size:19px;font-weight:760;letter-spacing:-.015em}
+  .tier h3 .pin{font-size:13px;color:var(--muted);font-weight:500}
+  .tier p{font-size:13.5px;color:var(--muted);margin-top:7px;line-height:1.55}
+  .tier p b{color:var(--text);font-weight:620}
+  .tier p .mono{color:var(--accent2);font-size:12.5px}
+  .tier.t3{border-color:rgba(0,204,95,.42);background:linear-gradient(180deg,#10201a,#121212)}
+  .flowline{display:inline-flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .flowline span{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--accent2);border:1px solid rgba(0,204,95,.3);border-radius:7px;padding:2px 8px;background:rgba(0,204,95,.06)}
+  .flowline .arr{border:0;background:none;color:var(--faint);padding:2px 0}
+
+  /* ── WATCH-OUTS STRIP ── */
+  .watch{margin-top:34px;border:1px solid rgba(251,191,36,.28);border-radius:14px;background:linear-gradient(180deg,rgba(251,191,36,.05),rgba(20,20,20,.4));padding:15px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .wo{display:flex;gap:10px;align-items:flex-start;font-size:12.8px;color:var(--muted);line-height:1.45}
+  .wo .g{color:var(--amber);font-size:15px;flex:0 0 auto;line-height:1.2}
+  .wo b{color:var(--text);font-weight:650;display:block;font-size:13.2px;margin-bottom:1px}
+  .wo .mono{color:var(--accent2);font-size:11.5px}
+
+  /* ── FOOTER ── */
+  footer{margin-top:36px;padding-top:20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  footer .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+  footer .bdot{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));box-shadow:0 0 14px rgba(0,204,95,.6)}
+  footer .links{font-family:ui-monospace,monospace;font-size:13px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+  footer .links a{color:var(--accent2)}
+  footer .mit{margin-left:auto;font-size:12.5px;color:var(--faint);font-family:ui-monospace,monospace}
+</style>
+</head>
+<body>
+
+  <!-- ── 1 · MASTHEAD ── -->
+  <div class="rule"></div>
+  <div class="eyebrow">A field guide</div>
+  <h1 class="title">Loop <span class="grad">Engineering</span></h1>
+  <p class="subtitle">From prompting agents to designing the systems that prompt them.</p>
+  <p class="standfirst">
+    <b>Sentigent</b> — the open-source loop that drives your coding agent to done.
+    <span class="mono">MIT · local-first</span>
+  </p>
+
+  <!-- ── 2 · SIX BUILDING BLOCKS + MEMORY ── -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="skw">02</span>
+      <h2>The 6 building blocks <em>+ memory</em></h2>
+    </div>
+    <div class="grid6">
+
+      <div class="card">
+        <div class="top"><span class="chip">1</span><h3>Automations</h3><span class="tag live">live</span></div>
+        <ul>
+          <li>Scheduler that wakes on its own</li>
+          <li>Triages a backlog, <b>re-fires the loop</b></li>
+          <li>Survives sessions</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="top"><span class="chip">2</span><h3>Worktrees</h3><span class="tag live">live</span></div>
+        <ul>
+          <li>Isolated branches for parallel agents</li>
+          <li>Safe concurrent runs</li>
+          <li><span class="mono">operator/worktree.py</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="top"><span class="chip">3</span><h3>Skills</h3><span class="tag live">live</span></div>
+        <ul>
+          <li>Reusable project knowledge</li>
+          <li>Steering file <span class="mono">AGENTS.md</span> · <span class="mono">project-map.toml</span></li>
+          <li>closed-loop-delivery</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="top"><span class="chip">4</span><h3>Connectors / MCP</h3><span class="tag live">live</span></div>
+        <ul>
+          <li>operator / loop / clone tools over MCP</li>
+          <li>Act <b>inside real tools</b></li>
+          <li>gh review loop</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="top"><span class="chip">5</span><h3>Sub-agents</h3><span class="tag live">live</span></div>
+        <ul>
+          <li>explorer / implementer / verifier</li>
+          <li><b>Maker–checker</b> separation</li>
+          <li>Parallel fan-out (combined FAP)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="top"><span class="chip">6</span><h3>Memory</h3><span class="tag live">live</span></div>
+        <ul>
+          <li>External state on disk</li>
+          <li><span class="mono">~/.sentigent/loops</span> + local SQLite</li>
+          <li>episodes · rules · precedents · calibration</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── 3 · MATURITY MODEL ── -->
+  <section class="sec">
+    <div class="sec-head">
+      <span class="skw">03</span>
+      <h2>Context → Harness → Loop — <em>the maturity model</em></h2>
+    </div>
+    <div class="stackwrap">
+      <div class="axis"><span class="lab">Context → Harness → Loop</span></div>
+      <div class="stack">
+
+        <div class="tier t3">
+          <div class="th"><span class="lvl">Advanced</span><h3>Loop Engineering <span class="pin">— design the system that prompts the agent</span></h3></div>
+          <p>A loop carries the plan to done, then <b>learns from outcomes</b>. Reports one honest number, <span class="mono">FAP</span> (Faithful Autonomous Progress).</p>
+          <div class="flowline">
+            <span>Plan</span><span class="arr">→</span><span>Act</span><span class="arr">→</span><span>Verify</span><span class="arr">→</span><span>Decide</span><span class="arr">→</span><span>Resume</span>
+          </div>
+        </div>
+
+        <div class="tier t2">
+          <div class="th"><span class="lvl">Operating layer</span><h3>Harness Engineering <span class="pin">— the machinery the loop runs inside</span></h3></div>
+          <p>The <b>guardrails wall</b>, the <b>clone</b> (push-vs-ask in your voice), <b>MCP</b> tools, <b>worktrees</b> for parallel runs, and the <b>scheduler</b> that re-fires it.</p>
+        </div>
+
+        <div class="tier t1">
+          <div class="th"><span class="lvl">Foundation</span><h3>Context Engineering <span class="pin">— give it what you'd otherwise type by hand</span></h3></div>
+          <p>The three layers — <b>Profile · Plan · Policy</b> — plus <span class="mono">project-map</span> and the auto-written <b>steering file</b>. The more context, the more it can safely do alone.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4 · WATCH-OUTS ── -->
+  <div class="watch">
+    <div class="wo"><span class="g">⚠</span><span><b>Token cost</b>Every lap spends tokens — <span class="mono">tracked</span> per run.</span></div>
+    <div class="wo"><span class="g">⚠</span><span><b>Verification risk</b>A silent pass lies — <span class="mono">per-step verify + FAP</span>.</span></div>
+    <div class="wo"><span class="g">⚠</span><span><b>Comprehension debt</b>Code you didn't write — <span class="mono">project-map + diagrams</span>.</span></div>
+  </div>
+
+  <!-- ── 5 · FOOTER ── -->
+  <footer>
+    <div class="brand"><span class="bdot"></span> Sentigent</div>
+    <div class="links">
+      <a href="https://sentigent.xyz">sentigent.xyz</a>
+      <a href="https://github.com/hussi9/sentigent">github.com/hussi9/sentigent</a>
+    </div>
+    <div class="mit">Free and open source — MIT</div>
+  </footer>
+
+</body>
+</html>
