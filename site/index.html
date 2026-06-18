@@ -1,292 +1,447 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Sentigent — get your AI coding agent to actually finish</title>
-<meta name="description" content="Sentigent keeps your AI coding assistant working through a whole task on its own — instead of forgetting halfway or stopping to ask you every few minutes. Free, open source, runs on your machine." />
-<link rel="canonical" href="https://sentigent.xyz/" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%237c5cff'/%3E%3C/svg%3E" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentigent — the open-source loop that drives your AI coding agent to done</title>
+<meta name="description" content="Your AI coding agent forgets when the session ends, keeps asking permission, and stops at the first blocker. Sentigent carries the plan across sessions, decides go-or-ask the way you would, and reports one honest number when it's finished. MIT, local-first.">
+<meta property="og:title" content="Sentigent — drive your AI coding agent to done">
+<meta property="og:description" content="A local-first loop that carries your coding plan across sessions, makes the go-or-ask call the way you would, and never crosses the dangerous lines.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0E0E0E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
 <style>
+  /* ---- design tokens, copied from strandsagents.com (Astro Starlight) ---- */
   :root{
-    --bg:#0a0a0f; --panel:#14141f; --panel2:#0f0f18; --border:#23233a;
-    --text:#e9e9f2; --muted:#9a9ab2; --faint:#6a6a82;
-    --accent:#7c5cff; --accent2:#a892ff; --green:#34d399; --amber:#fbbf24;
-    --radius:14px; --max:1080px;
+    --bg:#0E0E0E; --bg-2:#141414; --panel:#181818; --panel-2:#1F1F1F;
+    --border:#2a2a2a; --border-soft:#222;
+    --tx:#ffffff; --tx-2:#c8d0d8; --tx-3:#9aa3ad; --tx-4:#6b7178;
+    --accent:#00cc5f; --accent-hi:#00FF77; --accent-low:#0a2e12; --accent-link:#00cc5f;
+    --mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",monospace;
+    --sans:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --maxw:1120px; --radius:14px;
   }
-  *{box-sizing:border-box;margin:0;padding:0}
+  *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
-  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
+  body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--sans);
+    font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;letter-spacing:-.011em}
   a{color:inherit;text-decoration:none}
-  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
-  .grad{background:linear-gradient(120deg,var(--accent2),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(10,10,15,.72);border-bottom:1px solid var(--border)}
-  .navin{display:flex;align-items:center;justify-content:space-between;height:62px}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:650;letter-spacing:-.01em}
-  .dot{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));box-shadow:0 0 14px rgba(124,92,255,.6)}
-  .navlinks{display:flex;align-items:center;gap:26px;font-size:14px;color:var(--muted)}
-  .navlinks a:hover{color:var(--text)}
-  .ghbtn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);padding:7px 13px;border-radius:9px;font-size:13px;color:var(--text)}
-  .ghbtn:hover{border-color:var(--accent)}
-  @media(max-width:680px){.navlinks a:not(.ghbtn){display:none}}
-  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;padding:13px 22px;border-radius:11px;transition:.15s;cursor:pointer;border:1px solid transparent}
-  .btn-primary{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#0a0a14}
-  .btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
-  .btn-ghost{border-color:var(--border);color:var(--text)}
-  .btn-ghost:hover{border-color:var(--accent)}
-  section{padding:84px 0;border-top:1px solid var(--border)}
-  section:first-of-type{border-top:none}
-  .eyebrow{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent2);margin-bottom:14px;text-align:center}
-  h1{font-size:clamp(34px,6vw,60px);line-height:1.06;letter-spacing:-.03em;font-weight:760}
-  h2{font-size:clamp(26px,3.4vw,38px);line-height:1.12;letter-spacing:-.02em;font-weight:720;text-align:center}
-  .lead{color:var(--muted);font-size:18px;max-width:640px;margin:18px auto 0;text-align:center}
-  .center{text-align:center}
-  .hero{padding:96px 0 84px;text-align:center;position:relative;overflow:hidden}
-  .hero::before{content:"";position:absolute;top:-180px;left:50%;transform:translateX(-50%);width:680px;height:480px;background:radial-gradient(ellipse,rgba(124,92,255,.22),transparent 68%);pointer-events:none}
-  .hero .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--panel);border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--muted);margin-bottom:26px}
-  .hero h1{max-width:16ch;margin:0 auto}
-  .hero .lead{font-size:19px;margin-top:22px}
-  .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:34px}
-  .trust{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;margin-top:30px;font-size:13px;color:var(--faint)}
-  .trust b{color:var(--muted);font-weight:600}
-  .grid{display:grid;gap:18px;margin-top:46px}
-  .g3{grid-template-columns:repeat(3,1fr)}
-  @media(max-width:760px){.g3{grid-template-columns:1fr}}
-  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
-  .card h3{font-size:17px;font-weight:650;margin-bottom:8px}
-  .card p{color:var(--muted);font-size:14.5px}
-  .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:rgba(124,92,255,.12);color:var(--accent2);font-size:19px;margin-bottom:14px}
-  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;justify-content:center;margin-top:46px}
-  .step{flex:1;min-width:150px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center}
-  .step .n{font-family:ui-monospace,monospace;font-size:12px;color:var(--accent2)}
-  .step h4{font-size:15px;margin:6px 0 4px}
-  .step p{font-size:13px;color:var(--muted)}
-  .arrow{display:grid;place-items:center;color:var(--accent);font-size:20px;padding:0 6px}
-  @media(max-width:760px){.arrow{transform:rotate(90deg);padding:8px 0}.flow{flex-direction:column}}
-  .stack{display:flex;flex-direction:column;gap:14px;margin-top:44px}
-  .layer{border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;position:relative;overflow:hidden}
-  .layer::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
-  .layer.l1::before{background:var(--accent)}
-  .layer.l2::before{background:#5b8def}
-  .layer.l3::before{background:var(--amber)}
-  .layer .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .layer .who{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
-  .layer h3{font-size:19px;font-weight:680;margin-top:2px}
-  .layer p{color:var(--muted);font-size:14.5px;margin-top:8px;max-width:64ch}
-  .tag{font-size:11px;font-family:ui-monospace,monospace;padding:3px 9px;border-radius:999px;white-space:nowrap}
-  .tag.live{background:rgba(52,211,153,.13);color:var(--green);border:1px solid rgba(52,211,153,.3)}
-  .tag.build{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.3)}
-  .formula{text-align:center;margin-top:28px;font-size:16px;color:var(--muted)}
-  .formula b{color:var(--text);font-weight:650}
-  .fap{background:var(--panel2);border:1px solid var(--accent);border-radius:var(--radius);padding:30px;text-align:center;max-width:560px;margin:40px auto 0}
-  .fap .big{font-size:54px;font-weight:780;letter-spacing:-.03em}
-  .fap .lbl{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
-  .fap .desc{color:var(--muted);font-size:14.5px;margin-top:14px}
-  .tiers{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:46px}
-  @media(max-width:760px){.tiers{grid-template-columns:1fr}}
-  .tier{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:28px;display:flex;flex-direction:column}
-  .tier.featured{border-color:var(--accent)}
-  .tier .name{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2)}
-  .tier .price{font-size:30px;font-weight:740;margin:8px 0 2px}
-  .tier .price small{font-size:14px;color:var(--muted);font-weight:500}
-  .tier .for{color:var(--muted);font-size:14px;margin-bottom:18px}
-  .tier ul{list-style:none;display:flex;flex-direction:column;gap:10px;font-size:14.5px;color:var(--muted);flex:1}
-  .tier li{display:flex;gap:10px;align-items:flex-start}
-  .tier li::before{content:"✓";color:var(--green);font-weight:700;flex-shrink:0}
-  .tier li.soon::before{content:"○";color:var(--amber)}
-  .tier .btn{margin-top:22px;justify-content:center}
-  footer{border-top:1px solid var(--border);padding:48px 0;text-align:center;color:var(--faint);font-size:13px}
-  footer .row{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
-  footer a:hover{color:var(--text)}
-  .reveal{opacity:1}
-  @media(prefers-reduced-motion:no-preference){.js .reveal.in{animation:rise .5s ease both}}
-  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  h1,h2,h3{letter-spacing:-.03em;line-height:1.08;margin:0;font-weight:800}
+  p{margin:0}
+  .muted{color:var(--tx-3)}
+  .accent{color:var(--accent)}
+  code{font-family:var(--mono)}
+
+  /* ---- top nav ---- */
+  header.nav{position:sticky;top:0;z-index:50;background:rgba(14,14,14,.78);
+    backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid var(--border-soft)}
+  .nav-inner{display:flex;align-items:center;gap:14px;height:60px;max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:18px;letter-spacing:-.02em}
+  .brand .dot{width:11px;height:11px;border-radius:50%;background:var(--accent);box-shadow:0 0 14px var(--accent)}
+  .tabs{display:flex;gap:4px;margin-left:18px}
+  .tabs a{color:var(--tx-3);font-size:15px;font-weight:500;padding:7px 12px;border-radius:8px}
+  .tabs a:hover{color:var(--tx);background:var(--panel)}
+  .nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .gh{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;
+    padding:8px 14px;border:1px solid var(--border);border-radius:9px;color:var(--tx-2)}
+  .gh:hover{border-color:#3a3a3a;color:var(--tx)}
+  .gh svg{width:16px;height:16px;fill:currentColor}
+
+  /* ---- buttons ---- */
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;
+    padding:12px 20px;border-radius:10px;border:1px solid transparent;transition:.15s;cursor:pointer}
+  .btn-primary{background:var(--accent);color:#06120a;border-color:var(--accent)}
+  .btn-primary:hover{background:var(--accent-hi);box-shadow:0 0 0 4px var(--accent-low)}
+  .btn-ghost{background:transparent;color:var(--tx);border-color:var(--border)}
+  .btn-ghost:hover{border-color:#3d3d3d;background:var(--panel)}
+
+  /* ---- hero ---- */
+  .hero{position:relative;padding:84px 0 56px;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(680px 340px at 16% -8%, rgba(0,204,95,.16), transparent 70%),
+      radial-gradient(560px 320px at 100% 0%, rgba(0,204,95,.07), transparent 70%);}
+  .hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12.5px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--accent);
+    border:1px solid var(--accent-low);background:rgba(0,204,95,.06);padding:5px 12px;border-radius:999px;margin-bottom:22px}
+  .hero h1{font-size:clamp(38px,5.4vw,60px);font-weight:900}
+  .hero h1 .hl{color:var(--accent)}
+  .hero-text{margin-top:22px;font-size:19px;color:var(--tx-2);max-width:560px}
+  .hero-cta{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+  .install{margin-top:24px;display:flex;align-items:center;gap:10px;max-width:360px;
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:var(--mono);font-size:14.5px}
+  .install .pmpt{color:var(--accent)}
+  .install code{flex:1;color:var(--tx)}
+  .install button{background:none;border:none;color:var(--tx-4);cursor:pointer;font-size:12px;font-family:var(--sans);font-weight:600}
+  .install button:hover{color:var(--accent)}
+  .social{margin-top:18px;font-size:13.5px;color:var(--tx-4);font-family:var(--mono)}
+
+  /* ---- code panel (Shiki-style) ---- */
+  .code{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
+    box-shadow:0 24px 60px -30px rgba(0,0,0,.8)}
+  .code-bar{display:flex;align-items:center;gap:7px;padding:11px 15px;border-bottom:1px solid var(--border-soft);background:#101010}
+  .code-bar .d{width:11px;height:11px;border-radius:50%;background:#2c2c2c}
+  .code-bar .f{margin-left:8px;font-family:var(--mono);font-size:12px;color:var(--tx-4)}
+  pre{margin:0;padding:18px;overflow-x:auto;font-family:var(--mono);font-size:13.5px;line-height:1.7;color:var(--tx-2)}
+  pre .c{color:#5f7a66}      /* comment */
+  pre .k{color:#ff9d6b}      /* keyword/cmd */
+  pre .s{color:#8fd6ff}      /* string */
+  pre .g{color:var(--accent)}/* accent token */
+  pre .m{color:var(--tx-4)}  /* muted */
+
+  /* ---- section scaffold ---- */
+  section{padding:64px 0;border-top:1px solid var(--border-soft)}
+  .sec-head{max-width:660px;margin-bottom:40px}
+  .sec-head .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+  .sec-head h2{font-size:clamp(28px,3.6vw,40px);margin-top:12px}
+  .sec-head p{margin-top:14px;font-size:18px;color:var(--tx-3)}
+
+  /* ---- pillars ---- */
+  .pillars{display:grid;gap:22px}
+  .pillar{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;
+    border:1px solid var(--border-soft);border-radius:18px;padding:30px;background:linear-gradient(180deg,#121212,#0f0f0f)}
+  .pillar:nth-child(even) .pillar-txt{order:2}
+  .pillar h3{font-size:24px}
+  .pillar .lead{margin-top:12px;color:var(--tx-2);font-size:16.5px}
+  .pillar .num{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.1em}
+
+  /* ---- use-case cards ---- */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .card{border:1px solid var(--border-soft);border-radius:16px;padding:24px;background:var(--panel);transition:.15s}
+  .card:hover{border-color:#333;transform:translateY(-2px)}
+  .card .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--accent-low);
+    color:var(--accent-hi);font-family:var(--mono);font-weight:700;margin-bottom:16px}
+  .card h3{font-size:18px}
+  .card p{margin-top:9px;color:var(--tx-3);font-size:15px}
+
+  /* ---- loop strip ---- */
+  .loop{display:flex;flex-wrap:wrap;align-items:stretch;border:1px solid var(--border-soft);border-radius:16px;overflow:hidden}
+  .loop .step{flex:1;min-width:180px;padding:24px 22px;border-right:1px solid var(--border-soft)}
+  .loop .step:last-child{border-right:none}
+  .loop .step .t{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.1em}
+  .loop .step h4{margin:9px 0 6px;font-size:17px;font-weight:700}
+  .loop .step p{font-size:14px;color:var(--tx-3)}
+
+  /* ---- three layers ---- */
+  .layers{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .layer{border:1px solid var(--border-soft);border-radius:16px;padding:26px;background:var(--panel)}
+  .layer .tag{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx-4)}
+  .layer h3{font-size:20px;margin-top:8px}
+  .layer .free{color:var(--accent)} .layer .paid{color:#ffcf6b}
+  .layer ul{margin:14px 0 0;padding-left:18px;color:var(--tx-3);font-size:14.5px}
+  .layer li{margin:6px 0}
+  .formula{margin-top:26px;text-align:center;font-family:var(--mono);font-size:15px;color:var(--tx-2)}
+  .formula b{color:var(--accent)}
+
+  /* ---- pricing ---- */
+  .price{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:820px;margin:0 auto}
+  .plan{border:1px solid var(--border-soft);border-radius:18px;padding:32px;background:var(--panel)}
+  .plan.feat{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 30px 60px -40px rgba(0,204,95,.5)}
+  .plan .pn{font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx-4)}
+  .plan .pp{font-size:34px;font-weight:900;margin:12px 0 4px}
+  .plan .pp small{font-size:15px;font-weight:600;color:var(--tx-4)}
+  .plan ul{margin:18px 0 24px;padding:0;list-style:none;color:var(--tx-2);font-size:15px}
+  .plan li{padding:7px 0 7px 26px;position:relative}
+  .plan li::before{content:"›";position:absolute;left:6px;color:var(--accent);font-weight:800}
+
+  /* ---- footer ---- */
+  footer{border-top:1px solid var(--border-soft);padding:40px 0;color:var(--tx-4);font-size:14px}
+  .foot-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+  footer a{color:var(--tx-3)} footer a:hover{color:var(--accent)}
+
+  @media (max-width:880px){
+    .hero-grid,.pillar{grid-template-columns:1fr}
+    .pillar:nth-child(even) .pillar-txt{order:0}
+    .cards,.layers,.price{grid-template-columns:1fr}
+    .tabs{display:none}
+    .hero{padding:56px 0 40px}
+  }
 </style>
-<script>document.documentElement.classList.add('js')</script>
 </head>
 <body>
 
-<nav>
-  <div class="wrap navin">
-    <a class="brand" href="/"><span class="dot"></span> Sentigent</a>
-    <div class="navlinks">
+<!-- ============ NAV ============ -->
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/"><span class="dot"></span>Sentigent</a>
+    <nav class="tabs">
       <a href="#how">How it works</a>
+      <a href="#layers">The three layers</a>
       <a href="/diagrams">Diagrams</a>
       <a href="#pricing">Pricing</a>
-      <a class="ghbtn" href="https://github.com/hussi9/sentigent">★ GitHub</a>
-    </div>
-  </div>
-</nav>
-
-<!-- HERO -->
-<header class="hero">
-  <div class="wrap">
-    <span class="pill reveal">Free · open source · runs on your computer</span>
-    <h1 class="reveal">Get your AI coding assistant to <span class="grad">actually finish the job.</span></h1>
-    <p class="lead reveal">You give an AI assistant a task. Halfway through, it stops to ask a question — or the session ends and it forgets everything. <strong style="color:var(--text)">Sentigent keeps it working to the end</strong>, and only interrupts you when it genuinely needs you.</p>
-    <div class="cta reveal">
-      <a class="btn btn-primary" href="https://github.com/hussi9/sentigent">Get it free on GitHub →</a>
-      <a class="btn btn-ghost" href="#how">See how it works</a>
-    </div>
-    <div class="trust reveal">
-      <span><b>100% free</b> &amp; open source</span>
-      <span><b>Private</b> — runs on your machine</span>
-      <span><b>Works with</b> Claude Code</span>
+    </nav>
+    <div class="nav-right">
+      <a class="gh" href="https://github.com/hussi9/sentigent" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-primary" href="#quickstart" style="padding:8px 16px;font-size:14px">Get started</a>
     </div>
   </div>
 </header>
 
-<!-- PROBLEM -->
-<section id="problem">
-  <div class="wrap">
-    <p class="eyebrow reveal">Sound familiar?</p>
-    <h2 class="reveal">AI assistants stall before the work is done</h2>
-    <div class="grid g3">
-      <div class="card reveal"><div class="ic">🧠</div><h3>It forgets</h3><p>Close the window or hit a limit, and it loses track of the plan. You explain everything again from scratch.</p></div>
-      <div class="card reveal"><div class="ic">✋</div><h3>It keeps asking</h3><p>Every time it's the least bit unsure, it stops and waits — so you're babysitting it instead of working.</p></div>
-      <div class="card reveal"><div class="ic">⚠️</div><h3>You can't leave it alone</h3><p>Give it full freedom and it might delete the wrong files or ship broken code. So you watch every step.</p></div>
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Open source · MIT · local-first</span>
+      <h1>The open-source loop that<br>drives your coding agent<br>to <span class="hl">done.</span></h1>
+      <p class="hero-text">Your AI coding agent forgets when the session ends, keeps asking permission,
+        and stops at the first blocker. Sentigent carries the plan across sessions, makes the
+        go-or-ask call the way you would, and reports one honest number when it's finished.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#quickstart">Get started →</a>
+        <a class="btn btn-ghost" href="https://github.com/hussi9/sentigent" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+      <div class="install">
+        <span class="pmpt">$</span><code>pip install sentigent</code>
+        <button onclick="navigator.clipboard.writeText('pip install sentigent');this.textContent='copied'">copy</button>
+      </div>
+      <p class="social">MIT-licensed · runs on your machine · your code never leaves it</p>
+    </div>
+
+    <div class="code">
+      <div class="code-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="f">the loop, in five lines</span></div>
+<pre><span class="c"># seed a goal + plan — durable across sessions, each step has its own done-criteria</span>
+<span class="k">sentigent</span> loop start \
+  --goal <span class="s">"ship the CSV export"</span> \
+  --steps <span class="s">"write parser"</span> <span class="s">"add tests"</span> <span class="s">"wire the CLI"</span> \
+  --verify <span class="s">"pytest -q"</span>
+
+<span class="c"># drive it: Plan → Act → Verify → Decide(go / ask) → Resume</span>
+<span class="k">sentigent</span> loop drive <span class="g">&lt;loop_id&gt;</span> --execute
+<span class="m">↳ survives session limits · escalates only the dangerous calls</span>
+
+<span class="c"># one honest number when it's done</span>
+<span class="k">sentigent</span> loop receipt
+<span class="g">FAP 0.88</span> <span class="m"># verified-with-no-help ÷ total</span></pre>
     </div>
   </div>
-</section>
+</div>
 
-<!-- HOW -->
+<!-- ============ PILLARS ============ -->
 <section id="how">
   <div class="wrap">
-    <p class="eyebrow reveal">What Sentigent does</p>
-    <h2 class="reveal">It works through the whole task for you</h2>
-    <p class="lead reveal">Describe what you want once. Sentigent breaks it into steps and keeps going — one step at a time — until it's done. If it gets cut off, it picks up exactly where it left off.</p>
-    <div class="flow reveal">
-      <div class="step"><div class="n">01</div><h4>Take the goal</h4><p>You say what you want built</p></div>
-      <div class="arrow">→</div>
-      <div class="step"><div class="n">02</div><h4>Do a step</h4><p>It writes the code</p></div>
-      <div class="arrow">→</div>
-      <div class="step"><div class="n">03</div><h4>Check it</h4><p>It tests its own work</p></div>
-      <div class="arrow">→</div>
-      <div class="step"><div class="n">04</div><h4>Decide</h4><p>Keep going — or ask, only if needed</p></div>
-      <div class="arrow">↻</div>
-      <div class="step"><div class="n">05</div><h4>Carry on</h4><p>Survives restarts &amp; keeps going</p></div>
+    <div class="sec-head">
+      <div class="kicker">Why it finishes</div>
+      <h2>Build your way. Stay in control. Deliver outcomes that work.</h2>
+      <p>Three things a raw loop can't do on its own — and the reason Sentigent doesn't need babysitting and won't drive off a cliff.</p>
+    </div>
+
+    <div class="pillars">
+
+      <div class="pillar">
+        <div class="pillar-txt">
+          <div class="num">01 — INDIVIDUAL · PROFILE</div>
+          <h3>Build your way</h3>
+          <p class="lead">Sentigent learns your push-vs-ask judgment from the blockers you answer,
+            then writes it back as a steering file your agent reads every session. The more it sees, the less it asks.</p>
+        </div>
+        <div class="code">
+          <div class="code-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="f">export_steering.py → AGENTS.md</span></div>
+<pre><span class="c"># frontier teams hand-write steering files.</span>
+<span class="c"># Sentigent auto-writes yours from real behaviour.</span>
+<span class="k">sentigent</span> steering export
+
+<span class="c"># AGENTS.md</span>
+<span class="g">- Run the tests before committing</span>
+<span class="g">- Gate merges on a green CI run</span>
+<span class="g">- Get a second pair of eyes on data/security changes</span></pre>
+        </div>
+      </div>
+
+      <div class="pillar">
+        <div class="pillar-txt">
+          <div class="num">02 — ORG · POLICY</div>
+          <h3>Stay in control</h3>
+          <p class="lead">A hard wall the loop can never auto-clear. Force-push, production databases,
+            secrets, <code>rm&nbsp;-rf</code>, anything that leaves your machine — those always stop and ask you. Humans set intent; the agent acts; you gate the rest.</p>
+        </div>
+        <div class="code">
+          <div class="code-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="f">guardrails/*.yaml</span></div>
+<pre><span class="c"># never auto-cleared — always escalates to a human</span>
+<span class="k">escalate</span>:
+  - <span class="g">force_push</span>
+  - <span class="g">prod_db_write</span>
+  - <span class="g">secret_access</span>
+  - <span class="g">rm_rf</span>
+  - <span class="g">external_send</span>
+
+<span class="c"># the loop pauses, asks you, and remembers your answer.</span></pre>
+        </div>
+      </div>
+
+      <div class="pillar">
+        <div class="pillar-txt">
+          <div class="num">03 — PROJECT · PLAN</div>
+          <h3>Deliver outcomes that work</h3>
+          <p class="lead">Every step carries its own done-criteria, and nothing counts until it verifies.
+            When the run ends you get <strong>FAP</strong> — Faithful Autonomous Progress — one honest number, not a made-up confidence score.</p>
+        </div>
+        <div class="code">
+          <div class="code-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="f">per-step gates → FAP receipt</span></div>
+<pre><span class="c"># each step has its own gate; fail → self-repair retry</span>
+steps:
+  - write parser   <span class="m">verify: pytest tests/test_parse.py</span>
+  - add tests      <span class="m">verify: pytest -q</span>
+  - wire the CLI   <span class="m">verify: sentigent --help</span>
+
+<span class="k">sentigent</span> loop receipt
+<span class="g">FAP = verified-with-no-help ÷ total</span>  <span class="m"># real, per run</span></pre>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
 
-<!-- THREE LAYERS -->
+<!-- ============ THE LOOP ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">One run, step by step</div>
+      <h2>The loop that survives the end of a session</h2>
+      <p>State lives on disk in <code>~/.sentigent/loops/</code>. Kill the process, hit a usage limit, close the
+        laptop — a fresh agent reloads the plan and its position and keeps going.</p>
+    </div>
+    <div class="loop">
+      <div class="step"><div class="t">01</div><h4>Plan</h4><p>Goal + steps + per-step done-criteria, stored durably.</p></div>
+      <div class="step"><div class="t">02</div><h4>Act</h4><p>A fresh agent runs the next step with full context.</p></div>
+      <div class="step"><div class="t">03</div><h4>Verify</h4><p>Re-runs your done-criteria. Fail → self-repair retry.</p></div>
+      <div class="step"><div class="t">04</div><h4>Decide</h4><p>Go or ask — as you would. Dangerous calls always ask.</p></div>
+      <div class="step"><div class="t">05</div><h4>Resume</h4><p>Reloads plan + position from disk. Survives restarts.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ USE CASES ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">What people use it for</div>
+      <h2>Long jobs that outlast a single context window</h2>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="ic">↻</div><h3>Drive a plan to done</h3>
+        <p>Hand it a vision and a plan; it works lap after lap until the done-criteria are met.</p></div>
+      <div class="card"><div class="ic">⏏</div><h3>Survive session limits</h3>
+        <p>The plan and its position are on disk, so a context limit or crash is just a pause.</p></div>
+      <div class="card"><div class="ic">✦</div><h3>Learn from every blocker</h3>
+        <p>Each question you answer becomes a precedent — so next time it answers it itself.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THREE LAYERS ============ -->
 <section id="layers">
   <div class="wrap">
-    <p class="eyebrow reveal">How it makes the call without you</p>
-    <h2 class="reveal">It already knows three things</h2>
-    <p class="lead reveal">When it hits a decision, it doesn't guess and it doesn't stop to ask the obvious — because it knows you, your project, and the rules. It keeps that as a plain-English <strong style="color:var(--text)">steering file</strong> it can re-read any time — and it writes that file for you, from how you actually work.</p>
-    <div class="stack">
-      <div class="layer l1 reveal">
-        <div class="top">
-          <div><div class="who">You</div><h3>How <em>you</em> like things done</h3></div>
-          <span class="tag live">working today</span>
-        </div>
-        <p>It learns your habits and standards over time, so it makes the small calls the way you would — and saves the bigger ones for you. Stays on your computer; nothing about you is shared.</p>
+    <div class="sec-head">
+      <div class="kicker">The model</div>
+      <h2>Three layers of context decide every call</h2>
+      <p>Each layer owns a different question. Together they answer the only one that matters at a blocker:
+        keep going, or stop and ask?</p>
+    </div>
+    <div class="layers">
+      <div class="layer">
+        <div class="tag">Yours · <span class="free">free, local</span></div>
+        <h3>Individual · Profile</h3>
+        <ul><li>A model of how you work</li><li>Your push-vs-ask judgment</li><li>Exports your steering file</li></ul>
       </div>
-      <div class="layer l2 reveal">
-        <div class="top">
-          <div><div class="who">This project</div><h3>What you're <em>building</em></h3></div>
-          <span class="tag live">working today</span>
-        </div>
-        <p>It follows the plan for the task and knows what "finished" means here — so it can tell when a step is truly done instead of guessing.</p>
+      <div class="layer">
+        <div class="tag">This project · <span class="free">free, local</span></div>
+        <h3>Project · Plan</h3>
+        <ul><li>Goal + plan + done-criteria</li><li>Repo guardrails</li><li>Durable across sessions</li></ul>
       </div>
-      <div class="layer l3 reveal">
-        <div class="top">
-          <div><div class="who">The rules</div><h3>What's <em>off-limits</em></h3></div>
-          <span class="tag build">coming soon</span>
-        </div>
-        <p>Hard limits it will never cross on its own — like deleting data or touching live systems — plus, for teams, control over which tools everyone's allowed to use.</p>
+      <div class="layer">
+        <div class="tag">Your team · <span class="paid">paid, opt-in</span></div>
+        <h3>Org · Policy</h3>
+        <ul><li>Hard rules that never bend</li><li>Approved tools &amp; budgets</li><li>One audit trail</li></ul>
       </div>
     </div>
-    <p class="formula reveal">Every decision = <b>what you'd do</b> + <b>what the project needs</b> + <b>what's allowed</b>.</p>
-    <p class="center reveal" style="color:var(--muted);font-size:15px;margin-top:14px;max-width:560px;margin-left:auto;margin-right:auto">The more it knows, the more it can safely do on its own. <span style="color:var(--faint)">Context is what earns autonomy.</span></p>
-    <p class="center reveal" style="margin-top:22px"><a class="btn btn-ghost" href="/diagrams">See the full picture →</a></p>
+    <div class="formula">decide = <b>Profile</b> · <b>Plan</b> · <b>Policy</b></div>
+    <p style="text-align:center;margin-top:26px"><a class="btn btn-ghost" href="/diagrams">See the full picture in diagrams →</a></p>
   </div>
 </section>
 
-<!-- FAP -->
-<section id="proof">
-  <div class="wrap">
-    <p class="eyebrow reveal">Always know what it did</p>
-    <h2 class="reveal">See exactly how much it finished on its own</h2>
-    <p class="lead reveal">When you come back, you don't have to wonder what happened. Sentigent shows you one simple number: how much of the task it completed and checked itself — without needing you.</p>
-    <div class="fap reveal">
-      <div class="lbl">Example run</div>
-      <div class="big grad">88% done on its own</div>
-      <p class="desc"><strong style="color:var(--text)">7 of 8 steps</strong> finished and checked, and it interrupted you <strong style="color:var(--text)">zero times</strong>. The last step it left for you to decide — nothing was skipped or faked.</p>
-    </div>
-  </div>
-</section>
-
-<!-- PRICING -->
+<!-- ============ PRICING ============ -->
 <section id="pricing">
   <div class="wrap">
-    <p class="eyebrow reveal">Pricing</p>
-    <h2 class="reveal">Free for you. Paid when a company needs control.</h2>
-    <p class="lead reveal">One developer gets everything, free, on their own machine. Companies pay only when they need to manage and control many people's AI agents at once.</p>
-    <div class="tiers">
-      <div class="tier reveal">
-        <div class="name">Free</div>
-        <div class="price">$0 <small>/ forever</small></div>
-        <div class="for">For an individual developer.</div>
+    <div class="sec-head" style="margin-left:auto;margin-right:auto;text-align:center">
+      <div class="kicker">Open-core</div>
+      <h2>Free for you. Paid only for the org.</h2>
+      <p style="margin-left:auto;margin-right:auto">The individual and project layers are free and run on your machine — forever.
+        You only pay when a team needs one shared control plane.</p>
+    </div>
+    <div class="price">
+      <div class="plan feat">
+        <div class="pn">Open source</div>
+        <div class="pp">$0 <small>/ forever</small></div>
+        <p class="muted">Everything you need to drive your own agent.</p>
         <ul>
-          <li>Finishes whole tasks on its own, across sessions</li>
-          <li>Learns how you like things done</li>
-          <li>Tests its own work before moving on</li>
-          <li>Runs entirely on your computer — fully private</li>
-          <li>Open source (MIT)</li>
+          <li>The full loop — Plan → Act → Verify → Decide → Resume</li>
+          <li>Individual · Profile (your judgment, your steering file)</li>
+          <li>Project · Plan with per-step done-criteria</li>
+          <li>The policy wall on dangerous actions</li>
+          <li>FAP receipts · local SQLite memory</li>
+          <li>Runs fully local — MIT licensed</li>
         </ul>
-        <a class="btn btn-ghost" href="https://github.com/hussi9/sentigent">Get it on GitHub</a>
+        <a class="btn btn-primary" href="#quickstart">Install it</a>
       </div>
-      <div class="tier featured reveal">
-        <div class="name">For Teams</div>
-        <div class="price">Early access</div>
-        <div class="for">For companies running many agents.</div>
+      <div class="plan">
+        <div class="pn">For teams</div>
+        <div class="pp">Org · Policy <small>· in development</small></div>
+        <p class="muted">Make your whole team a frontier team.</p>
         <ul>
-          <li>One place to set the rules for every agent</li>
-          <li class="soon">Control which tools the team can use</li>
-          <li class="soon">A full record of what every agent did</li>
-          <li class="soon">Spending limits &amp; approval steps</li>
-          <li class="soon">Each team's data kept separate &amp; secure</li>
+          <li>Org-wide policy &amp; capability registry</li>
+          <li>Approved skills / MCP / tools + budgets</li>
+          <li>Shared org knowledge base across projects</li>
+          <li>One audit trail of every decision</li>
+          <li>Parallel / async runs from a backlog</li>
         </ul>
-        <a class="btn btn-primary" href="https://github.com/hussi9/sentigent">Request early access</a>
+        <a class="btn btn-ghost" href="https://github.com/hussi9/sentigent" target="_blank" rel="noopener">Follow along</a>
       </div>
     </div>
-    <p class="center" style="color:var(--faint);font-size:13px;margin-top:18px">Straight answer: the Free version works today. The team version is still being built — no fake pricing, no fake claims.</p>
   </div>
 </section>
 
-<!-- FINAL CTA -->
-<section>
-  <div class="wrap center">
-    <h2 class="reveal">Stop watching your AI wait for you.</h2>
-    <p class="lead reveal">Set it up once, give it a task, and let it run to the finish.</p>
-    <div class="cta reveal"><a class="btn btn-primary" href="https://github.com/hussi9/sentigent">Get it free on GitHub →</a></div>
+<!-- ============ QUICKSTART ============ -->
+<section id="quickstart">
+  <div class="wrap" style="max-width:760px">
+    <div class="sec-head" style="margin-left:auto;margin-right:auto;text-align:center">
+      <div class="kicker">Quickstart</div>
+      <h2>Two commands to wire it into your agent</h2>
+    </div>
+    <div class="code">
+      <div class="code-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="f">your terminal</span></div>
+<pre><span class="c"># 1 — install</span>
+<span class="k">pip install</span> sentigent
+
+<span class="c"># 2 — wire it into Claude Code / any AI coding agent</span>
+<span class="k">sentigent</span> init
+
+<span class="c"># now seed a loop and let it run</span>
+<span class="k">sentigent</span> loop start --goal <span class="s">"…"</span> --steps <span class="s">"…"</span> --verify <span class="s">"pytest -q"</span>
+<span class="k">sentigent</span> loop drive <span class="g">&lt;loop_id&gt;</span> --execute</pre>
+    </div>
   </div>
 </section>
 
+<!-- ============ FOOTER ============ -->
 <footer>
-  <div class="wrap">
-    <div class="row">
-      <a href="#problem">The problem</a>
+  <div class="wrap foot-inner">
+    <div><strong style="color:var(--tx-2)">Sentigent</strong> — a local-first judgment layer for AI coding agents. MIT.</div>
+    <div style="display:flex;gap:20px">
+      <a href="https://github.com/hussi9/sentigent" target="_blank" rel="noopener">GitHub</a>
+      <a href="/diagrams">Diagrams</a>
       <a href="#how">How it works</a>
       <a href="#pricing">Pricing</a>
-      <a href="https://github.com/hussi9/sentigent">GitHub</a>
     </div>
-    <div>Sentigent · free &amp; open source · runs on your machine, your data stays yours</div>
   </div>
 </footer>
 
-<script>
-  (function(){
-    var els = [].slice.call(document.querySelectorAll('.reveal'));
-    if(!('IntersectionObserver' in window)){return}
-    var io = new IntersectionObserver(function(es){
-      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
-    },{threshold:.06, rootMargin:'0px 0px -8% 0px'});
-    els.forEach(function(el){io.observe(el)});
-  })();
-</script>
 </body>
 </html>

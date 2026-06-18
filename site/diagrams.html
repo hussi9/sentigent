@@ -6,24 +6,28 @@
 <title>Sentigent — how it all fits together (diagrams)</title>
 <meta name="description" content="The big picture and the details of how Sentigent works: the loop, the three context layers, the decision gate, and the open-source vs org tiers." />
 <link rel="canonical" href="https://sentigent.xyz/diagrams" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%237c5cff'/%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2300cc5f'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+  /* design tokens, copied from strandsagents.com (Astro Starlight) */
   :root{
-    --bg:#0a0a0f; --panel:#14141f; --panel2:#0f0f18; --border:#23233a;
-    --text:#e9e9f2; --muted:#9a9ab2; --faint:#6a6a82;
-    --accent:#7c5cff; --accent2:#a892ff; --blue:#5b8def; --green:#34d399; --amber:#fbbf24;
+    --bg:#0E0E0E; --panel:#181818; --panel2:#141414; --border:#2a2a2a;
+    --text:#ffffff; --muted:#9aa3ad; --faint:#6b7178;
+    --accent:#00cc5f; --accent2:#00FF77; --blue:#5b8def; --green:#00cc5f; --amber:#ffcf6b;
     --radius:14px; --max:1100px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  body{background:var(--bg);color:var(--text);font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;letter-spacing:-.011em}
   .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
   a{color:inherit;text-decoration:none}
   .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
   .grad{background:linear-gradient(120deg,var(--accent2),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(10,10,15,.72);border-bottom:1px solid var(--border)}
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(14,14,14,.78);border-bottom:1px solid var(--border)}
   .navin{display:flex;align-items:center;justify-content:space-between;height:62px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:650}
-  .dot{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));box-shadow:0 0 14px rgba(124,92,255,.6)}
+  .dot{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));box-shadow:0 0 14px rgba(0,204,95,.6)}
   .navlinks{display:flex;gap:24px;font-size:14px;color:var(--muted)}
   .navlinks a:hover{color:var(--text)}
 
@@ -36,7 +40,7 @@
   .pill{display:inline-flex;align-items:center;gap:7px}
   .swatch{width:11px;height:11px;border-radius:3px}
 
-  figure{margin:46px 0;border:1px solid var(--border);border-radius:18px;background:linear-gradient(180deg,#101019,#0c0c14);padding:30px 26px 24px;overflow:hidden}
+  figure{margin:46px 0;border:1px solid var(--border);border-radius:18px;background:linear-gradient(180deg,#141414,#0E0E0E);padding:30px 26px 24px;overflow:hidden}
   figcaption{margin-top:18px;color:var(--muted);font-size:14.5px;border-top:1px solid var(--border);padding-top:16px}
   figcaption b{color:var(--text)}
   .figtitle{display:flex;align-items:center;gap:10px;margin-bottom:22px}
@@ -57,11 +61,11 @@
   @media(max-width:740px){.row{flex-direction:column}.arr{transform:rotate(90deg);padding:6px 0}}
 
   .band{border:1px dashed var(--border);border-radius:12px;padding:18px 16px 16px;position:relative;margin-top:26px}
-  .band-label{position:absolute;top:-10px;left:16px;background:#0c0c14;padding:0 8px;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .band-label{position:absolute;top:-10px;left:16px;background:#0E0E0E;padding:0 8px;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 
   .foundations{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:26px}
   @media(max-width:740px){.foundations{grid-template-columns:repeat(2,1fr)}}
-  .f{background:#11111b;border:1px solid var(--border);border-radius:11px;padding:14px;text-align:center;border-top:3px solid var(--accent)}
+  .f{background:#161616;border:1px solid var(--border);border-radius:11px;padding:14px;text-align:center;border-top:3px solid var(--accent)}
   .f.b{border-top-color:var(--amber)}
   .f .k{font-size:13.5px;font-weight:650}
   .f .s{font-size:11.5px;color:var(--muted);margin-top:3px}
@@ -70,7 +74,7 @@
   .gradient-ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-family:ui-monospace,monospace}
 
   .layers{display:flex;flex-direction:column;gap:12px}
-  .layer{display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:#11111b;position:relative;overflow:hidden}
+  .layer{display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:#161616;position:relative;overflow:hidden}
   .layer::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
   .layer.l1::before{background:var(--accent)} .layer.l2::before{background:var(--blue)} .layer.l3::before{background:var(--amber)}
   .layer .ico{font-size:22px;width:30px;text-align:center;flex:0 0 auto}
@@ -83,7 +87,7 @@
 
   .gate{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
   @media(max-width:740px){.gate{grid-template-columns:1fr}}
-  .gcol{border:1px solid var(--border);border-radius:12px;padding:18px;background:#11111b}
+  .gcol{border:1px solid var(--border);border-radius:12px;padding:18px;background:#161616}
   .gcol h3{font-size:15px;margin-bottom:10px}
   .gcol ul{list-style:none;display:flex;flex-direction:column;gap:8px;font-size:13.5px;color:var(--muted)}
   .gcol li{display:flex;gap:9px;align-items:flex-start}
@@ -93,7 +97,7 @@
 
   .tiers{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media(max-width:740px){.tiers{grid-template-columns:1fr}}
-  .tier{border:1px solid var(--border);border-radius:14px;padding:22px;background:#11111b}
+  .tier{border:1px solid var(--border);border-radius:14px;padding:22px;background:#161616}
   .tier.paid{border-color:var(--accent)}
   .tier .nm{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent2)}
   .tier .pr{font-size:24px;font-weight:740;margin:6px 0 12px}
