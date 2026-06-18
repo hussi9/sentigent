@@ -227,20 +227,18 @@
     </div>
 
     <div class="code">
-      <div class="code-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="f">the loop, in five lines</span></div>
-<pre><span class="c"># seed a goal + plan — durable across sessions, each step has its own done-criteria</span>
-<span class="k">sentigent</span> loop start \
-  --goal <span class="s">"ship the CSV export"</span> \
-  --steps <span class="s">"write parser"</span> <span class="s">"add tests"</span> <span class="s">"wire the CLI"</span> \
-  --verify <span class="s">"pytest -q"</span>
+      <div class="code-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="f">add it to the agent you already use</span></div>
+<pre><span class="c"># 1 · plug it into Claude Code (or any AI coding agent)</span>
+<span class="k">pip install</span> sentigent
+<span class="k">sentigent</span> init          <span class="m"># MCP + hooks, one time</span>
 
-<span class="c"># drive it: Plan → Act → Verify → Decide(go / ask) → Resume</span>
-<span class="k">sentigent</span> loop drive <span class="g">&lt;loop_id&gt;</span> --execute
-<span class="m">↳ survives session limits · escalates only the dangerous calls</span>
+<span class="c"># 2 · keep coding like normal. now your agent…</span>
+<span class="g">✓</span> remembers the plan across sessions
+<span class="g">✓</span> keeps going at a blocker instead of stopping to ask
+<span class="g">✓</span> still stops for the dangerous calls  <span class="m"># force-push · prod · secrets</span>
 
-<span class="c"># one honest number when it's done</span>
-<span class="k">sentigent</span> loop receipt
-<span class="g">FAP 0.88</span> <span class="m"># verified-with-no-help ÷ total</span></pre>
+<span class="c"># when a run ends — one honest number, not a vibe</span>
+<span class="g">FAP 0.88</span>  <span class="m"># how far it got with no help</span></pre>
     </div>
   </div>
 </div>
