@@ -135,12 +135,14 @@ now explicit on the roadmap:
   cheap reversible moves (a, c) and let the spec stabilize before the deep registry build (b).
 - **R-CLD — Closed-loop delivery discipline.** The engine (`loop_driver.py`) is a closed loop
   already; this adds *delivery* discipline on top (skill: `skills/closed-loop-delivery/SKILL.md`).
-  Three real gaps to wire: **(1) output-contract render** — `loop_driver contract <id>` that prints
-  the per-criterion DoD checklist (✅/❌ + the verify command + last output) from existing step state,
-  not just the FAP number; **(2) PR review loop** — pull `gh pr` comments in batched windows
-  (3m/6m/10m), classify valid vs non-actionable, inject valid items as new steps, re-verify;
-  **(3) deploy-then-runtime-verify** helper so a step's done-criteria can be real API/log evidence.
-  (1) is read-only over loop state (safe, do first); (2) and (3) follow.
+  Three gaps — **all shipped 2026-06-17** (TDD, 43 focused tests green): **(1) output-contract
+  render** ✅ `loop_driver.contract(id)` + `sentigent loop contract <id>` prints the per-criterion
+  DoD checklist (✅/❌/○ + verify cmd + status) from existing state, reusing `metrics()` for FAP;
+  **(2) PR review loop** ✅ `operator/review_loop.py` — `fetch_pr_feedback` (gh, fail-soft) +
+  `classify` (valid vs non-actionable) + `to_steps` + `poll_windows` (3m/6m/10m, injectable sleep);
+  **(3) deploy-then-runtime-verify** ✅ `operator/runtime_verify.py` — `run_check` (captures
+  evidence, fail-soft) + `http_check`/`log_check` (build a runtime-evidence command for a step's
+  `--verify`). Next: wire (2)/(3) into the driver's drive loop so review items auto-inject as steps.
 
 ## Honesty line
 Individual (Profile) and Project (Plan) are **live and proven**. Org (Policy) is **scattered
