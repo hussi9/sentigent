@@ -109,25 +109,26 @@
   footer{border-top:1px solid var(--border);padding:40px 0;text-align:center;color:var(--faint);font-size:13px;margin-top:40px}
   footer a:hover{color:var(--text)}
 
-  /* big-picture map — one coherent top-to-bottom flow */
-  .bigmap{display:flex;flex-direction:column;align-items:center;text-align:center}
-  .bigmap .stage{width:100%;max-width:640px;border:1px solid var(--border);border-radius:14px;padding:16px 20px;background:#161616}
-  .bigmap .stage.you{background:linear-gradient(180deg,#15201b,#141414)}
-  .bigmap .stage.out{border-color:rgba(0,204,95,.45);background:linear-gradient(180deg,#102019,#0E0E0E)}
-  .bigmap .slabel{font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent2);margin-bottom:11px}
-  .bigmap .big{font-size:16px;font-weight:680}
-  .bigmap .big .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:3px}
-  .bigmap .flow{display:flex;align-items:stretch;justify-content:center;gap:7px;flex-wrap:wrap}
-  .bigmap .chip{flex:1;min-width:92px;border:1px solid var(--border);border-radius:9px;padding:9px 8px;background:#0E0E0E;font-size:13px;font-weight:650}
-  .bigmap .chip .sub{display:block;font-size:10.5px;color:var(--muted);font-weight:400;margin-top:2px}
-  .bigmap .chip.amber{border-color:rgba(255,207,107,.4)}
-  .bigmap .sep{display:flex;align-items:center;color:var(--accent);font-size:15px;flex:0 0 auto}
-  .bigmap .down{display:flex;flex-direction:column;align-items:center;gap:3px;padding:11px 0;color:var(--faint);font-size:12.5px}
-  .bigmap .down .arw{color:var(--accent);font-size:20px;line-height:1}
-  .bigmap .loopnote{font-family:ui-monospace,monospace;font-size:11px;color:var(--faint);margin-top:10px}
-  .bigmap .feedback{margin-top:18px;border:1px dashed var(--border);border-radius:999px;padding:9px 20px;font-size:12.5px;color:var(--muted);max-width:560px}
-  .bigmap .feedback b{color:var(--accent2)}
-  @media(max-width:740px){.bigmap .flow{flex-direction:row}.bigmap .chip{min-width:0}.bigmap .sep{display:none}}
+  /* blueprint diagram standard (see docs/DIAGRAM-STYLE.md) — numbered L→R narrative w/ real artifacts */
+  .figlede{color:var(--muted);font-size:15.5px;max-width:760px;margin:-8px 0 24px}
+  .bp{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:stretch}
+  .bp-col{display:flex;flex-direction:column;gap:10px}
+  .bp-step{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.04em;color:var(--accent2);font-weight:600}
+  .art{border:1px solid var(--border);border-radius:13px;background:#141414;overflow:hidden;flex:1;display:flex;flex-direction:column}
+  .art.accent{border-color:rgba(0,204,95,.4);background:linear-gradient(180deg,#10201a,#121212)}
+  .art-h{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--muted);padding:10px 13px;border-bottom:1px solid var(--border);background:#101010}
+  .art-b{margin:0;padding:13px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.65;color:var(--text);white-space:pre-wrap;overflow-x:auto;flex:1}
+  .art-b .ok{color:var(--green)} .art-b .todo{color:var(--faint)} .art-b .g{color:var(--accent2)} .art-b .amber{color:var(--amber)} .art-b .muted{color:var(--faint)}
+  .bp-note{font-size:12px;color:var(--faint);line-height:1.5}
+  .bp-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--accent);font-size:22px;gap:4px;padding-top:24px}
+  .bp-arrow span{font-family:ui-monospace,monospace;font-size:10px;color:var(--faint);text-align:center;line-height:1.3}
+  .bp-loop{margin-top:14px;border:1px dashed rgba(0,204,95,.4);border-radius:12px;padding:12px 18px;text-align:center;font-family:ui-monospace,monospace;font-size:12.5px;color:var(--accent2)}
+  .bp-out{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+  .oc{flex:1;min-width:240px;display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:11px;padding:12px 14px;background:#141414;font-size:13.5px;color:var(--muted)}
+  .oc b{color:var(--text)}
+  .oc .dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+  .oc .dot.ok{background:var(--green);box-shadow:0 0 10px rgba(0,204,95,.5)} .oc .dot.amber{background:var(--amber)}
+  @media(max-width:820px){.bp{grid-template-columns:1fr}.bp-arrow{transform:rotate(90deg);padding:4px 0}}
 </style>
 </head>
 <body>
@@ -151,55 +152,69 @@
 
 <main class="wrap">
 
-  <!-- 1 — BIG PICTURE -->
+  <!-- 1 — BIG PICTURE (blueprint standard) -->
   <figure>
-    <div class="figtitle"><span class="num">01</span><h2>The big picture</h2></div>
+    <div class="figtitle"><span class="num">01</span><h2>The whole system, on a loop</h2><span class="tag live">live</span></div>
+    <p class="figlede">You hardly prompt the agent anymore — a loop does. Each lap it reads state from disk, decides the next step using your three layers of context, runs it in a fresh context, then writes progress and goes again until done.</p>
 
-    <div class="bigmap">
+    <div class="bp">
 
-      <div class="stage you">
-        <div class="slabel">You</div>
-        <div class="big">Hand it a goal + what "done" means<span class="sub">one vision, one plan — then walk away</span></div>
-      </div>
-
-      <div class="down"><span class="arw">↓</span></div>
-
-      <div class="stage">
-        <div class="slabel">The loop · runs on its own</div>
-        <div class="flow">
-          <div class="chip">Plan<span class="sub">goal + done</span></div><div class="sep">→</div>
-          <div class="chip">Act<span class="sub">one step</span></div><div class="sep">→</div>
-          <div class="chip">Verify<span class="sub">tests it</span></div><div class="sep">→</div>
-          <div class="chip">Decide<span class="sub">go / ask</span></div><div class="sep">→</div>
-          <div class="chip">Resume<span class="sub">survives restarts</span></div>
+      <!-- ① STATE -->
+      <div class="bp-col">
+        <div class="bp-step">① State — lives on disk, not in the model</div>
+        <div class="art">
+          <div class="art-h">▢ ~/.sentigent/loops/&lt;id&gt;.json</div>
+<pre class="art-b">goal: ship the CSV export
+steps:
+  <span class="ok">[x] write parser   verified</span>
+  <span class="ok">[x] add tests      verified</span>
+  <span class="todo">[ ] wire the CLI   pending</span>
+position: 2   attempts: 0</pre>
         </div>
-        <div class="loopnote">↺ stored on disk — a crash or session limit is just a pause</div>
+        <p class="bp-note">Read fresh every lap. A crash or session limit is just a pause — nothing lives in the model's context.</p>
       </div>
 
-      <div class="down"><span class="arw">↓</span> at every "keep going, or ask you?" it reads three layers of context</div>
+      <div class="bp-arrow">→<span>reads state<br>+ 3 layers</span></div>
 
-      <div class="stage">
-        <div class="slabel">Three layers of context → the go-or-ask call</div>
-        <div class="flow">
-          <div class="chip">Profile<span class="sub">what you'd do</span></div>
-          <div class="chip">Plan<span class="sub">this project</span></div>
-          <div class="chip amber">Policy<span class="sub">org rules · building</span></div>
+      <!-- ② DECIDE -->
+      <div class="bp-col">
+        <div class="bp-step">② Decide — act or ask, as you would</div>
+        <div class="art accent">
+          <div class="art-h">◆ the loop decides the next move</div>
+<pre class="art-b">reads <span class="g">Profile · Plan · Policy</span>
+next: "wire the CLI"
+act:  true              <span class="muted"># confident → go</span>
+      ── or ──
+ask:  "push to prod?"   <span class="amber"># dangerous → you</span></pre>
         </div>
-        <div class="loopnote">it acts when it's confident · always asks on the dangerous calls (force-push · prod · secrets)</div>
+        <p class="bp-note">Confident → it acts. Force-push, prod DB, secrets → it always stops and asks you.</p>
       </div>
 
-      <div class="down"><span class="arw">↓</span></div>
+      <div class="bp-arrow">→<span>fresh<br>context</span></div>
 
-      <div class="stage out">
-        <div class="slabel">Out</div>
-        <div class="big">Verified result + one honest score<span class="sub">FAP — how far it got with no help</span></div>
+      <!-- ③ ACT + VERIFY -->
+      <div class="bp-col">
+        <div class="bp-step">③ Act &amp; verify — a fresh run, full tools</div>
+        <div class="art">
+          <div class="art-h">⟨⟩ fresh claude -p · runs the step</div>
+<pre class="art-b">$ wire the CLI
+$ pytest -q
+<span class="ok">3 passed</span> → step verified ✓
+<span class="muted"># fail → self-repair retry</span></pre>
+        </div>
+        <p class="bp-note">Nothing counts as done until it passes <em>your</em> check. (Many steps can run in parallel — roadmap X1.)</p>
       </div>
-
-      <div class="feedback">↺ every answer you give is saved as a precedent → <b>it asks you a little less next time</b></div>
 
     </div>
 
-    <figcaption><b>One read, top to bottom:</b> you hand over a goal, the loop drives it step by step (and survives restarts), at each blocker it decides using your Profile, the Project Plan, and Org Policy, and you get a verified result plus one honest number. Every answer you give feeds back so it needs you less. The next diagrams zoom into each part.</figcaption>
+    <div class="bp-loop">↺&nbsp;&nbsp;write progress to disk → next lap reads it fresh → repeat until every step is verified</div>
+
+    <div class="bp-out">
+      <div class="oc"><span class="dot ok"></span> all steps verified → <b>FAP score</b>, the loop stops</div>
+      <div class="oc"><span class="dot amber"></span> dangerous call or no progress → <b>human gate</b> — you approve &amp; resume</div>
+    </div>
+
+    <figcaption><b>Read it left to right:</b> state on disk → the loop decides using Profile · Plan · Policy → a fresh run does the step and verifies it → progress is written and the lap repeats. It stops when everything's verified (and reports FAP), or hands a dangerous/stuck moment to you. The next diagrams zoom into each part.</figcaption>
   </figure>
 
   <!-- 2 — THE RUN LOOP -->
