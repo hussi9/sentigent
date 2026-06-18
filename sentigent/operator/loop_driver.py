@@ -473,6 +473,12 @@ def drive(loop_id: str, execute: bool = False, max_steps: int = 50, timeout: int
     if state["status"] == "running" and ran >= max_steps:
         state["status"] = "max"
         _save(state)
+    # surface the headline on the return AND persist it, so callers (drive_many,
+    # dashboards, scripts) and a later load()/resume() all agree on the FAP. Without
+    # the _save the on-disk record kept FAP=None while the return had it — a real leak.
+    state["metrics"] = metrics(state)
+    state["FAP"] = state["metrics"]["FAP"]
+    _save(state)
     return state
 
 
@@ -491,7 +497,11 @@ def resume(loop_id: str, execute: bool = False, max_steps: int = 50, timeout: in
 
 
 # ── THE output metric: Faithful Autonomous Progress ───────────────────────────
-def metrics(state: dict) -> dict:
+def metrics(state) -> dict:
+    # accept either a loaded state dict OR a loop_id string (load it) — callers holding
+    # only an id shouldn't have to load it themselves (was a real foot-gun).
+    if isinstance(state, str):
+        state = load(state)
     steps = state["steps"]
     total = len(steps) or 1
     done = [s for s in steps if s["status"] == "done"]
@@ -606,6 +616,63 @@ def print_receipt(loop_dir: Path | str | None = None) -> None:
     print("━" * 72)
 
 
+# ── the output contract: render Closed-Loop Delivery from on-disk state ─────────
+def contract(loop_id: str) -> dict:
+    """Render the Closed-Loop Delivery output contract from a loop's EXISTING state.
+
+    Read-only: no execution, no fabrication — every field is computed from what the
+    loop has already persisted. Each criterion carries the SAME gate `_step_gate` uses
+    (per-step verify, else the global verify_cmd) and an honest mark:
+      ✅ verified/done · ❌ failed/blocked · ○ pending (or skipped/in-flight)."""
+    state = load(loop_id)
+    m = metrics(state)
+    criteria = []
+    for s in state["steps"]:
+        st = s["status"]
+        if st == "done" and s.get("verified"):
+            mark = "✅"
+        elif st == "done":                  # done but unverified (trusted/no gate)
+            mark = "✅"
+        elif st in ("failed", "blocked"):
+            mark = "❌"
+        else:                               # pending / skipped / anything in-flight
+            mark = "○"
+        criteria.append({
+            "step": s["i"],
+            "text": s["text"],
+            "verify": _step_gate(state, s),
+            "status": st,
+            "attempts": s.get("attempts", 0),
+            "mark": mark,
+        })
+    return {
+        "loop_id": state["loop_id"],
+        "goal": state["goal"],
+        "criteria": criteria,
+        "fap": m["FAP"],
+        "plan_distance": m["plan_distance"],
+        "asks": state.get("asks", 0),
+        "all_passed": bool(criteria) and all(c["mark"] == "✅" for c in criteria),
+    }
+
+
+def contract_line(loop_id: str) -> str:
+    """Human-readable Closed-Loop Delivery checklist for the `contract` CLI."""
+    c = contract(loop_id)
+    lines = [
+        f"📋 OUTPUT CONTRACT — {c['loop_id']}",
+        f"  goal: {c['goal']}",
+        "  ── criteria ──",
+    ]
+    for crit in c["criteria"]:
+        gate = crit["verify"]
+        verify = f"verify: {gate}" if gate else "(no gate — trusted)"
+        lines.append(f"  {crit['mark']} {crit['text']}  — {verify}  [{crit['status']}]")
+    lines.append(f"  ── FAP {c['fap']:.0%} · distance {c['plan_distance']:.0%} · asks {c['asks']} ──")
+    lines.append("  DONE" if c["all_passed"] else "  NOT DONE")
+    return "\n".join(lines)
+
+
 def status_line(state: dict) -> str:
     m = metrics(state)
     icon = {"running": "▶", "done": "✅", "blocked": "⏸", "max": "🔁", "error": "🛑"}.get(state["status"], "•")
@@ -633,6 +700,7 @@ def main() -> None:
         p = sub.add_parser(name); p.add_argument("loop_id")
         p.add_argument("--execute", action="store_true"); p.add_argument("--max", type=int, default=50)
     st = sub.add_parser("status"); st.add_argument("loop_id")
+    ct = sub.add_parser("contract"); ct.add_argument("loop_id")
     sub.add_parser("receipt")
     a = ap.parse_args()
 
@@ -646,6 +714,8 @@ def main() -> None:
         print(status_line(fn(a.loop_id, execute=a.execute, max_steps=a.max)))
     elif a.cmd == "status":
         print(status_line(load(a.loop_id)))
+    elif a.cmd == "contract":
+        print(contract_line(a.loop_id))
     elif a.cmd == "receipt":
         print_receipt()
 
