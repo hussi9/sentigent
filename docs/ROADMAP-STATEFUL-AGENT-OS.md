@@ -133,6 +133,14 @@ now explicit on the roadmap:
   Guardrail: consume the **open spec** and self-host the catalog — never require Google's managed
   *Agent Registry* / Gemini Enterprise. Stays local-first/OSS. ARD is brand-new, so lock in the
   cheap reversible moves (a, c) and let the spec stabilize before the deep registry build (b).
+- **R-CLD — Closed-loop delivery discipline.** The engine (`loop_driver.py`) is a closed loop
+  already; this adds *delivery* discipline on top (skill: `skills/closed-loop-delivery/SKILL.md`).
+  Three real gaps to wire: **(1) output-contract render** — `loop_driver contract <id>` that prints
+  the per-criterion DoD checklist (✅/❌ + the verify command + last output) from existing step state,
+  not just the FAP number; **(2) PR review loop** — pull `gh pr` comments in batched windows
+  (3m/6m/10m), classify valid vs non-actionable, inject valid items as new steps, re-verify;
+  **(3) deploy-then-runtime-verify** helper so a step's done-criteria can be real API/log evidence.
+  (1) is read-only over loop state (safe, do first); (2) and (3) follow.
 
 ## Honesty line
 Individual (Profile) and Project (Plan) are **live and proven**. Org (Policy) is **scattered
