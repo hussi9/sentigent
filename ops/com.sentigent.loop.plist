@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.sentigent.loop — the unattended autopilot cadence (macOS launchd).
+
+  This is a TEMPLATE. It runs `python -m sentigent.operator.scheduler tick`, which
+  drives EVERY pending loop one pass, then exits. launchd re-runs it every
+  StartInterval seconds (below) — that periodic re-launch IS the cadence, and you get
+  restart-on-crash for free. (`tick` exits per run; do NOT use the `run` subcommand
+  under launchd — let launchd own the interval, not a long-lived process.)
+
+  ── INSTALL ───────────────────────────────────────────────────────────────────────
+  1. Replace EVERY placeholder below:
+       /PATH/TO/SENTIGENT_REPO   → your sentigent checkout (e.g. /Users/you/sentigent)
+       /PATH/TO/HOME             → your $HOME (e.g. /Users/you)
+     (The .venv path assumes the repo's own virtualenv; adjust if yours lives elsewhere.)
+  2. Copy to your LaunchAgents dir:
+       cp ops/com.sentigent.loop.plist ~/Library/LaunchAgents/
+  3. Load it:
+       launchctl load   ~/Library/LaunchAgents/com.sentigent.loop.plist
+     Unload / stop:
+       launchctl unload ~/Library/LaunchAgents/com.sentigent.loop.plist
+     Run once now (to test):
+       launchctl start  com.sentigent.loop
+  4. Logs land at the StandardOut/ErrorPath below — tail them to watch progress.
+
+  NO secrets and NO real paths live in this file. Keep it that way.
+
+  ── SAFETY ─────────────────────────────────────────────────────────────────────────
+  `tick` defaults to DRY-RUN laps. To let loops actually run `claude -p` unattended,
+  append "--execute" to ProgramArguments — but read the TRUST BOUNDARY note in
+  loop_driver.py first: an executing loop runs arbitrary shell in each loop's cwd.
+
+  Schedule: every 300s (5 min) via StartInterval. RunAtLoad runs one tick at load.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.sentigent.loop</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/PATH/TO/SENTIGENT_REPO/.venv/bin/python3</string>
+        <string>-m</string>
+        <string>sentigent.operator.scheduler</string>
+        <string>tick</string>
+        <!-- <string>- -execute</string>  uncomment to run loops for real (see SAFETY) -->
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/PATH/TO/SENTIGENT_REPO</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>SENTIGENT_AGENT_ID</key>
+        <string>hussain</string>
+        <key>SENTIGENT_ORG_ID</key>
+        <string>hussain</string>
+        <!-- Optional: point at a non-default loop store
+        <key>SENTIGENT_LOOP_DIR</key>
+        <string>/PATH/TO/HOME/.sentigent/loops</string>
+        -->
+    </dict>
+
+    <!-- The cadence: launchd re-launches `tick` every 300 seconds (5 minutes).
+         NEVER a busy-loop — the OS owns the interval. -->
+    <key>StartInterval</key>
+    <integer>300</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/PATH/TO/HOME/.sentigent/logs/loop.out</string>
+    <key>StandardErrorPath</key>
+    <string>/PATH/TO/HOME/.sentigent/logs/loop.err</string>
+</dict>
+</plist>
