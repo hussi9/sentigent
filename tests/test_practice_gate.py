@@ -195,6 +195,76 @@ def test_cli_practices_enforce_rejects_bad_level(tmp_path, capsys):
     assert "must be one of" in capsys.readouterr().out
 
 
+def test_cli_practices_add_falls_back_to_get_config_when_omitted(tmp_path, monkeypatch, capsys):
+    """`sentigent practices add` with no --agent-id/--db-path (the CLI's real
+    default: argparse defaults agent_id="" and db_path=None) must resolve
+    through get_config() — the same agent/org/db init/doctor/score use — not
+    silently write to a sibling memory_.db under org_id="cli" (the pre-fix bug).
+    """
+    import os
+
+    from sentigent.cli import _cmd_practices
+    from sentigent.config import SentigentConfig, set_config
+    from sentigent.memory.store import MemoryStore
+
+    # MemoryStore falls back to Path.home()/.sentigent/... when db_path=None,
+    # so pin HOME to a scratch dir to keep the fallback path contained.
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("SENTIGENT_ORG_ID", raising=False)
+
+    cfg = SentigentConfig(agent_id="cfg-fallback-agent", org_id="cfg-fallback-org")
+    set_config(cfg)
+    try:
+        # Real CLI default invocation: no --agent-id, no --db-path.
+        _cmd_practices("add", ["Always run lint before pushing"], "commit", "", None)
+        out = capsys.readouterr().out
+        assert "added #1" in out
+
+        # The fallback branch must have resolved to get_config()'s agent/org —
+        # verify by opening a store the same way get_config() would resolve it
+        # (agent_id/org_id from cfg, db_path=None -> Path.home() default) and
+        # confirming the practice is actually there.
+        resolved = MemoryStore(agent_id=cfg.agent_id, org_id=cfg.org_id, db_path=None)
+        practices = resolved.get_practices(active_only=False)
+        assert any(p["text"] == "Always run lint before pushing" for p in practices)
+
+        expected_db = os.path.join(str(tmp_path), ".sentigent", f"memory_{cfg.agent_id}.db")
+        assert os.path.exists(expected_db)
+    finally:
+        set_config(None)  # type: ignore[arg-type]
+
+
+def test_cli_practices_add_explicit_args_still_win_over_config(tmp_path, monkeypatch, capsys):
+    """An explicit --agent-id/--db-path must short-circuit past the
+    get_config() fallback, not be overridden by it.
+    """
+    from sentigent.cli import _cmd_practices
+    from sentigent.config import SentigentConfig, set_config
+    from sentigent.memory.store import MemoryStore
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("SENTIGENT_ORG_ID", raising=False)
+
+    cfg = SentigentConfig(agent_id="cfg-other-agent", org_id="cfg-other-org")
+    set_config(cfg)
+    try:
+        explicit_db = str(tmp_path / "explicit.db")
+        _cmd_practices("add", ["Explicit db test"], "commit", "explicit-agent", explicit_db)
+        out = capsys.readouterr().out
+        assert "added #1" in out
+
+        # Lands in the explicit db under the explicit agent_id...
+        explicit_store = MemoryStore(agent_id="explicit-agent", org_id=cfg.org_id, db_path=explicit_db)
+        practices = explicit_store.get_practices(active_only=False)
+        assert any(p["text"] == "Explicit db test" for p in practices)
+
+        # ...not in the config-resolved db (fallback path never touched).
+        cfg_resolved_db = tmp_path / ".sentigent" / f"memory_{cfg.agent_id}.db"
+        assert not cfg_resolved_db.exists()
+    finally:
+        set_config(None)  # type: ignore[arg-type]
+
+
 def test_evaluate_allows_commit_after_test_run(tmp_db_path):
     judge = Sentigent(profile="default", agent_id="t-prac-eng2", db_path=tmp_db_path)
     pid = judge._memory.add_practice(

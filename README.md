@@ -38,7 +38,7 @@ second commit is genuinely allowed once the practice is satisfied. See
 ## Quickstart
 
 ```bash
-pip install sentigent
+pip install "sentigent[mcp]"
 sentigent init
 sentigent doctor
 ```
@@ -48,9 +48,12 @@ sentigent doctor
   PreToolUse/PostToolUse hooks. Works fully in **standalone mode** with no Claude Code install too —
   the CLI (`doctor` / `score` / `practices` / ...) never depends on it.
 - **`sentigent doctor`** — health check. On a fresh install it reports `HEALTHY (N warnings — normal
-  for new install)`, not a scary red state just because you haven't recorded outcomes yet.
+  for new install)`, not a scary red state just because you haven't recorded outcomes yet. The
+  `[mcp]` extra above is what keeps it green if Claude Code is on your machine — without it, `doctor`
+  correctly flags the missing MCP dependency as an error the moment it detects a Claude Code install
+  to wire into.
 
-*`pip install sentigent` is the command once the package is live on PyPI. It isn't yet — see
+*`pip install "sentigent[mcp]"` is the command once the package is live on PyPI. It isn't yet — see
 [Honest limits](#honest-limits) for today's install path (it's one extra line).*
 
 ---
@@ -144,9 +147,9 @@ python -m sentigent.eval.ablation.toy_batch --n 50 --seed 42
 - **Not on PyPI yet.** Today, install from the built wheel or from source:
   ```bash
   git clone https://github.com/hussi9/sentigent.git && cd sentigent
-  python -m pip install -e .
+  python -m pip install -e ".[mcp]"
   ```
-  `pip install sentigent` will work once the package is published.
+  `pip install "sentigent[mcp]"` will work once the package is published.
 - **Judge-gating a repair decision currently subtracts value.** In our own controlled toy-harness
   ablation (N=50, a live Sentigent judge, `docs/EVALUATION.md` Table 2), gating each repair lap on
   the judge scored **48%** resolved vs **68%** for unconditional bounded repair — a **−20 pt**
@@ -163,6 +166,11 @@ python -m sentigent.eval.ablation.toy_batch --n 50 --seed 42
 - **Practice enforcement is deterministic keyword-matching**, not an LLM judgment call — it knows a
   test command *ran* this session, not whether it passed. (The demo repo's test genuinely fails then
   genuinely passes — the gate itself doesn't check that; you should still make tests fail the build.)
+- **No migration for practices written by pre-0.1.0 dev builds.** Early builds hardcoded
+  `sentigent practices` to `agent_id=""`/`org_id="cli"`; that's fixed now (it resolves through the
+  same config default `init`/`doctor`/`score` use), but there's no migration path that pulls
+  practices out of the old `memory_.db` if you ran a dev build before this fix. Acceptable
+  pre-release (no public installs predate the fix); a real upgrade path would matter once published.
 - MCP tool example outputs later in this README (`sentigent_score()` → `{"judgment_score": 0.94, ...}`
   etc.) are illustrative shapes of the response format, not a captured real session — treat the
   numbers as placeholders, not a claim.
@@ -369,7 +377,8 @@ Layer 1: AGENT INTUITION
    are safe to proceed; 'cleanup' tasks near .env files need slow_down."
 ```
 
-Layer 1 stores to local SQLite (<50ms latency, zero network dependency) and is live from
+Layer 1 stores to local SQLite (hot-path budget capped at 50ms by a circuit breaker, zero network
+dependency) and is live from
 `sentigent init` onward. Layer 2 (Supabase org sync) and Layer 3 (opt-in anonymized cross-org
 patterns) are both opt-in — declined by default at `sentigent init`.
 
@@ -476,7 +485,7 @@ YOUR ENVIRONMENT                              SUPABASE (your account)
 │  Agent → Hooks → MCP Server     │          │  org_policies              │
 │  ┌─────────────────────────┐    │  async   │  org_profiles              │
 │  │  Layer 1: SQLite        │────┼─────────▶│  synced_episodes           │
-│  │  • episodes (<50ms)     │    │          │  org_patterns              │
+│  │  • episodes (50ms cap)  │    │          │  org_patterns              │
 │  │  • procedural_rules     │◀───┼──────────│  org_baselines             │
 │  │  • baselines            │    │  pull    │  policy_violations         │
 │  └─────────────────────────┘    │          │  layer3_shared_patterns    │
@@ -487,7 +496,8 @@ YOUR ENVIRONMENT                              SUPABASE (your account)
 └─────────────────────────────────┘
 ```
 
-- **Hot path (<50ms):** Signal computation, decision gate, policy check — all local.
+- **Hot path (50ms circuit-breaker budget):** Signal computation, decision gate, policy check — all
+  local; a configured `evaluate_timeout_ms` ceiling, not a measured benchmark.
 - **Warm path (on outcome record):** Episodes synced to Supabase for org aggregation.
 - **Cold path (opt-in):** Anonymized patterns contributed to Layer 3 pool.
 
