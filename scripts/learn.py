@@ -19,12 +19,14 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from sentigent.config import get_config  # noqa: E402
 from sentigent.core.confidence_calibrator import ConfidenceCalibrator  # noqa: E402
 from sentigent.core.profile_learner import ProfileLearner  # noqa: E402
 from sentigent.memory.store import MemoryStore  # noqa: E402
 
-AGENT = os.environ.get("SENTIGENT_AGENT_ID", "hussain")
-ORG = os.environ.get("SENTIGENT_ORG_ID", "hussain")
+_cfg = get_config()
+AGENT = os.environ.get("SENTIGENT_AGENT_ID", _cfg.agent_id)
+ORG = os.environ.get("SENTIGENT_ORG_ID", _cfg.org_id)
 
 
 def _print_calibration(calib: ConfidenceCalibrator) -> None:

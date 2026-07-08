@@ -264,7 +264,7 @@ print(list_profiles())
         head={["Variable", "Required", "Purpose"]}
         rows={[
           ["SENTIGENT_ORG_ID", "Layer 2", "Your org slug (e.g. 'acme'). Enables Supabase sync."],
-          ["SENTIGENT_AGENT_ID", "No", "Agent identifier. Defaults to hostname."],
+          ["SENTIGENT_AGENT_ID", "No", "Agent identifier. Defaults to 'default_agent'."],
           ["SUPABASE_URL", "Layer 2", "Supabase project URL."],
           ["SUPABASE_ANON_KEY", "Layer 2", "Supabase anon key for client auth."],
           ["SUPABASE_SERVICE_ROLE_KEY", "Layer 2 admin", "Service role key for server-side operations."],

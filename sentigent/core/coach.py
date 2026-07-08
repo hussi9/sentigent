@@ -183,7 +183,10 @@ class CoachingReport:
 class InteractionCoach:
     """Observes agent interaction patterns and generates AI-powered suggestions."""
 
-    def __init__(self, agent_id: str = "hussain", db_path: str | None = None) -> None:
+    def __init__(self, agent_id: str = "", db_path: str | None = None) -> None:
+        if not agent_id:
+            from sentigent.config import get_config
+            agent_id = get_config().agent_id
         self.agent_id = agent_id
         if db_path:
             self._db_path = Path(db_path)

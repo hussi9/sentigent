@@ -117,7 +117,7 @@ def baseline_constant(pairs: list[tuple[str, str]], const: str = "proceed") -> d
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--agent", default="hussain")
+    ap.add_argument("--agent", default="default_agent")
     ap.add_argument("--db", default=str(Path.home() / ".sentigent"))
     args = ap.parse_args()
 

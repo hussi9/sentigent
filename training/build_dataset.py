@@ -118,7 +118,7 @@ def build_preference(conn) -> list[dict]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--agent", default="hussain")
+    ap.add_argument("--agent", default="default_agent")
     ap.add_argument("--db", default=str(Path.home() / ".sentigent"))
     ap.add_argument("--out", default=str(Path(__file__).parent / "data"))
     ap.add_argument("--cap-ratio", type=float, default=3.0)

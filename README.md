@@ -53,8 +53,7 @@ sentigent doctor
   correctly flags the missing MCP dependency as an error the moment it detects a Claude Code install
   to wire into.
 
-*`pip install "sentigent[mcp]"` is the command once the package is live on PyPI. It isn't yet — see
-[Honest limits](#honest-limits) for today's install path (it's one extra line).*
+*Prefer installing from source? See [Honest limits](#honest-limits) for the git-clone alternative.*
 
 ---
 
@@ -144,12 +143,12 @@ python -m sentigent.eval.ablation.toy_batch --n 50 --seed 42
 
 ## Honest limits
 
-- **Not on PyPI yet.** Today, install from the built wheel or from source:
+- **Installing from source.** `pip install "sentigent[mcp]"` works as shown in Quickstart. If you'd
+  rather build from a checkout instead:
   ```bash
   git clone https://github.com/hussi9/sentigent.git && cd sentigent
   python -m pip install -e ".[mcp]"
   ```
-  `pip install "sentigent[mcp]"` will work once the package is published.
 - **Judge-gating a repair decision currently subtracts value.** In our own controlled toy-harness
   ablation (N=50, a live Sentigent judge, `docs/EVALUATION.md` Table 2), gating each repair lap on
   the judge scored **48%** resolved vs **68%** for unconditional bounded repair — a **−20 pt**
@@ -426,19 +425,26 @@ level via PostgreSQL RLS, not application code.
 
 ## Dashboard
 
+There are two dashboard surfaces today (they'll converge in a future release):
+
 ```bash
 sentigent web
+# → http://localhost:7777
+```
+
+A lightweight, dependency-free dashboard (stdlib HTTP server, no install extras
+needed): activity chart, decision distribution, tool performance, learned
+baselines/rules, and recent decisions.
+
+```bash
+python -m sentigent.dashboard.server
 # → http://localhost:7373
 ```
 
-Live tabs:
-- **Overview** — decisions, outcomes, signal distributions
-- **Patterns** — learned rules with confidence and sample sizes
-- **Policies** — org-wide enforcement rules and violation log
-- **Proof of Value** — Brier score trajectory and top catches
-- **Profile** — active role, value weights, AI context hint
-- **Prompt Health** — which task descriptions correlate with failure
-- **Insights** — computed signal trends and calibration quality
+The full Console — Overview, Patterns, Policies, Proof of Value, Profile,
+Prompt Health, Practices, Escalations, Routing, and Insights — works fully in
+local mode with no account or Supabase connection required. Requires the
+`[mcp]` extra (`pip install "sentigent[mcp]"`) for its FastAPI backend.
 
 ---
 

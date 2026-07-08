@@ -76,7 +76,7 @@ def main() -> None:
         "coach",
         help="AI-powered interaction coach — get suggestions to improve your agent workflows",
     )
-    coach_parser.add_argument("--agent-id", default="hussain", help="Agent ID (default: hussain)")
+    coach_parser.add_argument("--agent-id", default="", help="Agent ID (default: config default_agent)")
     coach_parser.add_argument("--days", type=int, default=7, help="Look-back window in days (default: 7)")
     coach_parser.add_argument("--json", action="store_true", dest="as_json", help="Output as JSON")
 
@@ -85,7 +85,7 @@ def main() -> None:
         "audit",
         help="Human-readable audit of decisions, failures, and learned patterns",
     )
-    audit_parser.add_argument("--agent-id", default="hussain", help="Agent ID (default: hussain)")
+    audit_parser.add_argument("--agent-id", default="", help="Agent ID (default: config default_agent)")
     audit_parser.add_argument("--days", type=int, default=7, help="Look-back window in days (default: 7)")
     audit_parser.add_argument("--failures", action="store_true", help="Show only failures")
     audit_parser.add_argument("--patterns", action="store_true", help="Show learned patterns/rules")
@@ -96,7 +96,7 @@ def main() -> None:
         "prove",
         help="Proof-of-value report — show evidence that Sentigent is working",
     )
-    prove_parser.add_argument("--agent-id", default="hussain", help="Agent ID (default: hussain)")
+    prove_parser.add_argument("--agent-id", default="", help="Agent ID (default: config default_agent)")
     prove_parser.add_argument("--days", type=int, default=90, help="Look-back window in days (default: 90)")
     prove_parser.add_argument("--json", action="store_true", dest="as_json", help="Output as JSON")
 
@@ -139,7 +139,7 @@ def main() -> None:
         "prompt-health",
         help="Analyze prompt quality — see how your instructions affect agent outcomes",
     )
-    prompt_health_parser.add_argument("--agent-id", default="hussain", help="Agent ID")
+    prompt_health_parser.add_argument("--agent-id", default="", help="Agent ID (default: config default_agent)")
     prompt_health_parser.add_argument("--days", type=int, default=30, help="Look-back days")
     prompt_health_parser.add_argument("--json", action="store_true", dest="as_json")
 
@@ -271,9 +271,11 @@ def main() -> None:
 
 def _cmd_coach(agent_id: str, days: int, as_json: bool) -> None:
     """Run the AI interaction coach and print suggestions."""
+    from sentigent.config import get_config
     from sentigent.core.coach import InteractionCoach
     import json as _json
 
+    agent_id = agent_id or get_config().agent_id
     print(f"\nAnalyzing {days} days of interactions for agent '{agent_id}'...")
     print("(Requires ANTHROPIC_API_KEY for AI suggestions — falls back to rule-based)\n")
 
@@ -300,6 +302,9 @@ def _cmd_audit(
     from datetime import datetime, timedelta, timezone
     from pathlib import Path
 
+    from sentigent.config import get_config
+
+    agent_id = agent_id or get_config().agent_id
     db_path = Path.home() / ".sentigent" / f"memory_{agent_id}.db"
     if not db_path.exists():
         print(f"No database found for agent '{agent_id}' at {db_path}")
@@ -673,6 +678,7 @@ def _cmd_prove(agent_id: str, days: int, as_json: bool) -> None:
 
     from sentigent.config import get_config
     cfg = get_config()
+    agent_id = agent_id or cfg.agent_id
     org_id = cfg.org_id or os.environ.get("SENTIGENT_ORG_ID", "")
 
     from sentigent.core.prove import ProofEngine
@@ -864,8 +870,10 @@ def _cmd_prompt_health(agent_id: str, days: int, as_json: bool) -> None:
     """Analyze prompt quality patterns and suggest improvements."""
     import json as _json
 
+    from sentigent.config import get_config
     from sentigent.core.prompt_observer import PromptObserver
 
+    agent_id = agent_id or get_config().agent_id
     observer = PromptObserver(agent_id=agent_id)
     report = observer.analyze(lookback_days=days)
 

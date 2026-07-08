@@ -87,7 +87,7 @@ class _FakeStore:
 
 def test_capture_prompt_reaction_writes_event():
     store = _FakeStore()
-    dc = DecisionCapture(store, agent_id="hussain", org_id="hussain")
+    dc = DecisionCapture(store, agent_id="test-agent", org_id="test-org")
     ev = dc.capture_prompt_reaction("no, undo that", prior_trace_id="t-42")
     assert ev is not None
     assert len(store.events) == 1
@@ -98,14 +98,14 @@ def test_capture_prompt_reaction_writes_event():
 
 def test_capture_prompt_reaction_neutral_writes_nothing():
     store = _FakeStore()
-    dc = DecisionCapture(store, agent_id="hussain")
+    dc = DecisionCapture(store, agent_id="test-agent")
     assert dc.capture_prompt_reaction("add a new endpoint") is None
     assert store.events == []
 
 
 def test_capture_bash_revert_writes_event():
     store = _FakeStore()
-    dc = DecisionCapture(store, agent_id="hussain")
+    dc = DecisionCapture(store, agent_id="test-agent")
     ev = dc.capture_bash_revert("git reset --hard HEAD~1", prior_trace_id="t-9")
     assert ev is not None and store.events[0]["kind"] == "revert"
     assert store.events[0]["source"] == "bash_revert"
@@ -114,7 +114,7 @@ def test_capture_bash_revert_writes_event():
 
 def test_capture_bash_revert_non_revert_writes_nothing():
     store = _FakeStore()
-    dc = DecisionCapture(store, agent_id="hussain")
+    dc = DecisionCapture(store, agent_id="test-agent")
     assert dc.capture_bash_revert("git status") is None
     assert store.events == []
 
@@ -123,7 +123,7 @@ def test_capture_is_fail_soft_on_store_error():
     class _Boom:
         def insert_decision_event(self, event):
             raise RuntimeError("db down")
-    dc = DecisionCapture(_Boom(), agent_id="hussain")
+    dc = DecisionCapture(_Boom(), agent_id="test-agent")
     # Must not raise — capturing a signal can never break the session.
     assert dc.capture_prompt_reaction("undo that") is None
 

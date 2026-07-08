@@ -96,7 +96,7 @@ def report(name: str, y_true, y_pred) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--agent", default="hussain")
+    ap.add_argument("--agent", default="default_agent")
     ap.add_argument("--db", default=str(Path.home() / ".sentigent"))
     ap.add_argument("--k", type=int, default=15)
     ap.add_argument("--cap-train", type=int, default=40000)  # kNN fit speed

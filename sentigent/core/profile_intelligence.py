@@ -18,7 +18,7 @@ Architecture:
     Effective profile for evaluate() signal scoring and coach analysis
 
 Usage:
-    pi = ProfileIntelligence(org_id="hussi", agent_id="hussain")
+    pi = ProfileIntelligence(org_id="my_org", agent_id="my_agent")
     effective = pi.get_effective_profile()  # OrgProfileDef or None
     ctx = pi.enrich_context(context)        # adds profile hints to evaluate()
     report = pi.get_profile_report()        # dashboard summary
@@ -273,7 +273,7 @@ class ProfileIntelligence:
     Profiles are cached for 5 minutes.
 
     Usage:
-        pi = ProfileIntelligence(org_id="hussi", agent_id="hussain")
+        pi = ProfileIntelligence(org_id="my_org", agent_id="my_agent")
         profile = pi.get_effective_profile()
         ctx = pi.enrich_context({"tool_name": "Bash", ...})
     """

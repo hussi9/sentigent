@@ -229,8 +229,9 @@ def _resolver_worker(step: dict, budget: float, q) -> None:
         # bind the resolver's model timeout BEFORE importing it (it reads the env at import)
         os.environ["SENTIGENT_RESOLVER_TIMEOUT"] = str(max(1, int(budget)))
         from sentigent.operator.resolver import CloneResolver, APPROVE, SKIP
+        from sentigent.config import get_config
         from sentigent.memory.store import MemoryStore
-        agent = os.environ.get("SENTIGENT_AGENT_ID", "hussain")
+        agent = os.environ.get("SENTIGENT_AGENT_ID") or get_config().agent_id
         org = os.environ.get("SENTIGENT_ORG_ID", agent)
         store = MemoryStore(agent_id=agent, org_id=org)
         profile = {}
@@ -312,8 +313,9 @@ def _open_store():
     """Parent-side MemoryStore for escalation persistence + calibration. Fail-soft:
     returns None if the brain isn't importable so the loop never crashes on it."""
     try:
+        from sentigent.config import get_config
         from sentigent.memory.store import MemoryStore
-        agent = os.environ.get("SENTIGENT_AGENT_ID", "hussain")
+        agent = os.environ.get("SENTIGENT_AGENT_ID") or get_config().agent_id
         org = os.environ.get("SENTIGENT_ORG_ID", agent)
         return MemoryStore(agent_id=agent, org_id=org)
     except Exception:

@@ -934,16 +934,17 @@ def sentigent_coach(
     actionable suggestions for improving your prompts and workflows.
 
     Args:
-        agent_id: Agent to analyze (default: from env or 'hussain')
+        agent_id: Agent to analyze (default: from env or config's default_agent)
         lookback_days: How many days of history to analyze (default: 7)
         format: 'text' for readable report, 'json' for structured data
 
     Returns:
         Coaching report with tool performance, workflow patterns, and AI suggestions.
     """
+    from sentigent.config import get_config
     from sentigent.core.coach import InteractionCoach
 
-    resolved_agent_id = agent_id or os.environ.get("SENTIGENT_AGENT_ID", "hussain")
+    resolved_agent_id = agent_id or os.environ.get("SENTIGENT_AGENT_ID") or get_config().agent_id
 
     try:
         coach = InteractionCoach(agent_id=resolved_agent_id)
@@ -1029,15 +1030,16 @@ def sentigent_prove(
     Use this to answer: "Is Sentigent actually helping us?"
 
     Args:
-        agent_id: Agent to analyze (default: from env)
+        agent_id: Agent to analyze (default: from env or config's default_agent)
         days: Look-back window in days (default: 90)
 
     Returns:
         JSON report with proof metrics + top catches narrative.
     """
+    from sentigent.config import get_config
     from sentigent.core.prove import ProofEngine
 
-    resolved_agent_id = agent_id or os.environ.get("SENTIGENT_AGENT_ID", "hussain")
+    resolved_agent_id = agent_id or os.environ.get("SENTIGENT_AGENT_ID") or get_config().agent_id
     resolved_org_id = os.environ.get("SENTIGENT_ORG_ID", "")
 
     try:

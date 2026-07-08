@@ -173,6 +173,25 @@ New to Sentigent? These issues are great starting points. Each is scoped, has cl
 
 ---
 
+## #GFI-9: Routing reconcile `days` filter doesn't reject negative values
+
+**Files:** `sentigent/dashboard/server.py` (`reconcile_routing` handler, `RoutingReconcileRequest.days`)
+
+**Context:** `POST /api/routing/reconcile` computes `since = time.time() - body.days * 86400` behind a bare `if body.days:` truthy check. That check passes for any negative value, so a request like `{"days": -5}` flips `since` into the *future* and silently reconciles against zero events instead of raising or falling back to "all history". The equivalent MCP tool (`sentigent_reconcile_routes` in `sentigent/mcp_server.py`) already guards this correctly with `since = (time.time() - days * 86400) if days > 0 else 0.0` — the dashboard handler should mirror that guard instead of duplicating the bug.
+
+**Acceptance Criteria:**
+
+- [ ] Update the `days` handling in `reconcile_routing` (server.py) so negative or zero `days` is rejected or ignored (treated as "all history"), matching the MCP tool's `days > 0` guard
+- [ ] Add a test in `tests/test_dashboard_routing_api.py` that posts `{"dry_run": true, "days": -5}` (and `0`) against the existing `fake_logs`/`store_with_two_seeds` fixtures and asserts the events are still found (same result as omitting `days`), proving the pre-fix behavior (0 events found) is gone
+- [ ] `tests/test_dashboard_routing_api.py::test_reconcile_days_filter_can_exclude_all_events` still passes unchanged
+
+**Notes:**
+- Small, localized fix — one conditional in one handler
+- Low impact: localhost-only API, no auth/security implication
+- Good first issue for learning the Console's FastAPI routing layer and its mirrored-MCP-tool convention
+
+---
+
 ## How to Start
 
 1. **Pick an issue** that interests you

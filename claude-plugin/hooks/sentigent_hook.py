@@ -138,10 +138,11 @@ _judge = None
 def _get_judge():
     global _judge
     if _judge is None:
+        from sentigent.config import get_config
         from sentigent.core.engine import Sentigent
         _judge = Sentigent(
             profile=os.environ.get("SENTIGENT_PROFILE", "code_review"),
-            agent_id=os.environ.get("SENTIGENT_AGENT_ID", "hussain"),
+            agent_id=os.environ.get("SENTIGENT_AGENT_ID") or get_config().agent_id,
         )
     return _judge
 

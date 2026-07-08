@@ -18,14 +18,16 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from sentigent.config import get_config  # noqa: E402
 from sentigent.core import clone_readiness  # noqa: E402
 from sentigent.memory.store import MemoryStore  # noqa: E402
 from sentigent.operator.escalation import ASSISTED, COPILOT, AUTOPILOT, TRUSTED  # noqa: E402
 from sentigent.operator.plan import parse_plan, parse_plan_file  # noqa: E402
 from sentigent.operator.preview import preview_plan  # noqa: E402
 
-AGENT = os.environ.get("SENTIGENT_AGENT_ID", "hussain")
-ORG = os.environ.get("SENTIGENT_ORG_ID", "hussain")
+_cfg = get_config()
+AGENT = os.environ.get("SENTIGENT_AGENT_ID", _cfg.agent_id)
+ORG = os.environ.get("SENTIGENT_ORG_ID", _cfg.org_id)
 
 _DEC_ICON = {"continue": "✅", "correct": "✏️ ", "escalate": "🔔"}
 _ASK_ICON = {True: "🔔 ASK YOU", False: "▶  auto"}
