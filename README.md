@@ -23,11 +23,50 @@ The puzzle, mapped:
 
 ---
 
-## The one honest number — FAP (Faithful Autonomous Progress)
+## See it work
 
-Sentigent reports exactly one headline metric, and it's impossible to fabricate — it
-falls straight out of the loop's own persisted state: **how far and how faithfully it
-drives a plan before it needs you.**
+![Sentigent demo — practice enforcement blocking then approving a git commit, recorded for real](docs/assets/demo.gif)
+
+Recorded for real against a prepared demo repo — nothing here is scripted output. `sentigent init`
+runs live; the `git commit` that gets blocked is genuinely blocked by the same PreToolUse hook Claude
+Code calls on every tool call; the failing test genuinely fails; the fix is a real one-line patch; the
+second commit is genuinely allowed once the practice is satisfied. See
+[`docs/demo-README.md`](docs/demo-README.md) to reproduce the recording yourself.
+
+---
+
+## Quickstart
+
+```bash
+pip install sentigent
+sentigent init
+sentigent doctor
+```
+
+- **`sentigent init`** — interactive setup. Creates your local judgment database and 6 default
+  policies; if Claude Code is detected on the machine, also wires the MCP server and
+  PreToolUse/PostToolUse hooks. Works fully in **standalone mode** with no Claude Code install too —
+  the CLI (`doctor` / `score` / `practices` / ...) never depends on it.
+- **`sentigent doctor`** — health check. On a fresh install it reports `HEALTHY (N warnings — normal
+  for new install)`, not a scary red state just because you haven't recorded outcomes yet.
+
+*`pip install sentigent` is the command once the package is live on PyPI. It isn't yet — see
+[Honest limits](#honest-limits) for today's install path (it's one extra line).*
+
+---
+
+## How it works
+
+**1. Loop.** `loop_driver` seeds a durable plan (one step per goal) and drives it forward across
+Claude Code session boundaries — fresh-context laps, one step at a time, resumable after any
+interruption.
+
+**2. Verify.** Each step is checked against your own `test_cmd` before it's marked done — a real
+subprocess run, never a self-reported "done." A failing step gets a bounded self-repair retry, then
+pauses for you instead of looping forever.
+
+**3. FAP receipt.** The loop's own persisted state produces one honest number — how far, and how
+faithfully (verified, zero human help), it drove the plan before it needed you:
 
 ```text
 SENTIGENT LOOP RECEIPT — Faithful Autonomous Progress across runs
@@ -41,34 +80,100 @@ SENTIGENT LOOP RECEIPT — Faithful Autonomous Progress across runs
 
 - **Distance** = steps done ÷ total · **Fidelity** = verified ÷ done · **Autonomy** = self-resolved ÷ blockers faced
 - **FAP** = verified-with-zero-help ÷ total · **Faithful streak** = longest hands-off verified run
-- **FAP over time** = is the loop getting smarter? (compounding ↑ / flat / regressing — honest about insufficient data)
+- Numbers come straight from the loop's own state — never a fabricated "judgment score."
 
-**Honest status.** Proven: real cross-session resume, per-step verify gates, and real
-`claude -p` runs completing real code — the loop wrote its own test suite (`tests/test_loop_driver.py`,
-FAP 100%, 0 asks, independently re-verified). The frontier we're building: proving FAP
-*compounds* across many runs as the learned push-vs-ask judgment improves. We report only
-numbers the loop actually produced — no fabricated "judgment score."
-
----
-
-## Quickstart
+**4. Practice enforcement** (what the GIF above shows). Alongside the loop, a lighter CLI layer
+holds you to practices you declare:
 
 ```bash
-uv pip install sentigent
+sentigent practices add "Run the tests before committing"
+sentigent practices enforce 1 block   # off | warn | block
+```
 
-# seed a plan (durable across sessions; each step can carry its own done-criteria)
+At the moment a practice's cadence fires — a `git commit` for a `commit`-cadence practice — Sentigent
+checks whether it was satisfied *this session* (deterministic keyword-match against recent tool
+calls, not an LLM judgment call) and, per your enforcement level, lets it through, warns, or blocks.
+This is the mechanism behind the demo: the first commit is blocked because no test command ran yet
+this session; once `pytest` genuinely runs, the identical commit is allowed.
+
+Advanced / scriptable form of the loop, if you'd rather drive it directly than through the CLI:
+
+```bash
 python -m sentigent.operator.loop_driver start --goal "Ship feature X with passing tests"
-
-# drive it — fresh-context laps, closed-loop verify each step (dry-run unless --execute)
 python -m sentigent.operator.loop_driver drive <loop_id> --execute
-
-# the scoreboard
 python -m sentigent.operator.loop_driver receipt
 ```
 
-Also exposed over MCP (`loop_start` / `loop_drive` / `loop_resume` / `loop_status` /
-`loop_receipt`) so the loop is callable from inside Claude Code. Local-first: your plans,
-decisions, and brain stay on your machine.
+Also exposed over MCP (`loop_start` / `loop_drive` / `loop_resume` / `loop_status` / `loop_receipt`,
+plus `sentigent_evaluate` / `sentigent_practices` / `sentigent_score` / ...) so the whole layer is
+callable from inside Claude Code. Local-first throughout: your plans, decisions, and brain stay on
+your machine unless you opt into Layer 2/3 sync.
+
+---
+
+## Proof
+
+**+24 points, real SWE-bench Verified subset, N=17.** Same base model, same 17 real GitHub-issue
+tasks (`psf/requests`, `pallets/flask`, `pytest-dev/pytest`, `pylint-dev/pylint`, `pydata/xarray`),
+real repo clones, real Docker containers, real `FAIL_TO_PASS` scoring, `claude -p` on the Claude
+subscription ($0 metered):
+
+| Arm | Resolved | Repaired |
+|---|---|---|
+| A0 — one-shot, no repair | 9/17 (53%) | 0 |
+| A2 — verify + bounded repair loop | 13/17 (**76%**) | 3 |
+| **Δ (A2 − A0)** | **+24 pts** | — |
+
+This is the **loop's** number, not the judge's — A2 is a generic verify-then-bounded-repair mechanism
+with no Sentigent judgment wired in at all. It answers "does closed-loop verification + repair help,"
+which is the mechanism Sentigent is built around. N=17, no significance test run — directional
+evidence, not a powered study, and stated as such.
+
+Full method, raw numbers, and the separate (negative) judge-gating result:
+[`docs/EVALUATION.md`](docs/EVALUATION.md). Reproduce the judge-gating ablation referenced in Honest
+limits yourself:
+
+```bash
+python -m sentigent.eval.ablation.toy_batch --n 50 --seed 42
+```
+
+---
+
+## Honest limits
+
+- **Not on PyPI yet.** Today, install from the built wheel or from source:
+  ```bash
+  git clone https://github.com/hussi9/sentigent.git && cd sentigent
+  python -m pip install -e .
+  ```
+  `pip install sentigent` will work once the package is published.
+- **Judge-gating a repair decision currently subtracts value.** In our own controlled toy-harness
+  ablation (N=50, a live Sentigent judge, `docs/EVALUATION.md` Table 2), gating each repair lap on
+  the judge scored **48%** resolved vs **68%** for unconditional bounded repair — a **−20 pt**
+  regression; the judge authorized only 1 of 27 possible repairs. Stated plainly: today the judge's
+  demonstrated value is escalation and practice enforcement (see above), not deciding whether a
+  failing patch deserves another attempt. That may be a profile/context mismatch (the `code_review`
+  profile's signals aren't built for "is this worth a repair") rather than proof judgment can't help
+  here — but on the wiring that exists today, it measurably doesn't, and we're not asserting it's
+  fixed.
+- **The +24 pt headline is N=17** — directional, not a statistically powered result.
+- **FAP-over-time (compounding) is not yet proven.** Proven: single-run FAP and real cross-session
+  resume. Not yet proven: that FAP improves across many runs as the learned push-vs-ask judgment
+  gets better.
+- **Practice enforcement is deterministic keyword-matching**, not an LLM judgment call — it knows a
+  test command *ran* this session, not whether it passed. (The demo repo's test genuinely fails then
+  genuinely passes — the gate itself doesn't check that; you should still make tests fail the build.)
+- MCP tool example outputs later in this README (`sentigent_score()` → `{"judgment_score": 0.94, ...}`
+  etc.) are illustrative shapes of the response format, not a captured real session — treat the
+  numbers as placeholders, not a claim.
+
+---
+
+## Links
+
+- [sentigent.xyz](https://sentigent.xyz) — site
+- [`docs/`](docs/) — `EVALUATION.md`, `LOOP.md`, `DECISIONS.md`, `PROOF.md`, `LOOP-ENGINEERING.md`, and more
+- [GitHub Issues](https://github.com/hussi9/sentigent/issues)
 
 ---
 
@@ -197,25 +302,16 @@ not just present. Every item below is in the codebase with regression tests:
   human** instead of letting barely-confident calls compound into drift.
 - **Flight summary** — a clean end-of-run panel: this flight + all-time vital signs + a decision-DNA bar,
   read live from the brain. Real numbers only.
+- **Practice enforcement** — declared practices (`sentigent practices`) are now actually gated at their
+  cadence, not just counted. See "See it work" above.
 
 ---
 
-## Quick Start (Claude Code / Any AI Coding Agent)
+## MCP tools reference (illustrative)
 
-```bash
-pip install sentigent
-sentigent init
-```
-
-This:
-1. Connects to your Claude Code config
-2. Installs hook files that intercept every Bash/Write/Edit call
-3. Starts the MCP server with 18 judgment tools
-
-From that moment, every destructive command, deploy, or sensitive file write
-is evaluated against learned experience.
-
-### MCP Tools Available
+Once `sentigent init` has wired the MCP server into Claude Code, these tools are available to the
+agent. The example calls and return shapes below illustrate the *format* of each tool's response —
+they are not a captured real session (see Honest limits); run them yourself to get your own numbers.
 
 ```bash
 # The core loop
@@ -230,11 +326,15 @@ sentigent_score()
 # → {"judgment_score": 0.94, "total_rated": 847, "correct": 796, "brier": 0.087}
 
 sentigent_patterns()
-# → Lists 23 learned procedural rules with success rates
+# → Lists learned procedural rules with success rates
+
+# Practice enforcement (what the demo GIF shows)
+sentigent_practices(action="add", text="Run tests before committing", cadence="commit")
+sentigent_practices(action="enforce", practice_id=1, level="block")
 
 # Org governance
 sentigent_policy(action="list")
-# → 5 active policies: no_force_push (critical), review_before_deploy (high), ...
+# → Active policies: no_force_push (critical), review_before_deploy (high), ...
 
 sentigent_profile(action="get")
 # → Active profile: security_engineer (value_weights: security=1.0, compliance=0.95)
@@ -243,7 +343,7 @@ sentigent_profile(action="get")
 sentigent_prove(days=90)
 # → Full proof report with top catches, Brier score, accuracy trajectory
 
-# Collective intelligence (Layer 3)
+# Collective intelligence (Layer 3, opt-in)
 sentigent_collective(action="status")
 # → Pool: 0 patterns (opt-in to contribute your anonymized patterns)
 ```
@@ -264,14 +364,14 @@ Layer 2: ORGANIZATIONAL WISDOM
    human escalation. Your PM profile weights delivery_speed=0.8."
 
 Layer 1: AGENT INTUITION
-  This specific agent's 847 decisions and what it learned.
+  This specific agent's decisions and what it learned.
   "This agent has learned that 'cleanup' tasks touching node_modules
    are safe to proceed; 'cleanup' tasks near .env files need slow_down."
 ```
 
-All three layers are live and running. Layer 1 stores to local SQLite (<50ms
-latency, zero network dependency). Layer 2 syncs to Supabase for org-wide
-sharing. Layer 3 accepts opt-in anonymized contributions.
+Layer 1 stores to local SQLite (<50ms latency, zero network dependency) and is live from
+`sentigent init` onward. Layer 2 (Supabase org sync) and Layer 3 (opt-in anonymized cross-org
+patterns) are both opt-in — declined by default at `sentigent init`.
 
 ---
 
@@ -284,7 +384,7 @@ For teams deploying multiple agents, Sentigent provides org-level controls:
 ```bash
 sentigent policy list
 
-Active org policies (hussi):
+Active org policies (your_org):
   no_force_push        [critical] Bash: push --force|push -f         → block
   review_before_deploy [high]     Bash: deploy|publish|kubectl apply  → escalate
   protect_env_files    [high]     Write: \.env$|credentials|\.pem$    → slow_down
@@ -305,8 +405,7 @@ sentigent profile assign --name security_engineer
 # - Gets context injected: "flag secrets, auth issues, injection risks"
 ```
 
-Available built-in profiles: `product_manager`, `security_engineer`,
-`data_analyst`, `devops_engineer`.
+Available built-in profiles: `code_review`, `customer_support`, `financial_ops`, `default`.
 
 ### Row-Level Security
 
@@ -325,7 +424,7 @@ sentigent web
 
 Live tabs:
 - **Overview** — decisions, outcomes, signal distributions
-- **Patterns** — 23 learned rules with confidence and sample sizes
+- **Patterns** — learned rules with confidence and sample sizes
 - **Policies** — org-wide enforcement rules and violation log
 - **Proof of Value** — Brier score trajectory and top catches
 - **Profile** — active role, value weights, AI context hint
@@ -334,32 +433,7 @@ Live tabs:
 
 ---
 
-## Installation
-
-```bash
-pip install sentigent
-```
-
-### Claude Code Integration
-
-```bash
-sentigent init
-```
-
-Adds to your `~/.claude/settings.json`:
-```json
-{
-  "hooks": {
-    "PreToolUse": [{"matcher": "Bash|Write|Edit", "hooks": [{"type": "command", "command": "..."}]}],
-    "PostToolUse": [{"matcher": "Bash|Write|Edit", "hooks": [{"type": "command", "command": "..."}]}]
-  },
-  "mcpServers": {
-    "sentigent": {"command": "sentigent-mcp"}
-  }
-}
-```
-
-### Any Python Framework
+## Any Python framework (not just Claude Code)
 
 ```python
 from sentigent import Sentigent
@@ -379,9 +453,22 @@ decision = judge.evaluate(
 judge.record_outcome(decision.trace_id, outcome="correct")
 ```
 
+Adds to your `~/.claude/settings.json` when Claude Code is detected:
+```json
+{
+  "hooks": {
+    "PreToolUse": [{"matcher": "Bash|Write|Edit", "hooks": [{"type": "command", "command": "..."}]}],
+    "PostToolUse": [{"matcher": "Bash|Write|Edit", "hooks": [{"type": "command", "command": "..."}]}]
+  },
+  "mcpServers": {
+    "sentigent": {"command": "sentigent-mcp"}
+  }
+}
+```
+
 ---
 
-## Architecture
+## Architecture — Layer 1/2 data flow
 
 ```
 YOUR ENVIRONMENT                              SUPABASE (your account)
@@ -410,7 +497,7 @@ YOUR ENVIRONMENT                              SUPABASE (your account)
 
 - [x] Core engine (5 signals, decision gate, Brier calibration)
 - [x] Layer 1: Per-agent episodic + procedural learning (SQLite)
-- [x] Claude Code integration (MCP + hooks, 18 tools)
+- [x] Claude Code integration (MCP + hooks)
 - [x] Layer 2: Org-wide policies + profiles (Supabase)
 - [x] Layer 2: Row-level security (multi-tenant isolation)
 - [x] Proof of value report (prove command, top catches, Brier score)
@@ -421,11 +508,13 @@ YOUR ENVIRONMENT                              SUPABASE (your account)
 - [x] M2: Skill routing at session start (PreToolUse hook)
 - [x] M3: Autonomous setup agent (`sentigent_setup_agent`, Apply+Undo)
 - [x] M4: Org-wide setup sharing (`org_setup_patterns` Supabase table)
+- [x] Practice enforcement gate (declared practices actually gated at cadence, not just counted)
+- [ ] Judge-gated repair that beats unconditional repair (currently −20 pts, see Honest limits)
 - [ ] LangGraph deep integration
 - [ ] OpenAI Agents SDK integration
 - [ ] Fine-tuned signal model (neural heuristics from episodic data)
 - [ ] Automated policy suggestions from violation patterns
-- [ ] Benchmark: judgment score vs. baseline on shared eval set
+- [ ] Real (non-toy) SWE-bench A3 run — judge plumbed into `real_pilot.py`
 
 ---
 

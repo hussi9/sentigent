@@ -516,10 +516,22 @@ def _cmd_practices(
     Mirrors the sentigent_practices MCP tool: list / add / enforce / toggle.
     Enforcement level (off|warn|block) is the dial for how hard the practice
     gate holds you to each practice at its cadence.
+
+    Resolves agent/org the same way every other CLI command does (explicit
+    flag, else the config default) so a fresh ``sentigent practices add``
+    lands in the *same* database ``init``/``doctor``/``score`` already point
+    at — previously this hardcoded ``agent_id=""``/``org_id="cli"``, silently
+    writing to a sibling ``memory_.db`` that nothing else ever read.
     """
+    import os
+
+    from sentigent.config import get_config
     from sentigent.memory.store import MemoryStore
 
-    store = MemoryStore(agent_id=agent_id, org_id="cli", db_path=db_path)
+    cfg = get_config()
+    aid = agent_id or cfg.agent_id
+    org_id = os.environ.get("SENTIGENT_ORG_ID") or cfg.org_id
+    store = MemoryStore(agent_id=aid, org_id=org_id, db_path=db_path)
 
     if action == "add":
         text = " ".join(rest).strip()
