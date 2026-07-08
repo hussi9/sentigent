@@ -103,6 +103,14 @@ exclude = [
   "**/__pycache__",
 ]
 
+# The Claude Code hook script (claude-plugin/hooks/sentigent_hook.py) lives
+# outside the `sentigent` package tree, but sentigent.onboarding._find_hook_script()
+# looks for it as a sibling of the installed package. Without force-including it,
+# a plain `pip install sentigent` ships no hook script at all, so `sentigent init`
+# silently wires up Claude Code hooks that point at a file that doesn't exist.
+[tool.hatch.build.targets.wheel.force-include]
+"claude-plugin" = "claude-plugin"
+
 [tool.hatch.build.targets.sdist]
 exclude = [
   "sentigent/dashboard/frontend/node_modules",

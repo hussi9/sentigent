@@ -152,103 +152,119 @@ def cmd_init() -> None:
     org_id = _prompt("Org name", "default_org")
     print(f"  Available profiles: {', '.join(available_profiles)}, default")
     profile = _prompt("Profile", "code_review")
-    agent_id = _prompt("Agent ID", "claude_global")
+    agent_id = _prompt("Agent ID", "default_agent")
 
     print()
     print("  Detecting environment...")
 
-    # Step 2: Detect Claude Code
-    if not CLAUDE_SETTINGS_PATH.exists():
-        _print_warn("Claude Code settings not found at ~/.claude/settings.json")
-        _print_warn("Creating new settings file...")
-        _save_settings({"mcpServers": {}, "hooks": {}})
+    # Step 2: Detect Claude Code. A pre-existing ~/.claude dir/settings.json or a
+    # `claude` binary on PATH are both genuine signals; the absence of both means
+    # this machine has no Claude Code to integrate with, so we degrade to
+    # standalone mode instead of silently claiming "detected" for a directory we
+    # just created ourselves.
+    claude_dir_existed = CLAUDE_SETTINGS_PATH.parent.exists()
+    claude_settings_existed = CLAUDE_SETTINGS_PATH.exists()
+    claude_binary = shutil.which("claude")
+    claude_code_present = claude_dir_existed or claude_binary is not None
 
-    _print_ok("Claude Code detected (~/.claude/settings.json)")
+    if claude_code_present:
+        if not claude_settings_existed:
+            _print_warn("~/.claude/settings.json not found — creating it")
+            _save_settings({"mcpServers": {}, "hooks": {}})
+        _print_ok("Claude Code detected" + ("" if claude_dir_existed else " (claude CLI on PATH)"))
+    else:
+        _print_warn("Claude Code not detected on this machine")
+        print("  Running in standalone mode: the judgment database, policies, and")
+        print("  CLI commands (doctor/score/practices/...) still work fully.")
+        print("  MCP server + hook integration is skipped since there's no Claude")
+        print("  Code install to wire into — install it and re-run `sentigent init`")
+        print("  to enable in-editor hooks later.")
 
     print()
     print("  Configuring...")
 
-    hook_script = _find_hook_script()
-
     # Detect the Python interpreter (uses venv python if active)
     python_path = sys.executable
 
-    # Step 3: Patch MCP server
-    settings = _load_settings()
+    if claude_code_present:
+        hook_script = _find_hook_script()
 
-    if "mcpServers" not in settings:
-        settings["mcpServers"] = {}
+        # Step 3: Patch MCP server
+        settings = _load_settings()
 
-    settings["mcpServers"]["sentigent"] = {
-        "command": python_path,
-        "args": ["-m", "sentigent.mcp_server"],
-        "env": {
-            "SENTIGENT_PROFILE": profile,
-            "SENTIGENT_AGENT_ID": agent_id,
-            "SENTIGENT_ORG_ID": org_id,
-        },
-    }
-    _print_ok("MCP server added to settings.json")
+        if "mcpServers" not in settings:
+            settings["mcpServers"] = {}
 
-    # Step 4: Patch hooks
-    if "hooks" not in settings:
-        settings["hooks"] = {}
+        settings["mcpServers"]["sentigent"] = {
+            "command": python_path,
+            "args": ["-m", "sentigent.mcp_server"],
+            "env": {
+                "SENTIGENT_PROFILE": profile,
+                "SENTIGENT_AGENT_ID": agent_id,
+                "SENTIGENT_ORG_ID": org_id,
+            },
+        }
+        _print_ok("MCP server added to settings.json")
 
-    # PreToolUse hook
-    pre_hooks = settings["hooks"].get("PreToolUse", [])
-    pre_cmd = f"cat | {python_path} {hook_script} pre 2>/dev/null || echo '{{\"decision\": \"approve\"}}'"
+        # Step 4: Patch hooks
+        if "hooks" not in settings:
+            settings["hooks"] = {}
 
-    # Check if already present
-    has_sentigent_pre = any(
-        any(h.get("command", "").endswith("sentigent_hook.py pre 2>/dev/null || echo '{\"decision\": \"approve\"}'")
-            for h in entry.get("hooks", []))
-        for entry in pre_hooks
-        if isinstance(entry, dict)
-    )
+        # PreToolUse hook
+        pre_hooks = settings["hooks"].get("PreToolUse", [])
+        pre_cmd = f"cat | {python_path} {hook_script} pre 2>/dev/null || echo '{{\"decision\": \"approve\"}}'"
 
-    if not has_sentigent_pre:
-        pre_hooks.append({
-            "matcher": "Bash|Write|Edit",
-            "hooks": [{"type": "command", "command": pre_cmd}],
-        })
-        settings["hooks"]["PreToolUse"] = pre_hooks
-    _print_ok("PreToolUse hook added (safety net)")
+        # Check if already present
+        has_sentigent_pre = any(
+            any(h.get("command", "").endswith("sentigent_hook.py pre 2>/dev/null || echo '{\"decision\": \"approve\"}'")
+                for h in entry.get("hooks", []))
+            for entry in pre_hooks
+            if isinstance(entry, dict)
+        )
 
-    # PostToolUse hook
-    post_hooks = settings["hooks"].get("PostToolUse", [])
-    post_cmd = f"cat | {python_path} {hook_script} post 2>/dev/null || echo '{{\"decision\": \"approve\"}}'"
+        if not has_sentigent_pre:
+            pre_hooks.append({
+                "matcher": "Bash|Write|Edit",
+                "hooks": [{"type": "command", "command": pre_cmd}],
+            })
+            settings["hooks"]["PreToolUse"] = pre_hooks
+        _print_ok("PreToolUse hook added (safety net)")
 
-    has_sentigent_post = any(
-        any(h.get("command", "").endswith("sentigent_hook.py post 2>/dev/null || echo '{\"decision\": \"approve\"}'")
-            for h in entry.get("hooks", []))
-        for entry in post_hooks
-        if isinstance(entry, dict)
-    )
+        # PostToolUse hook
+        post_hooks = settings["hooks"].get("PostToolUse", [])
+        post_cmd = f"cat | {python_path} {hook_script} post 2>/dev/null || echo '{{\"decision\": \"approve\"}}'"
 
-    if not has_sentigent_post:
-        post_hooks.append({
-            "matcher": "Bash|Write|Edit",
-            "hooks": [{"type": "command", "command": post_cmd}],
-        })
-        settings["hooks"]["PostToolUse"] = post_hooks
-    _print_ok("PostToolUse hook added (outcome recording)")
+        has_sentigent_post = any(
+            any(h.get("command", "").endswith("sentigent_hook.py post 2>/dev/null || echo '{\"decision\": \"approve\"}'")
+                for h in entry.get("hooks", []))
+            for entry in post_hooks
+            if isinstance(entry, dict)
+        )
 
-    _save_settings(settings)
+        if not has_sentigent_post:
+            post_hooks.append({
+                "matcher": "Bash|Write|Edit",
+                "hooks": [{"type": "command", "command": post_cmd}],
+            })
+            settings["hooks"]["PostToolUse"] = post_hooks
+        _print_ok("PostToolUse hook added (outcome recording)")
 
-    # Step 5: Patch CLAUDE.md
-    CLAUDE_MD_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _save_settings(settings)
 
-    if CLAUDE_MD_PATH.exists():
-        existing = CLAUDE_MD_PATH.read_text()
-        if SENTIGENT_MARKER in existing:
-            _print_ok("CLAUDE.md already has Sentigent instructions (skipped)")
+        # Step 5: Patch CLAUDE.md
+        CLAUDE_MD_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+        if CLAUDE_MD_PATH.exists():
+            existing = CLAUDE_MD_PATH.read_text()
+            if SENTIGENT_MARKER in existing:
+                _print_ok("CLAUDE.md already has Sentigent instructions (skipped)")
+            else:
+                with open(CLAUDE_MD_PATH, "a") as f:
+                    f.write(CLAUDE_MD_SECTION)
+                _print_ok("Behavioral instructions added to ~/.claude/CLAUDE.md")
         else:
-            with open(CLAUDE_MD_PATH, "a") as f:
-                f.write(CLAUDE_MD_SECTION)
-            _print_ok("Behavioral instructions added to ~/.claude/CLAUDE.md")
-    else:
-        CLAUDE_MD_PATH.write_text(CLAUDE_MD_SECTION.lstrip())
-        _print_ok("Created ~/.claude/CLAUDE.md with Sentigent instructions")
+            CLAUDE_MD_PATH.write_text(CLAUDE_MD_SECTION.lstrip())
+            _print_ok("Created ~/.claude/CLAUDE.md with Sentigent instructions")
 
     # Step 6: Initialize DB
     SENTIGENT_DIR.mkdir(parents=True, exist_ok=True)
@@ -264,11 +280,20 @@ def cmd_init() -> None:
     _print_ok(f"Policies created: {len(policies)} default rules ({policies_path})")
 
     # Step 7: Copy hook script to ~/.sentigent/ for reliability
-    hook_source = Path(hook_script)
-    hook_dest = SENTIGENT_DIR / "sentigent_hook.py"
-    if hook_source.exists() and not hook_dest.exists():
-        shutil.copy2(hook_source, hook_dest)
-        _print_ok(f"Hook script copied to {hook_dest}")
+    if claude_code_present:
+        hook_source = Path(hook_script)
+        hook_dest = SENTIGENT_DIR / "sentigent_hook.py"
+        if hook_source.exists():
+            if not hook_dest.exists():
+                shutil.copy2(hook_source, hook_dest)
+                _print_ok(f"Hook script copied to {hook_dest}")
+        else:
+            _print_fail(f"Hook script not found at {hook_source}")
+            _print_warn(
+                "PreToolUse/PostToolUse hooks were registered but point at a "
+                "missing file — they will no-op until this is fixed."
+            )
+            _print_warn("Try reinstalling: pip install --force-reinstall sentigent")
 
     # Step 8: Optional Layer 2 (Supabase) setup
     print()
@@ -363,7 +388,11 @@ def cmd_init() -> None:
         _print_warn("AI coach skipped — rule-based fallback will be used. Set ANTHROPIC_API_KEY anytime.")
 
     print()
-    print("  \033[1mDone! Restart Claude Code to activate Sentigent.\033[0m")
+    if claude_code_present:
+        print("  \033[1mDone! Restart Claude Code to activate Sentigent.\033[0m")
+    else:
+        print("  \033[1mDone! Sentigent is set up in standalone mode.\033[0m")
+        print("  Try: sentigent doctor   sentigent score   sentigent practices list")
     print()
 
 
@@ -375,8 +404,24 @@ def cmd_doctor() -> None:
     print("  \033[1mSentigent Health Check\033[0m")
     print()
 
+    # Pre-init short-circuit: ~/.sentigent is the one directory `sentigent init`
+    # always creates. If it's missing, nothing has been set up yet — say so
+    # plainly instead of running the full checklist and reporting a scary list
+    # of "errors" for a state that just means "you haven't run init yet".
+    if not SENTIGENT_DIR.exists():
+        _print_warn("Sentigent has not been initialized yet.")
+        print()
+        print("  Run `sentigent init` first, then re-run `sentigent doctor`.")
+        print()
+        return
+
     warnings = 0
     errors = 0
+
+    # Claude Code is optional — Sentigent works standalone (DB, CLI, policies)
+    # without it. Only treat Claude Code integration as "expected" when there's
+    # actual evidence Claude Code is present on this machine.
+    claude_code_present = CLAUDE_SETTINGS_PATH.parent.exists() or shutil.which("claude") is not None
 
     # 1. Package installed
     try:
@@ -386,13 +431,17 @@ def cmd_doctor() -> None:
         _print_fail("Package not installed")
         errors += 1
 
-    # 2. MCP dependency
+    # 2. MCP dependency (only relevant when integrating with Claude Code)
     try:
         import mcp  # noqa: F401
         _print_ok("MCP dependency: installed")
     except ImportError:
-        _print_fail("MCP dependency: NOT installed (pip install sentigent[mcp])")
-        errors += 1
+        if claude_code_present:
+            _print_fail("MCP dependency: NOT installed (pip install sentigent[mcp])")
+            errors += 1
+        else:
+            _print_warn("MCP dependency: not installed (only needed for Claude Code integration)")
+            warnings += 1
 
     # 3. Config
     from sentigent.config import get_config
@@ -462,9 +511,11 @@ def cmd_doctor() -> None:
         else:
             _print_fail("Claude Code hooks: NOT configured (run sentigent init)")
             errors += 1
+    elif claude_code_present:
+        _print_warn("Claude Code CLI found, but not yet configured (run sentigent init)")
+        warnings += 1
     else:
-        _print_fail("Claude Code: settings.json not found")
-        errors += 1
+        _print_ok("Standalone mode: no Claude Code detected — MCP server + hooks skipped")
 
     # 7. CLAUDE.md
     if CLAUDE_MD_PATH.exists():
@@ -474,17 +525,21 @@ def cmd_doctor() -> None:
         else:
             _print_warn("CLAUDE.md: exists but missing Sentigent instructions (run sentigent init)")
             warnings += 1
-    else:
+    elif claude_code_present:
         _print_warn("CLAUDE.md: not found (run sentigent init)")
         warnings += 1
+    else:
+        _print_ok("CLAUDE.md: not applicable in standalone mode")
 
-    # 8. Hook script accessible
+    # 8. Hook script accessible (only relevant for Claude Code integration)
     hook_script = _find_hook_script()
     if Path(hook_script).exists():
         _print_ok(f"Hook script: {hook_script}")
-    else:
+    elif claude_code_present:
         _print_fail(f"Hook script: NOT found at {hook_script}")
         errors += 1
+    else:
+        _print_ok("Hook script: not applicable in standalone mode")
 
     # 9. Policies
     policies_path = SENTIGENT_DIR / "policies.json"

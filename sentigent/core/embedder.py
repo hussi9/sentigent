@@ -24,6 +24,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+import sys
 import threading
 from typing import TYPE_CHECKING
 
@@ -105,6 +106,16 @@ def get_embedder() -> "Embedder | None":
             return _embedder_instance  # type: ignore[return-value]
         try:
             from sentence_transformers import SentenceTransformer  # type: ignore[import]
+            # First call on a machine that hasn't cached this model yet triggers a
+            # ~90MB one-time download from Hugging Face Hub. Print to stderr (never
+            # stdout — this path can run inside an MCP stdio server) so the caller
+            # sees *something* instead of a silent multi-second/minute stall.
+            print(
+                f"[sentigent] Loading semantic embedding model ({Embedder.MODEL_NAME}) "
+                "— first run may download ~90MB, one-time...",
+                file=sys.stderr,
+                flush=True,
+            )
             model = SentenceTransformer(Embedder.MODEL_NAME)
             _embedder_instance = Embedder(model)
             logger.info(
@@ -114,10 +125,15 @@ def get_embedder() -> "Embedder | None":
         except ImportError:
             logger.debug(
                 "sentence-transformers not installed — semantic retrieval unavailable. "
-                "Install with: pip install sentigent[semantic]"
+                "Install with: pip install sentigent[embeddings]"
             )
             _embedder_instance = None
         except Exception as exc:
+            print(
+                f"[sentigent] Embedding model unavailable ({exc}) — falling back to TF-IDF.",
+                file=sys.stderr,
+                flush=True,
+            )
             logger.warning("embedder init failed: %s — falling back to TF-IDF", exc)
             _embedder_instance = None
 
