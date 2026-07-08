@@ -719,6 +719,43 @@ async def toggle_practice(practice_id: int) -> JSONResponse:
         return JSONResponse({"error": str(exc)}, status_code=500)
 
 
+# ── Escalations (operator loop blockers paging a human) ─────────
+
+_LOOP_ANSWER_DECISIONS = {"approve", "skip", "takeover"}
+
+
+@app.get("/api/escalations")
+async def get_escalations() -> JSONResponse:
+    try:
+        from sentigent.operator import loop_driver as L
+        return JSONResponse({"pending": L.list_pending_escalations()})
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
+class EscalationAnswer(BaseModel):
+    decision: str
+
+
+@app.post("/api/escalations/{loop_id}/answer")
+async def answer_escalation(loop_id: str, body: EscalationAnswer) -> JSONResponse:
+    decision = body.decision.strip()
+    if decision not in _LOOP_ANSWER_DECISIONS:
+        return JSONResponse(
+            {"error": f"unknown decision '{decision}' — must be one of "
+                      f"{sorted(_LOOP_ANSWER_DECISIONS)}"},
+            status_code=400,
+        )
+    try:
+        from sentigent.operator import loop_driver as L
+        result = L.answer(loop_id, decision)
+    except (SystemExit, ValueError) as exc:
+        return JSONResponse({"error": str(exc)}, status_code=404)
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+    return JSONResponse(result)
+
+
 # ── Practice Policy Templates ──────────────────────────────────
 
 PRACTICE_TEMPLATES = [

@@ -373,6 +373,38 @@ def answer(loop_id: str, decision: str) -> dict:
             "status": state["status"]}
 
 
+def list_pending_escalations(loop_dir: Path | str | None = None) -> list[dict]:
+    """One item per currently-open escalation across every loop on disk — the pending
+    queue behind the dashboard's /api/escalations. A loop shows up here iff it's
+    `blocked` on a step that paged a human (open_escalation_step set); the moment
+    `answer()` reopens the step, it disappears. Read straight from each loop's
+    persisted state — same source of truth as `load()`/`status_line()`, no separate
+    store. Item shape: {loop_id, step, title, blocker, asked_at}."""
+    d = Path(loop_dir or LOOP_DIR)
+    out: list[dict] = []
+    if not d.exists():
+        return out
+    for f in sorted(d.glob("loop_*.json")):
+        try:
+            state = json.loads(f.read_text())
+        except Exception:
+            continue
+        step_i = state.get("open_escalation_step")
+        if state.get("status") != "blocked" or step_i is None:
+            continue
+        step = next((s for s in state.get("steps", []) if s["i"] == step_i), None)
+        if step is None:
+            continue
+        out.append({
+            "loop_id": state["loop_id"],
+            "step": step["i"],
+            "title": step.get("text", "")[:120],
+            "blocker": step.get("last_error") or step.get("clone_note") or "blocked",
+            "asked_at": step.get("ended_at"),
+        })
+    return out
+
+
 def step_once(loop_id: str, execute: bool = False, timeout: int = 1800) -> dict:
     """Execute the next pending step, verify, persist. Failing steps retry (pressure
     cooker) until max_attempts → then halt as `blocked` (no-progress) and count an ask."""
