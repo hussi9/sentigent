@@ -444,7 +444,7 @@ python -m sentigent.dashboard.server
 The full Console — Overview, Patterns, Policies, Proof of Value, Profile,
 Prompt Health, Practices, Escalations, Routing, and Insights — works fully in
 local mode with no account or Supabase connection required. Requires the
-`[mcp]` extra (`pip install "sentigent[mcp]"`) for its FastAPI backend.
+`[dashboard]` extra (`pip install "sentigent[dashboard]"`) for its FastAPI backend.
 
 ---
 
