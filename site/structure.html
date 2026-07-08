@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sentigent — project structure (where everything lives)</title>
+<meta name="description" content="The canonical Sentigent repo layout: a clean file-tree with a one-line purpose for every area. The loop reads project-map.toml so new files land in the right place — this is the editable default." />
+<meta name="theme-color" content="#0E0E0E" />
+<link rel="canonical" href="https://sentigent.xyz/structure" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2300cc5f'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* design tokens, copied from diagrams.html (Astro Starlight) */
+  :root{
+    --bg:#0E0E0E; --panel:#181818; --panel2:#141414; --border:#2a2a2a;
+    --text:#ffffff; --muted:#9aa3ad; --faint:#6b7178;
+    --accent:#00cc5f; --accent2:#00FF77; --blue:#5b8def; --green:#00cc5f; --amber:#ffcf6b;
+    --radius:14px; --max:1100px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;letter-spacing:-.011em}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  .grad{background:linear-gradient(120deg,var(--accent2),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(14,14,14,.78);border-bottom:1px solid var(--border)}
+  .navin{display:flex;align-items:center;justify-content:space-between;height:62px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:650}
+  .dot{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));box-shadow:0 0 14px rgba(0,204,95,.6)}
+  .navlinks{display:flex;gap:24px;font-size:14px;color:var(--muted)}
+  .navlinks a:hover{color:var(--text)}
+
+  header.hero{text-align:center;padding:64px 0 30px}
+  header .eyebrow{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent2);margin-bottom:14px}
+  header h1{font-size:clamp(30px,5vw,46px);letter-spacing:-.03em;font-weight:760;line-height:1.08}
+  header p{color:var(--muted);max-width:660px;margin:16px auto 0;font-size:18px}
+
+  .legend{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin:26px 0 10px;font-size:13px;color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:7px}
+  .swatch{width:11px;height:11px;border-radius:3px}
+
+  .tag{font-size:10.5px;font-family:ui-monospace,monospace;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .tag.live{background:rgba(52,211,153,.13);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+  .tag.build{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.3)}
+
+  /* tree page shell */
+  figure{margin:40px 0;border:1px solid var(--border);border-radius:18px;background:linear-gradient(180deg,#141414,#0E0E0E);padding:8px 8px 8px;overflow:hidden}
+  .tree-head{display:flex;align-items:center;gap:10px;padding:22px 22px 6px}
+  .tree-head .root{font-family:ui-monospace,monospace;font-size:14px;color:var(--accent2);font-weight:600}
+  .tree-head .sub{font-size:13px;color:var(--faint)}
+
+  /* each area = a grid row: mono tree on the left, purpose/use on the right */
+  .area{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:0;border-top:1px solid var(--border)}
+  .area:first-of-type{border-top:1px solid var(--border)}
+  .area .left{padding:18px 22px;background:#101010;border-right:1px solid var(--border);display:flex;align-items:center}
+  .area .right{padding:18px 22px;display:flex;flex-direction:column;gap:6px}
+  .area:hover{background:rgba(0,204,95,.02)}
+
+  .glyph{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:13.5px;line-height:1.5;color:var(--muted);white-space:pre}
+  .glyph .br{color:var(--faint)}
+  .glyph .dir{color:var(--accent2);font-weight:600}
+  .glyph .file{color:var(--text)}
+  .glyph .cmt{color:var(--faint)}
+
+  .area .rh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .area .rh .name{font-family:ui-monospace,monospace;font-size:12px;color:var(--accent2)}
+  .area .purpose{font-size:15px;color:var(--text);font-weight:600;letter-spacing:-.01em;line-height:1.4}
+  .area .use{font-size:13px;color:var(--muted);line-height:1.55}
+  .area .use code, .area .purpose code{font-family:ui-monospace,monospace;font-size:.92em;color:var(--accent2);background:rgba(0,204,95,.07);padding:1px 5px;border-radius:5px}
+
+  /* root files strip */
+  .rootfiles{margin:40px 0;border:1px dashed var(--border);border-radius:14px;padding:22px;background:#121212}
+  .rootfiles h3{font-size:13px;font-family:ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:16px}
+  .rf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .rf{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--border);border-radius:11px;padding:13px 15px;background:#161616}
+  .rf .fn{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--accent2);flex:0 0 auto;min-width:140px;font-weight:600}
+  .rf .nt{font-size:13px;color:var(--muted);line-height:1.5}
+  @media(max-width:820px){.rf-grid{grid-template-columns:1fr}}
+
+  /* footer band */
+  .editband{margin:40px 0;border:1px solid rgba(0,204,95,.3);border-radius:16px;padding:26px 24px;background:linear-gradient(180deg,#10201a,#121212);text-align:center}
+  .editband .k{font-size:17px;font-weight:680;letter-spacing:-.01em}
+  .editband .s{font-size:14px;color:var(--muted);margin-top:8px;max-width:680px;margin-left:auto;margin-right:auto}
+  .editband code{font-family:ui-monospace,monospace;color:var(--accent2);background:rgba(0,204,95,.08);padding:2px 6px;border-radius:6px;font-size:.92em}
+  .editband .lnk{display:inline-block;margin-top:16px;font-family:ui-monospace,monospace;font-size:13px;color:var(--accent2);border:1px solid rgba(0,204,95,.4);border-radius:9px;padding:9px 16px}
+  .editband .lnk:hover{background:rgba(0,204,95,.1)}
+
+  footer{border-top:1px solid var(--border);padding:40px 0;text-align:center;color:var(--faint);font-size:13px;margin-top:40px}
+  footer a:hover{color:var(--text)}
+
+  /* responsive: stack columns under ~820px */
+  @media(max-width:820px){
+    .area{grid-template-columns:1fr}
+    .area .left{border-right:none;border-bottom:1px solid var(--border)}
+  }
+</style>
+</head>
+<body>
+
+<nav><div class="wrap navin">
+  <a class="brand" href="/"><span class="dot"></span> Sentigent</a>
+  <div class="navlinks">
+    <a href="/#how">How it works</a><a href="/diagrams">Diagrams</a><a href="/structure">Structure</a><a href="/#pricing">Pricing</a><a href="https://github.com/hussi9/sentigent">GitHub</a>
+  </div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <p class="eyebrow">Developer · project map</p>
+  <h1>Know <span class="grad">what's where</span></h1>
+  <p>The loop reads <span class="mono">project-map.toml</span> so new files land in the right place instead of being guessed — this is the editable default for a project.</p>
+  <div class="legend">
+    <span class="pill"><span class="swatch" style="background:var(--green)"></span> live today</span>
+    <span class="pill"><span class="swatch" style="background:var(--amber)"></span> building</span>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+  <figure>
+    <div class="tree-head">
+      <span class="root">sentigent/</span>
+      <span class="sub">— the repo, one row per area · tree on the left, what it's for on the right</span>
+    </div>
+
+    <!-- sentigent/operator/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">├──</span> <span class="dir">sentigent/</span>
+<span class="br">│   └──</span> <span class="dir">operator/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">sentigent/operator/</span><span class="tag live">live</span></div>
+        <div class="purpose">The loop engine + delivery harness — the dark-factory core.</div>
+        <div class="use">Cross-session loop driver (<code>loop_driver.py</code>: start/drive/resume/contract/receipt), push-vs-ask clone (<code>resolver.py</code>), policy wall (<code>guardrails.py</code>), DoD/STOP (<code>goal_dod.py</code>), PR review loop (<code>review_loop.py</code>), runtime evidence (<code>runtime_verify.py</code>). New loop/harness modules go HERE.</div>
+      </div>
+    </div>
+
+    <!-- sentigent/core/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">│   ├──</span> <span class="dir">core/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">sentigent/core/</span><span class="tag live">live</span></div>
+        <div class="purpose">The judgment engine — evaluates an action before it runs.</div>
+        <div class="use">Policy engine, briefing, scoring. The brain behind <code>sentigent_evaluate</code>.</div>
+      </div>
+    </div>
+
+    <!-- sentigent/memory/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">│   ├──</span> <span class="dir">memory/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">sentigent/memory/</span><span class="tag live">live</span></div>
+        <div class="purpose">Local, on-device memory (SQLite): episodes, rules, precedents, calibration.</div>
+        <div class="use"><code>store.py</code> is the MemoryStore. Everything stays on the user's machine.</div>
+      </div>
+    </div>
+
+    <!-- sentigent/learning/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">│   ├──</span> <span class="dir">learning/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">sentigent/learning/</span><span class="tag live">live</span></div>
+        <div class="purpose">The learning pipeline — turns answered escalations into calibrated thresholds.</div>
+        <div class="use">Feeds the clone's push-vs-ask confidence. Pairs with <code>training/</code>.</div>
+      </div>
+    </div>
+
+    <!-- sentigent/mcp_server.py -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">│   ├──</span> <span class="file">mcp_server.py</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">sentigent/mcp_server.py</span><span class="tag live">live</span></div>
+        <div class="purpose">The MCP server — exposes operator_*, loop_*, clone_*, sentigent_* tools to Claude Code.</div>
+        <div class="use">Wire new agent-facing tools here. <code>sentigent init</code> installs it.</div>
+      </div>
+    </div>
+
+    <!-- sentigent/cli.py -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">│   └──</span> <span class="file">cli.py</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">sentigent/cli.py</span><span class="tag live">live</span></div>
+        <div class="purpose">The <code>sentigent</code> command-line entry.</div>
+        <div class="use">Subcommands (init, loop, steering, …). Keep thin; delegate to modules.</div>
+      </div>
+    </div>
+
+    <!-- tests/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">├──</span> <span class="dir">tests/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">tests/</span><span class="tag live">live</span></div>
+        <div class="purpose">Pytest suite — CI-ready. One test file per module.</div>
+        <div class="use">Name <code>test_&lt;module&gt;.py</code>. Run <code>.venv/bin/python -m pytest tests/ -q</code>. TDD: write the test first.</div>
+      </div>
+    </div>
+
+    <!-- docs/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">├──</span> <span class="dir">docs/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">docs/</span><span class="tag live">live</span></div>
+        <div class="purpose">Architecture, roadmap, standards, the diagram + project-map specs.</div>
+        <div class="use">Markdown. <code>ARCHITECTURE-OVERVIEW.md</code>, <code>ROADMAP-STATEFUL-AGENT-OS.md</code>, <code>DIAGRAM-STYLE.md</code>, <code>PROJECT-MAP-STANDARD.md</code>.</div>
+      </div>
+    </div>
+
+    <!-- skills/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">├──</span> <span class="dir">skills/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">skills/</span><span class="tag live">live</span></div>
+        <div class="purpose">Claude-Code skills — reusable procedures the agent follows.</div>
+        <div class="use">One dir per skill with <code>SKILL.md</code> (frontmatter: name/description). e.g. closed-loop-delivery.</div>
+      </div>
+    </div>
+
+    <!-- site/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">├──</span> <span class="dir">site/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">site/</span><span class="tag live">live</span></div>
+        <div class="purpose">The static marketing + docs site (sentigent.xyz), deployed on Vercel.</div>
+        <div class="use"><code>index.html</code>, <code>diagrams.html</code>. Self-contained CSS. Deploy: <code>cd site &amp;&amp; vercel deploy --prod --yes</code>.</div>
+      </div>
+    </div>
+
+    <!-- scripts/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">├──</span> <span class="dir">scripts/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">scripts/</span><span class="tag live">live</span></div>
+        <div class="purpose">One-off and ops scripts (export_steering.py, doctor.py, reddit tooling…).</div>
+        <div class="use">Standalone CLIs. Not imported by the package.</div>
+      </div>
+    </div>
+
+    <!-- training/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">├──</span> <span class="dir">training/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">training/</span><span class="tag live">live</span></div>
+        <div class="purpose">Learning-pipeline packs (principles, tdd, security-first) + generated data.</div>
+        <div class="use">Edit <code>packs/*.yaml</code>. <code>training/data/</code> is GITIGNORED (contains captured session data — never publish).</div>
+      </div>
+    </div>
+
+    <!-- eval/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">├──</span> <span class="dir">eval/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">eval/</span><span class="tag live">live</span></div>
+        <div class="purpose">Offline evaluation — does learned judgment beat static?</div>
+        <div class="use"><code>gate.py</code> + <code>eval_card.md</code>. The honest-measurement harness.</div>
+      </div>
+    </div>
+
+    <!-- claude-plugin/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">├──</span> <span class="dir">claude-plugin/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">claude-plugin/</span><span class="tag live">live</span></div>
+        <div class="purpose">The Claude-Code plugin packaging (hooks, session-start).</div>
+        <div class="use">PreToolUse/PostToolUse hooks that run the judgment layer passively.</div>
+      </div>
+    </div>
+
+    <!-- guardrails/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">├──</span> <span class="dir">guardrails/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">guardrails/</span><span class="tag live">live</span></div>
+        <div class="purpose">Org guardrail packs (YAML) — the never-auto-clear escalation lists.</div>
+        <div class="use">force_push · prod_db_write · secret_access · rm_rf · external_send. Opt-in per loop lap.</div>
+      </div>
+    </div>
+
+    <!-- migrations/ -->
+    <div class="area">
+      <div class="left"><div class="glyph"><span class="br">└──</span> <span class="dir">migrations/</span></div></div>
+      <div class="right">
+        <div class="rh"><span class="name">migrations/</span><span class="tag build">building</span></div>
+        <div class="purpose">Database migrations (for the optional Org/sync layer).</div>
+        <div class="use">Apply in order. The local-first core does not require them.</div>
+      </div>
+    </div>
+
+  </figure>
+
+  <!-- root files -->
+  <div class="rootfiles">
+    <h3>Root files — the contracts at the top of the tree</h3>
+    <div class="rf-grid">
+      <div class="rf"><span class="fn">CLAUDE.md</span><span class="nt">Repo-level operating instructions the agent reads on every session.</span></div>
+      <div class="rf"><span class="fn">AGENTS.md</span><span class="nt">Auto-written steering file — your Profile layer, re-readable by the loop.</span></div>
+      <div class="rf"><span class="fn">project-map.toml</span><span class="nt">This page's source of truth — the editable default for where things live.</span></div>
+      <div class="rf"><span class="fn">pyproject.toml</span><span class="nt">Package metadata + the <span class="mono">sentigent</span> entry point. Stdlib-first, no new deps.</span></div>
+      <div class="rf"><span class="fn">README.md</span><span class="nt">The front door — what Sentigent is and how to install it.</span></div>
+    </div>
+  </div>
+
+  <!-- footer band -->
+  <div class="editband">
+    <div class="k">Edit <code>project-map.toml</code> to change the default.</div>
+    <div class="s">The loop reads it via <code>project_map.where_for(kind)</code> before creating a file — so a new test goes to <code>tests/</code>, a new doc to <code>docs/</code>, a new loop module to <code>sentigent/operator/</code>. Change the paths to match your repo and the loop follows.</div>
+    <a class="lnk" href="https://github.com/hussi9/sentigent/blob/main/docs/PROJECT-MAP-STANDARD.md">docs/PROJECT-MAP-STANDARD.md →</a>
+  </div>
+
+</main>
+
+<footer><div class="wrap">
+  <a href="/">← Back to home</a> &nbsp;·&nbsp; <a href="/diagrams">Diagrams</a> &nbsp;·&nbsp; <a href="https://github.com/hussi9/sentigent">GitHub</a>
+  <div style="margin-top:12px">Sentigent · free &amp; open source · live = working today, building = on the roadmap</div>
+</div></footer>
+
+</body>
+</html>

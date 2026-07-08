@@ -49,3 +49,6 @@ training/data/
 training/eval/report.json
 
 training/eval/swebench_out/
+
+# Dashboard frontend (built static/ assets are committed instead)
+sentigent/dashboard/frontend/node_modules/

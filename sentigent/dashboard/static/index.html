@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentigent Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+  header { background: #1a1d2e; border-bottom: 1px solid #2d3748; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header .badge { background: #7c3aed; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 24px; }
+  .card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 8px; padding: 20px; }
+  .card h2 { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .stat { font-size: 36px; font-weight: 700; }
+  .stat.green { color: #34d399; }
+  .stat.yellow { color: #fbbf24; }
+  .stat.red { color: #f87171; }
+  .sub { font-size: 13px; color: #64748b; margin-top: 4px; }
+  section { padding: 0 24px 24px; }
+  section h2 { font-size: 14px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; background: #1a1d2e; border: 1px solid #2d3748; border-radius: 8px; overflow: hidden; font-size: 13px; }
+  th { background: #0f1117; padding: 10px 14px; text-align: left; color: #64748b; font-weight: 500; border-bottom: 1px solid #2d3748; }
+  td { padding: 10px 14px; border-bottom: 1px solid #1e2435; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  .outcome-correct { color: #34d399; }
+  .outcome-incorrect { color: #f87171; }
+  .outcome-none { color: #64748b; }
+  .signal-bar { display: inline-block; height: 8px; border-radius: 4px; background: #7c3aed; vertical-align: middle; }
+  input[type=text] { background: #0f1117; border: 1px solid #2d3748; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 13px; width: 280px; margin-bottom: 12px; }
+  input[type=text]:focus { outline: none; border-color: #7c3aed; }
+  .chart { height: 80px; display: flex; align-items: flex-end; gap: 4px; padding: 8px 0; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar { width: 100%; border-radius: 2px 2px 0 0; background: #7c3aed; transition: height 0.3s; }
+  .bar-label { font-size: 9px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .refresh-btn { background: #2d3748; border: none; color: #94a3b8; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .refresh-btn:hover { background: #374151; }
+  .tab-btn { background: transparent; border: 1px solid #2d3748; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .tab-btn:hover { background: #1a1d2e; }
+  .tab-btn.active { background: #7c3aed; border-color: #7c3aed; color: white; }
+  .score-bar { height: 6px; border-radius: 3px; background: #2d3748; margin-top: 6px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 3px; }
+  .agent-score-good { color: #34d399; }
+  .agent-score-mid { color: #fbbf24; }
+  .agent-score-low { color: #f87171; }
+  .layer2-badge { display: inline-block; font-size: 10px; background: #1e3a5f; color: #60a5fa; padding: 2px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+  .empty { color: #475569; text-align: center; padding: 24px; }
+  .insight-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .insight-item { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 6px; padding: 12px 16px; }
+  .insight-item .tag { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-right: 8px; text-transform: uppercase; }
+  .tag-correlation { background: #1e3a5f; color: #60a5fa; }
+  .tag-trend { background: #1a3a2a; color: #34d399; }
+  .tag-anomaly { background: #3a1a1a; color: #f87171; }
+  .insight-finding { font-size: 13px; color: #cbd5e1; }
+  .insight-rec { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .conf-badge { float: right; font-size: 11px; color: #94a3b8; }
+  .brier-bar { height: 6px; border-radius: 3px; background: #2d3748; margin-top: 8px; overflow: hidden; }
+  .brier-fill { height: 100%; border-radius: 3px; }
+</style>
+</head>
+<body>
+<header>
+  <span>🧠</span>
+  <h1>Sentigent Dashboard</h1>
+  <span class="badge">Live</span>
+  <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+    <button class="tab-btn active" onclick="switchTab('local')" id="tab-local">Local Agent</button>
+    <button class="tab-btn" onclick="switchTab('org')" id="tab-org">Org (Layer 2)</button>
+    <button class="tab-btn" onclick="switchTab('prove')" id="tab-prove">Proof of Value</button>
+    <button class="tab-btn" onclick="switchTab('policies')" id="tab-policies">Policies</button>
+    <button class="tab-btn" onclick="switchTab('collective')" id="tab-collective">Collective (Layer 3)</button>
+    <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+  </div>
+</header>
+
+<div id="view-local">
+<div class="grid" id="stats"></div>
+
+<section>
+  <h2>Score Timeline (last 30 days)</h2>
+  <div class="chart" id="timeline"></div>
+</section>
+
+<section>
+  <h2>Recent Episodes</h2>
+  <input type="text" id="search" placeholder="Search tasks..." oninput="loadEpisodes()">
+  <table>
+    <thead><tr><th>Task</th><th>Decision</th><th>Outcome</th><th>Confidence</th><th>Signals</th><th>Time</th></tr></thead>
+    <tbody id="episodes-body"></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Insights</h2>
+  <ul class="insight-list" id="insights-list"><li class="insight-item"><span class="insight-finding empty">Loading insights...</span></li></ul>
+</section>
+
+<section>
+  <h2>Learned Patterns</h2>
+  <table>
+    <thead><tr><th>Pattern</th><th>Action</th><th>Success Rate</th><th>Samples</th><th>Last Reinforced</th></tr></thead>
+    <tbody id="patterns-body"></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Baselines</h2>
+  <table>
+    <thead><tr><th>Metric</th><th>Median</th><th>Std Dev</th><th>P5–P95</th><th>Samples</th><th>Source</th></tr></thead>
+    <tbody id="baselines-body"></tbody>
+  </table>
+</section>
+
+</div><!-- /view-local -->
+
+<div id="view-org" style="display:none">
+<div class="grid" id="org-stats"></div>
+
+<section>
+  <h2>Org Score Timeline (last 30 days)</h2>
+  <div class="chart" id="org-timeline"></div>
+</section>
+
+<section>
+  <h2>Agents in Org</h2>
+  <table>
+    <thead><tr><th>Agent</th><th>Episodes</th><th>Score</th><th>Correct</th><th>Incorrect</th><th>Neutral</th></tr></thead>
+    <tbody id="org-agents-body"></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Shared Org Patterns</h2>
+  <table>
+    <thead><tr><th>Pattern</th><th>Action</th><th>Success Rate</th><th>Samples</th><th>Contributing Agents</th><th>Last Updated</th></tr></thead>
+    <tbody id="org-patterns-body"></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Org Baselines</h2>
+  <table>
+    <thead><tr><th>Metric</th><th>Median</th><th>Std</th><th>P5–P95</th><th>Samples</th></tr></thead>
+    <tbody id="org-baselines-body"></tbody>
+  </table>
+</section>
+</div><!-- /view-org -->
+
+<div id="view-prove" style="display:none">
+<div class="grid" id="prove-stats"></div>
+<section>
+  <h2>Score Trajectory</h2>
+  <div class="chart" id="prove-timeline"></div>
+</section>
+<section>
+  <h2>Top Catches <span style="color:#64748b;font-size:12px;font-weight:normal">— interventions confirmed correct</span></h2>
+  <table>
+    <thead><tr><th>Time</th><th>Decision</th><th>Task</th><th>Reason</th><th>Confidence</th><th>Source</th></tr></thead>
+    <tbody id="prove-catches-body"></tbody>
+  </table>
+</section>
+<section>
+  <h2>Org Policy Enforcement</h2>
+  <table>
+    <thead><tr><th>Policy</th><th>Action</th><th>Severity</th><th>Triggers</th></tr></thead>
+    <tbody id="prove-policy-body"></tbody>
+  </table>
+</section>
+<section>
+  <h2>Agent Compliance</h2>
+  <table>
+    <thead><tr><th>Agent</th><th>Score</th><th>Episodes</th><th>Policy Hits</th></tr></thead>
+    <tbody id="prove-agents-body"></tbody>
+  </table>
+</section>
+<section>
+  <div id="prove-verdict" style="margin-top:16px;padding:16px;background:#0f1117;border-radius:8px;border:1px solid #1e293b;color:#94a3b8;font-size:13px;line-height:1.6"></div>
+</section>
+</div><!-- /view-prove -->
+
+<div id="view-policies" style="display:none">
+<div class="grid" id="policy-stats"></div>
+<section>
+  <h2>Active Policies <span class="layer2-badge">Layer 2</span></h2>
+  <table>
+    <thead><tr><th>Policy</th><th>Tool</th><th>Pattern</th><th>Action</th><th>Severity</th><th>Triggers</th><th>Last Hit</th></tr></thead>
+    <tbody id="policy-table-body"></tbody>
+  </table>
+</section>
+<section>
+  <h2>Recent Violations</h2>
+  <table>
+    <thead><tr><th>Time</th><th>Agent</th><th>Policy</th><th>Action Taken</th></tr></thead>
+    <tbody id="policy-violations-body"></tbody>
+  </table>
+</section>
+</div><!-- /view-policies -->
+
+<div id="view-collective" style="display:none">
+<div class="grid" id="collective-stats"></div>
+<section>
+  <h2>Opt-In Status by Profile <span class="layer2-badge">Layer 3</span></h2>
+  <table>
+    <thead><tr><th>Profile</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody id="collective-optins-body"></tbody>
+  </table>
+</section>
+<section>
+  <h2>Cross-Org Pattern Pool</h2>
+  <table>
+    <thead><tr><th>Pattern</th><th>Action</th><th>Success Rate</th><th>Contributing Orgs</th><th>Sample Size</th></tr></thead>
+    <tbody id="collective-patterns-body"></tbody>
+  </table>
+</section>
+</div><!-- /view-collective -->
+
+<script>
+async function api(path) {
+  const r = await fetch(path);
+  return r.json();
+}
+
+function scoreColor(s) {
+  if (s >= 0.8) return 'green';
+  if (s >= 0.5) return 'yellow';
+  return 'red';
+}
+
+async function loadScore() {
+  const [d, ins] = await Promise.all([api('/api/score'), api('/api/insights')]);
+  const bs = ins.brier_score;
+  const bsColor = bs === null ? '#475569' : bs < 0.15 ? '#34d399' : bs < 0.25 ? '#fbbf24' : '#f87171';
+  const bsFill = bs === null ? 0 : Math.min(100, Math.round(bs / 0.25 * 100));
+  const bsLabel = bs === null ? '—' : bs.toFixed(3);
+  document.getElementById('stats').innerHTML = `
+    <div class="card"><h2>Judgment Score</h2><div class="stat ${scoreColor(d.score)}">${d.score_pct}</div><div class="sub">${d.total_with_outcomes} rated decisions</div></div>
+    <div class="card"><h2>Total Episodes</h2><div class="stat">${d.total_episodes}</div><div class="sub">All tracked operations</div></div>
+    <div class="card"><h2>Correct</h2><div class="stat green">${d.outcomes.correct || 0}</div><div class="sub">Outcomes recorded</div></div>
+    <div class="card"><h2>Incorrect</h2><div class="stat red">${d.outcomes.incorrect || 0}</div><div class="sub">Outcomes recorded</div></div>
+    <div class="card"><h2>Brier Score</h2><div class="stat" style="color:${bsColor}">${bsLabel}</div><div class="sub">${ins.brier_interpretation}</div><div class="brier-bar"><div class="brier-fill" style="width:${bsFill}%;background:${bsColor}"></div></div></div>
+  `;
+}
+
+async function loadTimeline() {
+  const data = await api('/api/timeline');
+  if (!data.length) return;
+  const max = Math.max(...data.map(d => d.score), 0.01);
+  document.getElementById('timeline').innerHTML = data.map(d => `
+    <div class="bar-wrap">
+      <div class="bar" style="height:${Math.round((d.score/max)*64)}px" title="${d.day}: ${(d.score*100).toFixed(1)}%"></div>
+      <div class="bar-label">${d.day.slice(5)}</div>
+    </div>
+  `).join('');
+}
+
+async function loadEpisodes() {
+  const q = document.getElementById('search').value;
+  const data = await api(`/api/episodes?limit=50&search=${encodeURIComponent(q)}`);
+  document.getElementById('episodes-body').innerHTML = data.length ? data.map(e => {
+    const cls = e.outcome === 'correct' ? 'outcome-correct' : e.outcome === 'incorrect' ? 'outcome-incorrect' : 'outcome-none';
+    const sigs = Object.entries(e.signals || {}).map(([k,v]) =>
+      `<span title="${k}: ${(v*100).toFixed(0)}%"><span class="signal-bar" style="width:${Math.round(v*32)}px"></span></span>`
+    ).join(' ');
+    const conf = e.confidence_at_decision ? (e.confidence_at_decision*100).toFixed(0)+'%' : '—';
+    const ts = e.timestamp ? e.timestamp.slice(0,16).replace('T',' ') : '';
+    return `<tr><td title="${e.task}">${e.task}</td><td>${e.decision||'—'}</td><td class="${cls}">${e.outcome||'—'}</td><td>${conf}</td><td>${sigs}</td><td>${ts}</td></tr>`;
+  }).join('') : '<tr><td colspan="6" class="empty">No episodes yet</td></tr>';
+}
+
+async function loadPatterns() {
+  const data = await api('/api/patterns');
+  document.getElementById('patterns-body').innerHTML = data.length ? data.map(p => `<tr>
+    <td>${p.pattern_name}</td><td>${p.learned_action}</td>
+    <td>${(p.success_rate*100).toFixed(1)}%</td><td>${p.sample_size}</td>
+    <td>${(p.last_reinforced||'').slice(0,10)}</td>
+  </tr>`).join('') : '<tr><td colspan="5" class="empty">No patterns learned yet</td></tr>';
+}
+
+async function loadBaselines() {
+  const data = await api('/api/baselines');
+  document.getElementById('baselines-body').innerHTML = data.length ? data.map(b => `<tr>
+    <td>${b.metric}</td>
+    <td>${b.median != null ? b.median.toFixed(3) : '—'}</td>
+    <td>${b.std != null ? b.std.toFixed(3) : '—'}</td>
+    <td>${b.p5 != null ? b.p5.toFixed(3) : '—'} – ${b.p95 != null ? b.p95.toFixed(3) : '—'}</td>
+    <td>${b.sample_size}</td><td>${b.source}</td>
+  </tr>`).join('') : '<tr><td colspan="6" class="empty">No learned baselines yet</td></tr>';
+}
+
+async function loadInsights() {
+  const d = await api('/api/insights');
+  const all = [...(d.correlations||[]), ...(d.trends||[]), ...(d.anomalies||[])];
+  const recs = d.recommendations || [];
+  if (!all.length && !recs.length) {
+    document.getElementById('insights-list').innerHTML =
+      '<li class="insight-item"><span class="insight-finding empty">No insights yet — run operations and record outcomes to start learning.</span></li>';
+    return;
+  }
+  const items = all.map(i => {
+    const tagClass = `tag-${i.category}`;
+    const conf = i.confidence ? `${(i.confidence*100).toFixed(0)}%` : '';
+    return `<li class="insight-item">
+      <span class="conf-badge">${conf}</span>
+      <span class="tag ${tagClass}">${i.category}</span>
+      <span class="insight-finding">${i.finding}</span>
+      ${i.recommendation ? `<div class="insight-rec">💡 ${i.recommendation}</div>` : ''}
+    </li>`;
+  });
+  if (recs.length) {
+    items.push(`<li class="insight-item"><span class="tag" style="background:#2d1a3a;color:#c084fc">recommendations</span>
+      ${recs.map(r => `<div class="insight-rec">💡 ${r}</div>`).join('')}</li>`);
+  }
+  document.getElementById('insights-list').innerHTML = items.join('');
+}
+
+// ── Layer 3 Collective ──────────────────────────────────────────────────────
+async function loadCollective() {
+  const [statusResp, patternsResp] = await Promise.all([
+    api('/api/collective?action=status').catch(e => ({error: String(e)})),
+    api('/api/collective?action=pull').catch(e => ({error: String(e)})),
+  ]);
+
+  if (statusResp.error) {
+    document.getElementById('collective-stats').innerHTML =
+      `<div class="card" style="grid-column:1/-1"><h2>Collective Not Available</h2>
+       <p style="color:#64748b;margin-top:8px">${statusResp.error}</p></div>`;
+    return;
+  }
+
+  const c = statusResp.collective || {};
+  const poolSize = c.pool_size || 0;
+  const avgRate = c.pool_avg_success_rate || 0;
+  const multiOrg = c.multi_org_patterns || 0;
+  const optedIn = (c.opted_in_profiles || []);
+
+  document.getElementById('collective-stats').innerHTML = `
+    <div class="card">
+      <h2>Pool Size <span class="layer2-badge">Layer 3</span></h2>
+      <div class="stat">${poolSize}</div>
+      <div class="sub">Cross-org shared patterns</div>
+    </div>
+    <div class="card">
+      <h2>Avg Success Rate</h2>
+      <div class="stat ${avgRate >= 0.85 ? 'green' : avgRate >= 0.7 ? 'yellow' : 'red'}">${poolSize ? (avgRate*100).toFixed(1)+'%' : '—'}</div>
+      <div class="sub">Across all pooled patterns</div>
+    </div>
+    <div class="card">
+      <h2>Multi-Org Patterns</h2>
+      <div class="stat">${multiOrg}</div>
+      <div class="sub">Validated by 2+ orgs</div>
+    </div>
+    <div class="card">
+      <h2>Opted-In Profiles</h2>
+      <div class="stat">${optedIn.length}</div>
+      <div class="sub">${optedIn.length ? optedIn.join(', ') : 'None — opt in via CLI'}</div>
+    </div>
+  `;
+
+  // Opt-in rows: show known profiles with their status
+  const knownProfiles = ['code_review', 'security_engineer', 'financial_ops', 'pm', 'default'];
+  document.getElementById('collective-optins-body').innerHTML = knownProfiles.map(p => {
+    const opted = optedIn.includes(p);
+    const badge = opted
+      ? '<span style="color:#34d399">● Opted In</span>'
+      : '<span style="color:#475569">○ Opted Out</span>';
+    const cmd = opted
+      ? `<code style="font-size:11px;color:#94a3b8">sentigent layer3 opt-out --profile ${p}</code>`
+      : `<code style="font-size:11px;color:#60a5fa">sentigent layer3 opt-in --profile ${p}</code>`;
+    return `<tr><td>${p}</td><td>${badge}</td><td>${cmd}</td></tr>`;
+  }).join('');
+
+  // Patterns table
+  const patterns = (patternsResp.patterns || []);
+  document.getElementById('collective-patterns-body').innerHTML = patterns.length ?
+    patterns.slice(0, 50).map(p => {
+      const rate = p.success_rate != null ? (p.success_rate * 100).toFixed(1) + '%' : '—';
+      const rateColor = (p.success_rate || 0) >= 0.9 ? '#34d399' : (p.success_rate || 0) >= 0.75 ? '#fbbf24' : '#f87171';
+      return `<tr>
+        <td style="font-family:monospace;font-size:12px">${p.pattern_name}</td>
+        <td style="color:#fbbf24">${p.learned_action || '—'}</td>
+        <td style="color:${rateColor}">${rate}</td>
+        <td style="text-align:center">${p.contributing_org_count || 1}</td>
+        <td style="text-align:center">${p.sample_size || '—'}</td>
+      </tr>`;
+    }).join('') :
+    '<tr><td colspan="5" class="empty">No patterns in collective pool yet. Opt in and record outcomes to contribute.</td></tr>';
+}
+
+async function loadAll() {
+  await Promise.all([loadScore(), loadTimeline(), loadEpisodes(), loadPatterns(), loadBaselines(), loadInsights()]);
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────
+function switchTab(tab) {
+  ['local','org','prove','policies','collective'].forEach(t => {
+    document.getElementById('view-' + t).style.display = tab === t ? '' : 'none';
+    document.getElementById('tab-' + t).classList.toggle('active', tab === t);
+  });
+  if (tab === 'org') loadOrg();
+  if (tab === 'prove') loadProve();
+  if (tab === 'policies') loadPolicies();
+  if (tab === 'collective') loadCollective();
+}
+
+// ── Proof of Value ──────────────────────────────────────────────────────
+async function loadProve() {
+  const d = await api('/api/prove').catch(e => ({error: String(e)}));
+  if (d.error) {
+    document.getElementById('prove-stats').innerHTML =
+      `<div class="card" style="grid-column:1/-1"><h2>Error</h2><p style="color:#f87171">${d.error}</p></div>`;
+    return;
+  }
+  const accColor = d.intervention_accuracy >= 0.9 ? '#34d399' : d.intervention_accuracy >= 0.7 ? '#fbbf24' : '#f87171';
+  document.getElementById('prove-stats').innerHTML = `
+    <div class="card"><h2>Confirmed Catches</h2><div class="stat green">${d.confirmed_catches}</div><div class="sub">Interventions confirmed correct</div></div>
+    <div class="card"><h2>Intervention Accuracy</h2><div class="stat" style="color:${accColor}">${(d.intervention_accuracy*100).toFixed(1)}%</div><div class="sub">When it flags, it's right</div></div>
+    <div class="card"><h2>False Negatives</h2><div class="stat ${d.false_negatives > 0 ? 'red' : 'green'}">${d.false_negatives}</div><div class="sub">Cleared actions that failed</div></div>
+    <div class="card"><h2>Safe Passes</h2><div class="stat green">${d.safe_passes}</div><div class="sub">Correctly cleared actions</div></div>
+    <div class="card"><h2>Policy Enforcements</h2><div class="stat">${d.total_policy_enforcements}</div><div class="sub">Org-wide blocks & escalations</div></div>
+  `;
+
+  // Score trajectory
+  const tl = d.score_trajectory || [];
+  if (tl.length) {
+    const max = Math.max(...tl.map(p => p.score), 0.01);
+    document.getElementById('prove-timeline').innerHTML = tl.map(p => `
+      <div class="bar-wrap">
+        <div class="bar" style="height:${Math.round((p.score/max)*64)}px" title="${p.period}: ${(p.score*100).toFixed(1)}% (n=${p.total_rated})"></div>
+        <div class="bar-label">${p.period}</div>
+      </div>`).join('');
+  } else {
+    document.getElementById('prove-timeline').innerHTML = '<span style="color:#475569;font-size:13px">No trajectory data yet</span>';
+  }
+
+  // Top catches
+  document.getElementById('prove-catches-body').innerHTML = (d.top_catches||[]).length ?
+    (d.top_catches||[]).map(c => {
+      const ts = (c.timestamp||'').slice(0,16).replace('T',' ');
+      const task = c.task.length > 60 ? c.task.slice(0,60)+'…' : c.task;
+      const src = c.policy_name ? `<span class="layer2-badge">policy</span>` : '';
+      return `<tr>
+        <td style="color:#64748b">${ts}</td>
+        <td style="color:#fbbf24;font-weight:600">${c.decision}</td>
+        <td title="${c.task}">${task}</td>
+        <td style="color:#94a3b8">${c.reason.slice(0,70)}</td>
+        <td style="color:#60a5fa">${(c.confidence*100).toFixed(0)}%</td>
+        <td>${src}${c.tool||''}</td>
+      </tr>`;
+    }).join('') :
+    '<tr><td colspan="6" class="empty">No confirmed catches yet — record outcomes with sentigent_outcome()</td></tr>';
+
+  // Policy stats
+  document.getElementById('prove-policy-body').innerHTML = (d.policy_stats||[]).length ?
+    (d.policy_stats||[]).map(p => `<tr>
+      <td>${p.policy_name}</td><td>${p.enforce_action}</td>
+      <td style="color:${p.severity==='critical'?'#f87171':p.severity==='high'?'#fbbf24':'#94a3b8'}">${p.severity}</td>
+      <td>${p.trigger_count}</td>
+    </tr>`).join('') :
+    '<tr><td colspan="4" class="empty">No policy data (run migration first)</td></tr>';
+
+  // Agent compliance
+  document.getElementById('prove-agents-body').innerHTML = (d.agent_compliance||[]).length ?
+    (d.agent_compliance||[]).map(a => {
+      const cls = a.score >= 0.8 ? 'agent-score-good' : a.score >= 0.5 ? 'agent-score-mid' : 'agent-score-low';
+      return `<tr>
+        <td><strong>${a.agent_id}</strong></td>
+        <td class="${cls}">${(a.score*100).toFixed(1)}%</td>
+        <td>${a.total_episodes.toLocaleString()}</td>
+        <td>${a.policy_hits}</td>
+      </tr>`;
+    }).join('') :
+    '<tr><td colspan="4" class="empty">No agent compliance data</td></tr>';
+
+  document.getElementById('prove-verdict').innerHTML = `<strong>Verdict:</strong> ${d.verdict}`;
+}
+
+// ── Policies ───────────────────────────────────────────────────────────
+async function loadPolicies() {
+  const d = await api('/api/policies').catch(e => ({error: String(e)}));
+  if (d.error) {
+    document.getElementById('policy-stats').innerHTML =
+      `<div class="card" style="grid-column:1/-1"><h2>Policies Not Available</h2>
+       <p style="color:#64748b;margin-top:8px">${d.error}</p>
+       <p style="color:#64748b;margin-top:4px">Run the SQL migration in Supabase dashboard first.</p></div>`;
+    return;
+  }
+  const policies = d.policies || [];
+  const violations = d.recent_violations || [];
+  const active = policies.filter(p => p.is_active).length;
+  const critical = policies.filter(p => p.severity === 'critical').length;
+  const totalTriggers = policies.reduce((s, p) => s + (p.trigger_count||0), 0);
+
+  document.getElementById('policy-stats').innerHTML = `
+    <div class="card"><h2>Active Policies</h2><div class="stat">${active}</div><div class="sub">Enforced org-wide</div></div>
+    <div class="card"><h2>Critical Policies</h2><div class="stat ${critical>0?'red':''}">${critical}</div><div class="sub">Hard blocks</div></div>
+    <div class="card"><h2>Total Triggers</h2><div class="stat">${totalTriggers.toLocaleString()}</div><div class="sub">All-time enforcements</div></div>
+    <div class="card"><h2>Recent Violations</h2><div class="stat">${violations.length}</div><div class="sub">Last 50 events</div></div>
+  `;
+
+  document.getElementById('policy-table-body').innerHTML = policies.length ?
+    policies.map(p => {
+      const sevColor = p.severity==='critical'?'#f87171':p.severity==='high'?'#fbbf24':'#94a3b8';
+      const lastHit = p.last_triggered ? p.last_triggered.slice(0,10) : '—';
+      const status = p.is_active ? '' : '<span style="color:#f87171"> disabled</span>';
+      return `<tr>
+        <td><strong>${p.policy_name}</strong>${status}</td>
+        <td>${p.trigger_tool||'*'}</td>
+        <td style="font-family:monospace;font-size:11px;color:#60a5fa">${(p.trigger_pattern||'').slice(0,30)||'*'}</td>
+        <td style="color:#fbbf24">${p.enforce_action}</td>
+        <td style="color:${sevColor}">${p.severity}</td>
+        <td>${p.trigger_count||0}</td>
+        <td style="color:#64748b">${lastHit}</td>
+      </tr>`;
+    }).join('') :
+    '<tr><td colspan="7" class="empty">No policies configured. Add via: sentigent policy add</td></tr>';
+
+  document.getElementById('policy-violations-body').innerHTML = violations.length ?
+    violations.map(v => {
+      const ts = (v.timestamp||'').slice(0,16).replace('T',' ');
+      return `<tr>
+        <td style="color:#64748b">${ts}</td>
+        <td>${v.agent_id}</td>
+        <td>${v.policy_name}</td>
+        <td style="color:#fbbf24">${v.enforced_action}</td>
+      </tr>`;
+    }).join('') :
+    '<tr><td colspan="4" class="empty">No violations yet</td></tr>';
+}
+
+// ── Layer 2 org view ───────────────────────────────────────────────────
+async function loadOrg() {
+  const [status, overview, timeline] = await Promise.all([
+    api('/api/layer2/status'),
+    api('/api/layer2/org').catch(e => ({error: String(e)})),
+    api('/api/layer2/timeline').catch(e => ([])),
+  ]);
+
+  if (!status.configured) {
+    document.getElementById('org-stats').innerHTML =
+      `<div class="card" style="grid-column:1/-1"><h2>Layer 2 Not Configured</h2>
+       <p style="color:#64748b;margin-top:8px">Set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY to enable org-wide learning.</p>
+       <p style="color:#64748b;margin-top:4px">Run: <code style="background:#0f1117;padding:2px 6px;border-radius:4px">sentigent init</code> and choose "Yes" for Layer 2.</p>
+       </div>`;
+    return;
+  }
+
+  if (overview.error) {
+    document.getElementById('org-stats').innerHTML =
+      `<div class="card" style="grid-column:1/-1"><h2>Error</h2><p style="color:#f87171">${overview.error}</p></div>`;
+    return;
+  }
+
+  const scoreCol = overview.org_score >= 0.8 ? 'green' : overview.org_score >= 0.5 ? 'yellow' : 'red';
+  const fillColor = overview.org_score >= 0.8 ? '#34d399' : overview.org_score >= 0.5 ? '#fbbf24' : '#f87171';
+  document.getElementById('org-stats').innerHTML = `
+    <div class="card">
+      <h2>Org Judgment Score <span class="layer2-badge">Supabase</span></h2>
+      <div class="stat ${scoreCol}">${overview.org_score_pct}</div>
+      <div class="sub">${overview.total_episodes} total episodes</div>
+      <div class="score-bar"><div class="score-fill" style="width:${Math.round(overview.org_score*100)}%;background:${fillColor}"></div></div>
+    </div>
+    <div class="card"><h2>Agents in Org</h2><div class="stat">${overview.total_agents}</div><div class="sub">Contributing to shared learning</div></div>
+    <div class="card"><h2>Org Patterns</h2><div class="stat">${(overview.patterns||[]).length}</div><div class="sub">Shared procedural rules</div></div>
+    <div class="card"><h2>Org Baselines</h2><div class="stat">${(overview.baselines||[]).length}</div><div class="sub">Cross-agent metrics</div></div>
+  `;
+
+  // Org timeline
+  if (Array.isArray(timeline) && timeline.length) {
+    const max = Math.max(...timeline.map(d => d.score), 0.01);
+    document.getElementById('org-timeline').innerHTML = timeline.map(d => `
+      <div class="bar-wrap">
+        <div class="bar" style="height:${Math.round((d.score/max)*64)}px" title="${d.day}: ${(d.score*100).toFixed(1)}%"></div>
+        <div class="bar-label">${d.day.slice(5)}</div>
+      </div>`).join('');
+  } else {
+    document.getElementById('org-timeline').innerHTML = '<span style="color:#475569;font-size:13px">No timeline data yet</span>';
+  }
+
+  // Agents table
+  document.getElementById('org-agents-body').innerHTML = (overview.agents||[]).length ?
+    (overview.agents||[]).map(a => {
+      const cls = a.score >= 0.8 ? 'agent-score-good' : a.score >= 0.5 ? 'agent-score-mid' : 'agent-score-low';
+      return `<tr>
+        <td><strong>${a.agent_id}</strong></td>
+        <td>${a.total_episodes}</td>
+        <td class="${cls}">${a.score_pct}</td>
+        <td style="color:#34d399">${a.correct}</td>
+        <td style="color:#f87171">${a.incorrect}</td>
+        <td style="color:#94a3b8">${a.neutral}</td>
+      </tr>`;
+    }).join('') :
+    '<tr><td colspan="6" class="empty">No agents synced yet</td></tr>';
+
+  // Org patterns
+  document.getElementById('org-patterns-body').innerHTML = (overview.patterns||[]).length ?
+    (overview.patterns||[]).map(p => `<tr>
+      <td>${p.pattern_name}</td>
+      <td>${p.learned_action}</td>
+      <td>${(p.success_rate*100).toFixed(1)}%</td>
+      <td>${p.sample_size}</td>
+      <td style="color:#64748b">${(p.contributing_agents||[]).join(', ')||'—'}</td>
+      <td>${(p.last_reinforced||'').slice(0,10)||'—'}</td>
+    </tr>`).join('') :
+    '<tr><td colspan="6" class="empty">No shared patterns yet</td></tr>';
+
+  // Org baselines
+  document.getElementById('org-baselines-body').innerHTML = (overview.baselines||[]).length ?
+    (overview.baselines||[]).map(b => `<tr>
+      <td>${b.metric_name}</td>
+      <td>${b.median != null ? Number(b.median).toFixed(3) : '—'}</td>
+      <td>${b.std != null ? Number(b.std).toFixed(3) : '—'}</td>
+      <td>${b.p5 != null ? Number(b.p5).toFixed(2) : '—'} – ${b.p95 != null ? Number(b.p95).toFixed(2) : '—'}</td>
+      <td>${b.sample_size}</td>
+    </tr>`).join('') :
+    '<tr><td colspan="5" class="empty">No org baselines yet</td></tr>';
+}
+
+loadAll();
+setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

@@ -41,6 +41,21 @@ BASELINE_BLOCKLIST: set[str] = {
     "deadline_minutes",
 }
 
+# Feedback strings that mark an outcome as AUTO-recorded (tool exit status),
+# not human-graded. Legacy PostToolUse hooks wrote outcome='correct' with one of
+# these EXACT notes; they measure whether the tool errored, not whether the
+# judgment was right. Matched by exact (lowercased, trimmed) equality — NOT
+# substring — so a human note like "good, it caught the wrong exit code" or
+# "Deploy succeeded — live on prod" is NOT wrongly excluded. These four are the
+# only auto strings the legacy hook ever wrote (verified against the live brain:
+# 50939 + 21135 + 3819 + 2131 rows). See tests/test_graded_score.py.
+AUTO_FEEDBACK_EXACT: frozenset[str] = frozenset({
+    "bash command succeeded",
+    "edit succeeded",
+    "write succeeded",
+    "tool completed",
+})
+
 
 import math
 
@@ -122,6 +137,11 @@ class MemoryStore:
     learned baselines from accumulated experience.
     """
 
+    # Unforced baseline recomputes are throttled to once per window (hot-path guard).
+    BASELINE_RECOMPUTE_WINDOW_S = 300
+    # Newest history rows kept per metric by prune_baseline_history.
+    BASELINE_HISTORY_KEEP = 50
+
     def __init__(
         self,
         agent_id: str,
@@ -143,6 +163,10 @@ class MemoryStore:
 
         # In-memory cache of computed baselines
         self._baseline_cache: dict[str, BaselineStats] = {}
+
+        # Throttle marker for unforced baseline recomputes (see
+        # update_baselines_from_episodes).
+        self._last_baseline_recompute: datetime | None = None
 
     def _init_db(self) -> None:
         """Initialize the SQLite database schema."""
@@ -178,6 +202,12 @@ class MemoryStore:
                 ON episodes(timestamp);
             CREATE INDEX IF NOT EXISTS idx_episodes_outcome
                 ON episodes(outcome);
+            -- Hot path: find_similar_episodes filters by (agent_id, outcome
+            -- IS NOT NULL) and ORDER BY timestamp DESC LIMIT 500 on every
+            -- evaluate(). Without this composite index SQLite scans+sorts all
+            -- of the agent's episodes (89k on the live brain, ~10ms/query).
+            CREATE INDEX IF NOT EXISTS idx_episodes_agent_outcome_ts
+                ON episodes(agent_id, outcome, timestamp DESC);
 
             CREATE TABLE IF NOT EXISTS procedural_rules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -580,12 +610,20 @@ class MemoryStore:
         # Load from database
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            "SELECT metric_name, baseline_data, source, last_updated, sample_size "
-            "FROM semantic_baselines WHERE agent_id = ? OR agent_id IS NULL",
-            (self.agent_id,),
-        ).fetchall()
-        conn.close()
+        try:
+            rows = conn.execute(
+                "SELECT metric_name, baseline_data, source, last_updated, sample_size "
+                "FROM semantic_baselines WHERE agent_id = ? OR agent_id IS NULL",
+                (self.agent_id,),
+            ).fetchall()
+        except sqlite3.OperationalError:
+            # Cold start: no ``semantic_baselines`` table yet on a fresh/empty
+            # brain (e.g. a literal ``:memory:`` path). No learned baselines,
+            # not a crash — purely additive; behavior is unchanged once the
+            # learning loop has written any baseline.
+            rows = []
+        finally:
+            conn.close()
 
         for row in rows:
             data = json.loads(row["baseline_data"])
@@ -606,30 +644,91 @@ class MemoryStore:
 
         return self._baseline_cache
 
-    def update_baselines_from_episodes(self) -> None:
+    def update_baselines_from_episodes(self, force: bool = False) -> bool:
         """Recompute baselines from accumulated episodic memory.
 
         This is the core learning mechanism. It extracts numeric values from
         all past episodes and computes rolling statistics that become the
-        new baselines. Called after each outcome is recorded.
+        new baselines.
+
+        Unforced calls are throttled to once per BASELINE_RECOMPUTE_WINDOW_S:
+        this method full-scans every graded episode's JSON context, so running
+        it on every outcome puts an O(all-episodes) scan on the tool-call hot
+        path (the live brain has ~90k episodes).
+
+        Returns:
+            True if a recompute ran, False if throttled or below minimum data.
         """
+        now_dt = datetime.now(timezone.utc)
+
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
+        try:
+            if not force and self._recently_recomputed(conn, now_dt):
+                # Throttled. The check reads the persisted last-recompute time
+                # from the DB (semantic_baselines.last_updated), so it holds
+                # ACROSS PROCESSES — the PostToolUse hook runs a fresh process
+                # per tool call, so an in-memory-only marker would never engage.
+                return False
 
-        rows = conn.execute(
-            "SELECT context FROM episodes WHERE agent_id = ? AND outcome IS NOT NULL",
-            (self.agent_id,),
-        ).fetchall()
+            rows = conn.execute(
+                "SELECT context FROM episodes WHERE agent_id = ? AND outcome IS NOT NULL",
+                (self.agent_id,),
+            ).fetchall()
 
-        if len(rows) < 5:
-            # Not enough data to compute meaningful baselines
+            if len(rows) < 5:
+                # Not enough data to compute meaningful baselines. Deliberately
+                # does NOT stamp the throttle window — early learning must not be
+                # starved while the brain is below the minimum sample size.
+                return False
+
+            return self._compute_and_store_baselines(conn, rows, now_dt)
+        finally:
+            # Always close, even if the compute raises — a leaked SQLite handle
+            # on the hot path is worse than a failed recompute (which retries,
+            # because the throttle window is only stamped on successful commit).
             conn.close()
-            return
 
+    def _recently_recomputed(self, conn: sqlite3.Connection, now_dt: datetime) -> bool:
+        """True if a baseline recompute committed within the throttle window.
+
+        Source of truth is the DB (cross-process); the in-memory marker is a
+        fast-path cache checked first.
+        """
+        last = self._last_baseline_recompute
+        if last is not None and (now_dt - last).total_seconds() < self.BASELINE_RECOMPUTE_WINDOW_S:
+            return True
+        try:
+            row = conn.execute(
+                "SELECT MAX(last_updated) FROM semantic_baselines WHERE agent_id = ?",
+                (self.agent_id,),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            return False  # cold start: table not created yet → never throttle
+        if not row or not row[0]:
+            return False
+        try:
+            db_last = datetime.fromisoformat(row[0])
+        except (ValueError, TypeError):
+            return False
+        if (now_dt - db_last).total_seconds() < self.BASELINE_RECOMPUTE_WINDOW_S:
+            self._last_baseline_recompute = db_last  # warm the in-memory cache
+            return True
+        return False
+
+    def _compute_and_store_baselines(
+        self, conn: sqlite3.Connection, rows: list, now_dt: datetime
+    ) -> bool:
+        """Compute + persist baselines from graded episodes. Assumes >=5 rows."""
         # Collect all numeric values by key, excluding infrastructure metrics
         value_collections: dict[str, list[float]] = {}
         for row in rows:
-            context = json.loads(row["context"])
+            try:
+                context = json.loads(row["context"])
+            except (TypeError, ValueError, json.JSONDecodeError):
+                # A single NULL/corrupt context row must not abort the whole
+                # recompute (which would then never stamp the throttle window).
+                continue
             for key, value in context.items():
                 if isinstance(value, (int, float)):
                     # Skip infrastructure / metadata keys
@@ -708,46 +807,221 @@ class MemoryStore:
             )
 
         conn.commit()
-        conn.close()
+        # Stamp the throttle window ONLY after a successful commit (both the
+        # in-memory fast-path marker and, implicitly, semantic_baselines.
+        # last_updated which _recently_recomputed reads cross-process). The
+        # connection is closed by the caller's finally.
+        self._last_baseline_recompute = now_dt
 
-    def get_outcome_counts(self) -> tuple[int, int]:
+        # baseline_history is a drift-debug aid, not an archive — keep it bounded.
+        self.prune_baseline_history()
+        return True
+
+    def prune_baseline_history(self, keep_per_metric: int | None = None) -> int:
+        """Keep only the newest ``keep_per_metric`` history rows per metric.
+
+        Returns the number of rows deleted. Unbounded growth here reached
+        160k rows on the live brain (one row per metric per recompute).
+        """
+        keep = keep_per_metric if keep_per_metric is not None else self.BASELINE_HISTORY_KEEP
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.execute(
+                """
+                DELETE FROM baseline_history
+                WHERE agent_id IS ?
+                  AND id NOT IN (
+                    SELECT id FROM (
+                        SELECT id,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY metric_name
+                                   ORDER BY recorded_at DESC, id DESC
+                               ) AS rn
+                        FROM baseline_history
+                        WHERE agent_id IS ?
+                    ) WHERE rn <= ?
+                  )
+                """,
+                (self.agent_id, self.agent_id, keep),
+            )
+            conn.commit()
+            return cur.rowcount
+        except sqlite3.OperationalError:
+            # Cold start: table may not exist yet on a fresh/:memory: brain.
+            return 0
+        finally:
+            conn.close()
+
+    def get_outcome_counts(self, graded_only: bool = False) -> tuple[int, int]:
         """Get total decisions with outcomes and correct count from the database.
+
+        Args:
+            graded_only: When True, count only genuinely graded outcomes —
+                'correct'/'incorrect' rows whose feedback is NOT one of the
+                legacy auto-recorded tool-status notes (AUTO_FEEDBACK_PATTERNS).
+                Those legacy rows measured tool exit codes, not judgment
+                quality, and inflate the score. Default False preserves the
+                historical (observed) semantics.
 
         Returns:
             Tuple of (total_with_outcomes, correct_count) for this agent.
         """
+        params: list[Any] = [self.agent_id]
+        where = "agent_id = ? AND outcome IS NOT NULL"
+        if graded_only:
+            # Graded = human-graded correct/incorrect, excluding the legacy
+            # auto-recorded tool-status rows (exact-match, so human notes that
+            # merely mention "succeeded"/"exit code" still count).
+            placeholders = ", ".join("?" for _ in AUTO_FEEDBACK_EXACT)
+            where = (
+                "agent_id = ? AND outcome IN ('correct', 'incorrect') "
+                f"AND (outcome_feedback IS NULL "
+                f"OR lower(trim(outcome_feedback)) NOT IN ({placeholders}))"
+            )
+            params.extend(sorted(AUTO_FEEDBACK_EXACT))
         conn = sqlite3.connect(self.db_path)
-        row = conn.execute(
-            """
-            SELECT COUNT(*) as total,
-                   SUM(CASE WHEN outcome = 'correct' THEN 1 ELSE 0 END) as correct
-            FROM episodes
-            WHERE agent_id = ? AND outcome IS NOT NULL
-            """,
-            (self.agent_id,),
-        ).fetchone()
-        conn.close()
+        try:
+            row = conn.execute(
+                f"""
+                SELECT COUNT(*) as total,
+                       SUM(CASE WHEN outcome = 'correct' THEN 1 ELSE 0 END) as correct
+                FROM episodes
+                WHERE {where}
+                """,
+                params,
+            ).fetchone()
+        except sqlite3.OperationalError:
+            # Cold start: a fresh/empty brain may have no ``episodes`` table yet
+            # (e.g. a literal ``:memory:`` path where each connection is an
+            # isolated, schema-less database). Zero outcomes, not a crash.
+            row = None
+        finally:
+            conn.close()
+        if not row:
+            return (0, 0)
         return (row[0], row[1] or 0)
+
+    def get_episodes_by_trace_ids(self, trace_ids: list[str]) -> dict[str, dict[str, Any]]:
+        """Fetch episodes by trace_id in one query. Used by the precedent gate
+        to resolve a decision_event's prior_trace_id back to the ORIGINAL action
+        the human reacted to (its task + context), so precedents key on the
+        judged action — not the reaction. Returns {trace_id: {task, context}}.
+        """
+        ids = [t for t in trace_ids if t]
+        if not ids:
+            return {}
+        placeholders = ", ".join("?" for _ in ids)
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            rows = conn.execute(
+                f"SELECT trace_id, task, context FROM episodes "
+                f"WHERE agent_id = ? AND trace_id IN ({placeholders})",
+                [self.agent_id, *ids],
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return {}  # cold start: no episodes table yet
+        finally:
+            conn.close()
+        out: dict[str, dict[str, Any]] = {}
+        for r in rows:
+            try:
+                ctx = json.loads(r["context"]) if r["context"] else {}
+            except (TypeError, ValueError):
+                ctx = {}
+            out[r["trace_id"]] = {"task": r["task"], "context": ctx}
+        return out
 
     def get_episode_count(self) -> int:
         """Get total number of stored episodes."""
         conn = sqlite3.connect(self.db_path)
-        count = conn.execute(
-            "SELECT COUNT(*) FROM episodes WHERE agent_id = ?",
-            (self.agent_id,),
-        ).fetchone()[0]
-        conn.close()
+        try:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM episodes WHERE agent_id = ?",
+                (self.agent_id,),
+            ).fetchone()[0]
+        except sqlite3.OperationalError:
+            # Cold start: a fresh/empty brain may have no ``episodes`` table
+            # yet (e.g. a literal ``:memory:`` path where each connection is an
+            # isolated, schema-less database). Zero episodes, not a crash —
+            # purely additive, behavior is unchanged once any episode exists.
+            count = 0
+        finally:
+            conn.close()
         return count
+
+    def get_recent_graded_accuracy(self, window_days: int = 7) -> dict:
+        """Accuracy over ONLY graded episodes within a recent window (read-only).
+
+        Computes judgment accuracy across episodes graded 'correct' or
+        'incorrect' for this agent whose timestamp falls at or after
+        ``now - window_days``. Neutral and NULL/ungraded outcomes are
+        excluded from every count. This is a pure read — it never writes,
+        updates, inserts, or deletes — so it is safe against the live brain.
+
+        Args:
+            window_days: Size of the recent window in days (default 7).
+
+        Returns:
+            dict with keys ``window_days``, ``graded_total``, ``correct``,
+            ``incorrect``, and ``accuracy`` (correct / graded_total, or None
+            when no graded episodes fall in the window).
+        """
+        cutoff = (
+            datetime.now(timezone.utc) - timedelta(days=window_days)
+        ).isoformat()
+        conn = sqlite3.connect(self.db_path)
+        try:
+            row = conn.execute(
+                """
+                SELECT
+                    SUM(CASE WHEN outcome = 'correct' THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN outcome = 'incorrect' THEN 1 ELSE 0 END)
+                FROM episodes
+                WHERE agent_id = ?
+                  AND outcome IN ('correct', 'incorrect')
+                  AND timestamp >= ?
+                """,
+                (self.agent_id, cutoff),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            # Cold start: a fresh/empty brain may have no ``episodes`` table
+            # yet (e.g. a literal ``:memory:`` path where each connection is
+            # an isolated, schema-less database). Treat that as zero graded
+            # episodes rather than crashing — purely additive, behavior is
+            # unchanged once any episode exists.
+            row = None
+        finally:
+            conn.close()
+
+        correct = int(row[0] or 0) if row else 0
+        incorrect = int(row[1] or 0) if row else 0
+        graded_total = correct + incorrect
+        accuracy = (correct / graded_total) if graded_total else None
+        return {
+            "window_days": window_days,
+            "graded_total": graded_total,
+            "correct": correct,
+            "incorrect": incorrect,
+            "accuracy": accuracy,
+        }
 
     def get_outcome_stats(self) -> dict[str, int]:
         """Get counts of outcomes by type."""
         conn = sqlite3.connect(self.db_path)
-        rows = conn.execute(
-            "SELECT outcome, COUNT(*) as cnt FROM episodes "
-            "WHERE agent_id = ? AND outcome IS NOT NULL GROUP BY outcome",
-            (self.agent_id,),
-        ).fetchall()
-        conn.close()
+        try:
+            rows = conn.execute(
+                "SELECT outcome, COUNT(*) as cnt FROM episodes "
+                "WHERE agent_id = ? AND outcome IS NOT NULL GROUP BY outcome",
+                (self.agent_id,),
+            ).fetchall()
+        except sqlite3.OperationalError:
+            # Cold start: no ``episodes`` table yet on a fresh/empty brain
+            # (e.g. a literal ``:memory:`` path). No outcomes, not a crash —
+            # purely additive, behavior is unchanged once any episode exists.
+            rows = []
+        finally:
+            conn.close()
         return {row[0]: row[1] for row in rows}
 
     def get_pending_episodes(self, agent_id: str, limit: int = 100) -> list[Trace]:
@@ -1845,6 +2119,14 @@ class MemoryStore:
                 migration = Path(__file__).parent / "migrations" / "007_practices.sql"
                 conn.executescript(migration.read_text())
                 conn.commit()
+            # Additive: enforcement level per practice — off | warn | block.
+            # 'warn' by default so an adopted practice starts advising, not blocking.
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(practices)").fetchall()}
+            if "enforcement" not in cols:
+                conn.execute(
+                    "ALTER TABLE practices ADD COLUMN enforcement TEXT NOT NULL DEFAULT 'warn'"
+                )
+                conn.commit()
         finally:
             conn.close()
 
@@ -1888,6 +2170,31 @@ class MemoryStore:
             conn.execute(
                 "UPDATE practices SET active=? WHERE id=? AND agent_id=?",
                 (1 if active else 0, practice_id, self.agent_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    _ENFORCEMENT_LEVELS = ("off", "warn", "block")
+
+    def set_practice_enforcement(self, practice_id: int, level: str) -> None:
+        """Set how hard a practice is enforced: 'off' | 'warn' | 'block'.
+
+        This is the user's dial for "which practices to enforce and how hard":
+        off = don't gate, warn = slow_down the commit with a note, block =
+        escalate (hard-gate) until the practice is satisfied.
+        """
+        level = (level or "").strip().lower()
+        if level not in self._ENFORCEMENT_LEVELS:
+            raise ValueError(
+                f"enforcement must be one of {self._ENFORCEMENT_LEVELS}, got {level!r}"
+            )
+        self._ensure_practices_table()
+        conn = sqlite3.connect(self.db_path)
+        try:
+            conn.execute(
+                "UPDATE practices SET enforcement=? WHERE id=? AND agent_id=?",
+                (level, practice_id, self.agent_id),
             )
             conn.commit()
         finally:

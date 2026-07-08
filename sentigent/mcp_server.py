@@ -34,6 +34,64 @@ from sentigent.policies import check_policies, get_override_action, load_policie
 # Initialize MCP server
 mcp = FastMCP(name="Sentigent")
 
+# ── Tool surface profile ──────────────────────────────────────────────────────
+# The full server exposes 61 tools — far more than an agent can reason about
+# (the 2026-07-07 principal review flagged this as tool sprawl). Setting
+# SENTIGENT_TOOL_PROFILE=core registers only the 14 load-bearing tools: the
+# judgment loop, the loop driver (the core product), and the operator's one
+# answer hook. Default stays "full" so nothing breaks for existing installs.
+_PROFILE = os.environ.get("SENTIGENT_TOOL_PROFILE", "full").lower()
+
+CORE_TOOLS = frozenset({
+    # Judgment loop. sentigent_record feeds the episodes that graded_score,
+    # precedents, and baselines all depend on — omitting it would starve them.
+    "sentigent_evaluate",
+    "sentigent_record",
+    "sentigent_outcome",
+    "sentigent_feedback",
+    "sentigent_score",
+    "sentigent_patterns",
+    "sentigent_policy",
+    "sentigent_insights",
+    "sentigent_review",
+    # Loop driver — the core product. The full drive→ask→answer→resume cycle
+    # must be present or a loop that blocks on a human decision dead-ends.
+    "loop_start",
+    "loop_drive",
+    "loop_answer",
+    "loop_resume",
+    "loop_status",
+    "loop_receipt",
+    # Operator — the complete run lifecycle. operator_answer alone is unusable
+    # (nothing to start, resume, inspect, or kill).
+    "operator_start",
+    "operator_answer",
+    "operator_resume",
+    "operator_status",
+    "operator_kill",
+    # Clone status
+    "clone_status",
+    # Practice playbook — the user's "which best practices to enforce, how hard"
+    # control. Without it the enforcement gate can't be configured in-session.
+    "sentigent_practices",
+    # Routing self-correction — fold skill-router follow/ignore into routing_seeds.
+    "sentigent_reconcile_routes",
+})
+
+
+def _tool():
+    """Profile-aware replacement for @mcp.tool().
+
+    In the "core" profile, functions not in CORE_TOOLS are defined but not
+    registered with the MCP server, so they never reach the client's tool list.
+    In "full" (default) every tool registers, exactly as before.
+    """
+    def decorate(fn):
+        if _PROFILE == "core" and fn.__name__ not in CORE_TOOLS:
+            return fn
+        return mcp.tool()(fn)
+    return decorate
+
 # Thread-safe registry of Sentigent instances keyed by agent_id:profile
 _judges: dict[str, Sentigent] = {}
 _lock = threading.Lock()
@@ -55,7 +113,7 @@ def _get_judge(agent_id: str | None = None, profile: str | None = None) -> Senti
         return _judges[key]
 
 
-@mcp.tool()
+@_tool()
 def sentigent_evaluate(
     tool_name: str,
     tool_input: str,
@@ -150,7 +208,7 @@ def sentigent_evaluate(
     return json.dumps(response, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_record(
     tool_name: str,
     tool_input: str,
@@ -191,7 +249,7 @@ def sentigent_record(
     })
 
 
-@mcp.tool()
+@_tool()
 def sentigent_outcome(
     trace_id: str,
     outcome: str,
@@ -223,7 +281,7 @@ def sentigent_outcome(
     })
 
 
-@mcp.tool()
+@_tool()
 def sentigent_feedback(
     trace_id: str,
     was_helpful: bool,
@@ -254,19 +312,50 @@ def sentigent_feedback(
     })
 
 
-@mcp.tool()
+def _resolve_score_window(window_days: int) -> int:
+    """Resolve the recent-window size (in days) for the graded-only block.
+
+    Precedence: an explicit positive ``window_days`` wins; otherwise fall back
+    to the ``SENTIGENT_SCORE_WINDOW_DAYS`` env var when it is a valid int; else
+    default to 7. Pure helper — no I/O beyond reading the environment.
+
+    Args:
+        window_days: Caller-supplied window; used as-is when > 0.
+
+    Returns:
+        The resolved positive window size in days.
+    """
+    if window_days > 0:
+        return window_days
+    env_val = os.environ.get("SENTIGENT_SCORE_WINDOW_DAYS")
+    if env_val:
+        try:
+            parsed = int(env_val)
+            if parsed > 0:
+                return parsed
+        except ValueError:
+            pass
+    return 7
+
+
+@_tool()
 def sentigent_score(
     agent_id: str = "",
     profile: str = "",
+    recent_window_days: int = 0,
 ) -> str:
     """Get the current judgment score and statistics.
 
     Returns the judgment score, total decisions, outcome breakdown,
-    and learned baselines.
+    and learned baselines. Also surfaces a recent-window, graded-only
+    accuracy block so real signal is visible past the legacy episode
+    backlog (lifetime score dilutes recent behavior across ~78k episodes).
 
     Args:
         agent_id: Optional agent identifier (defaults to SENTIGENT_AGENT_ID env var)
         profile: Optional profile name (defaults to SENTIGENT_PROFILE env var)
+        recent_window_days: Size of the recent window in days for the
+            graded-only accuracy block (defaults to 7 when <= 0). Read-only.
     """
     judge = _get_judge(agent_id=agent_id or None, profile=profile or None)
     stats = judge._memory.get_outcome_stats()
@@ -282,15 +371,28 @@ def sentigent_score(
             "source": b.source,
         }
 
+    window = _resolve_score_window(recent_window_days)
+    recent_graded = judge._memory.get_recent_graded_accuracy(window)
+    graded_total, graded_correct = judge._memory.get_outcome_counts(graded_only=True)
+
     return json.dumps({
-        "judgment_score": judge.judgment_score,
-        "total_episodes": episode_count,
+        # Honest split: graded_* = human-graded outcomes only (the headline);
+        # observed/judgment_score = legacy semantics, dominated by legacy
+        # auto-recorded tool-status rows ("Bash command succeeded").
+        "graded_score": judge.graded_judgment_score,
+        "graded_total": graded_total,
+        "graded_correct": graded_correct,
+        "observed_score": judge.judgment_score,
+        "judgment_score": judge.judgment_score,  # deprecated alias of observed_score
+        "total_observations": episode_count,
+        "total_episodes": episode_count,  # deprecated alias of total_observations
         "outcomes": stats,
         "learned_baselines": baseline_summary,
+        "recent_graded": recent_graded,
     }, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_patterns(
     agent_id: str = "",
     profile: str = "",
@@ -343,7 +445,7 @@ def sentigent_patterns(
     }, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_insights(
     agent_id: str = "",
     profile: str = "",
@@ -407,7 +509,7 @@ def sentigent_insights(
     }, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_trends(
     window_days: int = 7,
     agent_id: str = "",
@@ -464,7 +566,7 @@ def sentigent_trends(
     }, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_review(
     last_n: int = 50,
     agent_id: str = "",
@@ -582,7 +684,7 @@ def _build_context_enrichment(
     return enrichment
 
 
-@mcp.tool()
+@_tool()
 def sentigent_context(
     task_description: str,
     agent_id: str = "",
@@ -746,7 +848,7 @@ def _enrich_context_from_tool(
 
 
 
-@mcp.tool()
+@_tool()
 def sentigent_layer2(
     agent_id: str = "",
     profile: str = "",
@@ -819,7 +921,7 @@ def sentigent_layer2(
     except Exception as exc:
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
-@mcp.tool()
+@_tool()
 def sentigent_coach(
     agent_id: str = "",
     lookback_days: int = 7,
@@ -855,7 +957,7 @@ def sentigent_coach(
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_bash_failures() -> str:
     """Query recent Bash tool failures detected by Sentigent hooks.
 
@@ -913,7 +1015,7 @@ def sentigent_bash_failures() -> str:
     }, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_prove(
     agent_id: str = "",
     days: int = 90,
@@ -946,7 +1048,7 @@ def sentigent_prove(
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_hub_status() -> str:
     """
     Get the intelligence hub status: connected agents, learning activity,
@@ -977,7 +1079,7 @@ def sentigent_hub_status() -> str:
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_peer_patterns(limit: int = 10) -> str:
     """
     Get high-confidence patterns learned by peer agents in your org.
@@ -1004,7 +1106,7 @@ def sentigent_peer_patterns(limit: int = 10) -> str:
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_learn_now() -> str:
     """
     Trigger an immediate collective learning cycle.
@@ -1044,7 +1146,7 @@ def sentigent_learn_now() -> str:
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_agent_bus() -> str:
     """
     Show the inter-agent message bus — registered agents, capabilities, and recent messages.
@@ -1068,7 +1170,7 @@ def sentigent_agent_bus() -> str:
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_executor_stats() -> str:
     """
     Show ActionExecutor statistics — how often each action type was executed and latency.
@@ -1099,7 +1201,117 @@ def sentigent_executor_stats() -> str:
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
+def sentigent_reconcile_routes(
+    days: int = 0,
+    dry_run: bool = False,
+    agent_id: str = "",
+) -> str:
+    """Fold skill-router follow/ignore signal into routing_seeds.outcome.
+
+    Correlates skill-router's embedding-route decisions (which skill it chose per
+    prompt) against skill_usage.log invocations (which skill you actually ran),
+    then writes the verdict back so the embedding router self-corrects: routes you
+    consistently ignore stop firing, routes you follow are reinforced.
+
+    Args:
+        days: only consider events from the last N days (0 = all history).
+        dry_run: report what WOULD change without writing.
+        agent_id: optional agent identifier.
+    """
+    import time as _time
+    from sentigent.routing import reconciler
+
+    judge = _get_judge(agent_id=agent_id or None)
+    since = (_time.time() - days * 86400) if days > 0 else 0.0
+    routes = reconciler.parse_route_events(reconciler.ROUTER_LOG_DEFAULT, since=since)
+    invs = reconciler.parse_invocations(reconciler.USAGE_LOG_DEFAULT, since=since)
+
+    if dry_run:
+        return json.dumps({
+            "dry_run": True, "parsed_routes": len(routes),
+            "invocations": len(invs), **reconciler.preview(routes, invs),
+        }, indent=2)
+
+    stats = reconciler.reconcile_outcomes(judge._memory, routes, invs)
+    return json.dumps({
+        "parsed_routes": len(routes), "invocations": len(invs), **stats,
+    }, indent=2)
+
+
+@_tool()
+def sentigent_practices(
+    action: str = "list",
+    text: str = "",
+    domain: str = "global",
+    cadence: str = "commit",
+    practice_id: int = 0,
+    enforcement: str = "",
+    active: str = "",
+    agent_id: str = "",
+) -> str:
+    """Manage your best-practice playbook — which practices get enforced, how hard.
+
+    This is the user-facing control for the practice enforcement gate: declare a
+    practice once and Sentigent holds you (and the loop driver) to it, so you
+    stop re-prompting "did you run the tests?" / "did you review the diff?".
+
+    Actions:
+      - "list"         → show your practices with adherence + enforcement level.
+      - "add"          → add a practice (text, domain, cadence). New practices
+                         start at enforcement='warn'.
+      - "enforce"      → set practice_id's enforcement to 'off' | 'warn' | 'block'.
+                         off = ignore, warn = slow_down the action with a note,
+                         block = escalate (hard-gate) until the practice is met.
+      - "toggle"       → set active='true'|'false' for practice_id.
+
+    Cadence is when it fires: 'commit' (git commit), 'pr' (git push / open PR),
+    'deploy', 'milestone', or 'always'. Only positive "do-X-before-Y" practices
+    are gate-enforced; prohibitions like "never force-push" stay in policies.
+    """
+    judge = _get_judge(agent_id=agent_id or None)
+    store = judge._memory
+    act = (action or "list").strip().lower()
+
+    try:
+        if act == "add":
+            if not text.strip():
+                return json.dumps({"error": "add requires 'text'"})
+            pid = store.add_practice(text.strip(), domain=domain, cadence=cadence)
+            return json.dumps({"added": pid, "text": text.strip(),
+                               "cadence": cadence, "enforcement": "warn"}, indent=2)
+        if act == "enforce":
+            if not practice_id:
+                return json.dumps({"error": "enforce requires 'practice_id'"})
+            store.set_practice_enforcement(practice_id, enforcement)
+            return json.dumps({"practice_id": practice_id,
+                               "enforcement": enforcement.strip().lower()}, indent=2)
+        if act == "toggle":
+            if not practice_id:
+                return json.dumps({"error": "toggle requires 'practice_id'"})
+            store.set_practice_active(practice_id, active.strip().lower() in ("1", "true", "yes", "on"))
+            return json.dumps({"practice_id": practice_id, "active": active}, indent=2)
+
+        rows = store.get_practices(active_only=False)
+        return json.dumps({
+            "practices": [
+                {
+                    "id": r["id"], "text": r["text"], "domain": r["domain"],
+                    "cadence": r["cadence"], "active": bool(r["active"]),
+                    "enforcement": r.get("enforcement", "warn"),
+                    "followed": r["times_followed"], "skipped": r["times_skipped"],
+                }
+                for r in rows
+            ],
+            "hint": "enforce id block  →  hard-gate that practice; off  →  ignore it",
+        }, indent=2)
+    except ValueError as ve:
+        return json.dumps({"error": str(ve)})
+    except Exception as exc:
+        return json.dumps({"error": f"practices op failed: {exc}"})
+
+
+@_tool()
 def sentigent_policy(
     action: str = "list",
     policy_name: str = "",
@@ -1206,7 +1418,7 @@ def sentigent_policy(
     return json.dumps({"error": f"Unknown action: {action}. Use list, add, or disable."})
 
 
-@mcp.tool()
+@_tool()
 def sentigent_metrics() -> str:
     """Return a snapshot of Sentigent's runtime observability metrics.
 
@@ -1235,7 +1447,7 @@ def sentigent_metrics() -> str:
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_profile(
     action: str = "get",
     profile_name: str = "",
@@ -1308,7 +1520,7 @@ def sentigent_profile(
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_prompt_health(
     lookback_days: int = 30,
     agent_id: str = "",
@@ -1347,7 +1559,7 @@ def sentigent_prompt_health(
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_collective(
     action: str = "status",
     profile_name: str = "default",
@@ -1440,7 +1652,7 @@ def sentigent_collective(
         return f"Layer 3 error: {exc}"
 
 
-@mcp.tool()
+@_tool()
 def sentigent_prompt_build(
     action: str = "list",
     template: str = "",
@@ -1610,7 +1822,7 @@ def _format_complete(result: dict) -> str:
     return "\n".join(lines)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_world_model(
     query: str = "",
     agent_id: str = "",
@@ -1665,7 +1877,7 @@ def sentigent_world_model(
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_start_task(
     goal: str,
     scope: str = "[]",
@@ -1734,7 +1946,7 @@ def sentigent_start_task(
     }, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_complete_task(
     task_id: str,
     outcome: str = "",
@@ -1777,7 +1989,7 @@ def sentigent_complete_task(
     }, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_active_tasks(
     agent_id: str = "",
     profile: str = "",
@@ -1801,7 +2013,7 @@ def sentigent_active_tasks(
     }, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_add_relationship(
     from_entity: str,
     from_type: str,
@@ -1896,7 +2108,7 @@ def sentigent_add_relationship(
         return _json.dumps({"success": False, "error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def sentigent_get_relationships(
     entity: str = "",
     relationship: str = "",
@@ -1960,7 +2172,7 @@ def sentigent_get_relationships(
         return _json.dumps({"relationships": [], "error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def sentigent_observe(
     text: str,
     member_identifier: str = "",
@@ -2021,7 +2233,7 @@ def sentigent_observe(
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_attribution_report(
     agent_id: str = "",
     days: int = 90,
@@ -2089,7 +2301,7 @@ def sentigent_attribution_report(
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_add_graph_policy(
     name: str,
     enforce_action: str,
@@ -2175,7 +2387,7 @@ def sentigent_add_graph_policy(
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_graph_policies() -> str:
     """List all active graph-based policies for this org.
 
@@ -2203,7 +2415,7 @@ def sentigent_graph_policies() -> str:
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_backfill_clarity(
     agent_id: str = "",
     limit: int = 200,
@@ -2243,7 +2455,7 @@ def sentigent_backfill_clarity(
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_analyze_task(
     task: str,
     conversation_history: list[str] | None = None,
@@ -2289,7 +2501,7 @@ def sentigent_analyze_task(
         return json.dumps({"status": "error", "error": str(exc)}, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_session_health(
     turns: list[str],
 ) -> str:
@@ -2415,7 +2627,7 @@ def _get_supabase():
         return None
 
 
-@mcp.tool()
+@_tool()
 def sentigent_remember(
     content: str,
     type: str = "convention",
@@ -2476,7 +2688,7 @@ def sentigent_remember(
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def sentigent_briefing(
     project: str = "",
 ) -> str:
@@ -2545,7 +2757,7 @@ def sentigent_briefing(
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def sentigent_route(
     task_text: str,
     agent_id: str = "",
@@ -2618,7 +2830,7 @@ def sentigent_route(
     }, indent=2)
 
 
-@mcp.tool()
+@_tool()
 def sentigent_intent(
     task: str,
     context: str = "{}",
@@ -2686,7 +2898,7 @@ def sentigent_intent(
         return json.dumps({"error": str(exc), "intent_block": ""})
 
 
-@mcp.tool()
+@_tool()
 def sentigent_setup_agent(
     action: str = "status",
     change_id: int = 0,
@@ -2836,7 +3048,7 @@ def _clone_store(agent_id: str = "", org_id: str = ""):
     return MemoryStore(agent_id=aid, org_id=oid)
 
 
-@mcp.tool()
+@_tool()
 def clone_status(agent_id: str = "", org_id: str = "") -> str:
     """Show how much of YOU your clone has captured — the Clone Readiness gauge.
 
@@ -2852,7 +3064,7 @@ def clone_status(agent_id: str = "", org_id: str = "") -> str:
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def clone_briefing(agent_id: str = "", org_id: str = "") -> str:
     """The clone's in-session greeting: readiness, what it learned about you, and
     one next move. Same briefing shown at session start. Markdown. Read-only."""
@@ -2865,7 +3077,7 @@ def clone_briefing(agent_id: str = "", org_id: str = "") -> str:
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def clone_review(agent_id: str = "", org_id: str = "") -> str:
     """Review your clone vs best practices: the GOOD (strengths to keep), the BAD
     (tensions/anti-patterns), and MISSING gaps you can adopt. Uses the local LLM
@@ -2882,7 +3094,7 @@ def clone_review(agent_id: str = "", org_id: str = "") -> str:
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def clone_adopt(n: int, agent_id: str = "", org_id: str = "") -> str:
     """Improve your clone: adopt gap #n from clone_review into your practices
     playbook. Raises best-practice coverage and clone readiness. n is 1-based.
@@ -2908,7 +3120,7 @@ def clone_adopt(n: int, agent_id: str = "", org_id: str = "") -> str:
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def clone_journey(agent_id: str = "", org_id: str = "") -> str:
     """Show where you are across the 5-step clone lifecycle + the single next move.
 
@@ -2932,7 +3144,7 @@ def clone_journey(agent_id: str = "", org_id: str = "") -> str:
 # the worker to real `claude -p` in an isolated git worktree.
 # ─────────────────────────────────────────────────────────────────────────────
 
-@mcp.tool()
+@_tool()
 def operator_start(plan: str = "", goal: str = "", autonomy: str = "assisted",
                    budget_usd: float = 2.0, execute: bool = False,
                    agent_id: str = "", org_id: str = "") -> str:
@@ -2969,7 +3181,7 @@ def operator_start(plan: str = "", goal: str = "", autonomy: str = "assisted",
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def operator_loop(goal: str, plan: str = "", autonomy: str = "autopilot",
                   budget_usd: float = 5.0, max_laps: int = 8,
                   dod_test_cmd: str = "", dod_files: str = "", dod_grep: str = "",
@@ -3018,7 +3230,7 @@ def operator_loop(goal: str, plan: str = "", autonomy: str = "autopilot",
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def operator_resume(run_id: int, agent_id: str = "", org_id: str = "") -> str:
     """Resume a paused operator run after you answered its escalation (operator_answer).
     Reconstructs the plan + step state from the run, applies your decision to the step
@@ -3056,7 +3268,7 @@ def operator_resume(run_id: int, agent_id: str = "", org_id: str = "") -> str:
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def operator_status(run_id: int, agent_id: str = "", org_id: str = "") -> str:
     """Show a run's status: the audit-log events (newest first) and any open
     escalations waiting on your answer. Read-only."""
@@ -3073,7 +3285,7 @@ def operator_status(run_id: int, agent_id: str = "", org_id: str = "") -> str:
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def operator_receipt(run_id: int, agent_id: str = "", org_id: str = "") -> str:
     """The autonomy receipt for a run: every decision, who decided (clone vs you vs
     gate), the confidence, the rationale — and the headline autonomy rate. The proof
@@ -3086,7 +3298,7 @@ def operator_receipt(run_id: int, agent_id: str = "", org_id: str = "") -> str:
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def operator_answer(escalation_id: int, decision: str,
                     agent_id: str = "", org_id: str = "") -> str:
     """Answer an open escalation (the operator paused on it). decision is your call,
@@ -3108,7 +3320,7 @@ def operator_answer(escalation_id: int, decision: str,
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def operator_kill(run_id: int = 0, agent_id: str = "", org_id: str = "") -> str:
     """Instant stop. Trips the kill switch — global if run_id is 0, else that run.
     The operator checks this between every step."""
@@ -3123,6 +3335,7 @@ def operator_kill(run_id: int = 0, agent_id: str = "", org_id: str = "") -> str:
         return json.dumps({"error": str(exc)})
 
 
+# ─────────────────────────────────────────────────────────────────────────────
 # loop_* — the DURABLE cross-session dark-factory loop (loop_driver). Unlike
 # operator_loop (one in-process run to DoD), these persist the next step to disk
 # so a FRESH `claude -p`/session resumes the plan after the session ends or the
@@ -3202,7 +3415,7 @@ def _mcp_execute_guard(execute: bool) -> str:
     return ""
 
 
-@mcp.tool()
+@_tool()
 def loop_start(goal: str, steps: str = "", cwd: str = "",
                anchor_files: str = "", guardrails: bool = False,
                max_attempts: int = 3) -> str:
@@ -3232,7 +3445,7 @@ def loop_start(goal: str, steps: str = "", cwd: str = "",
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def loop_drive(loop_id: str, execute: bool = False, max_steps: int = 50,
                timeout: int = 1800) -> str:
     """Drive a loop forward, lap after lap, until done / blocked / max / budget.
@@ -3250,7 +3463,7 @@ def loop_drive(loop_id: str, execute: bool = False, max_steps: int = 50,
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def loop_resume(loop_id: str, execute: bool = False, max_steps: int = 50,
                 timeout: int = 1800) -> str:
     """Resume a loop after a session ended, a crash, or a human answer to a blocker.
@@ -3268,7 +3481,7 @@ def loop_resume(loop_id: str, execute: bool = False, max_steps: int = 50,
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def loop_answer(loop_id: str, decision: str) -> str:
     """Answer a loop's open blocker AS the human (approve / skip / takeover). Records the
     precedent AND scores the clone's attempt (calibration) so the loop's push-vs-ask
@@ -3281,7 +3494,7 @@ def loop_answer(loop_id: str, decision: str) -> str:
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def loop_status(loop_id: str) -> str:
     """Where is this loop? Returns the status line (goal · next step · FAP) + metrics
     for one loop, read straight from its persisted state."""
@@ -3293,7 +3506,7 @@ def loop_status(loop_id: str) -> str:
         return json.dumps({"error": str(exc)})
 
 
-@mcp.tool()
+@_tool()
 def loop_receipt() -> str:
     """The dark-factory scoreboard across ALL loops: per-run FAP/distance/fidelity,
     means, and the FAP-over-time trend (is the system getting smarter?). Real numbers
@@ -3308,8 +3521,6 @@ def loop_receipt() -> str:
         return buf.getvalue() + "\n" + json.dumps(L.receipt()["aggregate"])
     except Exception as exc:
         return json.dumps({"error": str(exc)})
-
-
 
 
 def main() -> None:

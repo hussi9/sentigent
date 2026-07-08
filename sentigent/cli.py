@@ -168,6 +168,23 @@ def main() -> None:
     report_parser.add_argument("--agent-id", default="", help="Agent ID")
     report_parser.add_argument("--json", action="store_true", dest="as_json")
 
+    practices_parser = subparsers.add_parser(
+        "practices",
+        help="Your enforced best-practice playbook (list/add/enforce/toggle)",
+    )
+    practices_parser.add_argument(
+        "action", nargs="?", default="list",
+        choices=["list", "add", "enforce", "toggle"],
+    )
+    practices_parser.add_argument(
+        "rest", nargs="*",
+        help='add "<text>" | enforce <id> <off|warn|block> | toggle <id> <on|off>',
+    )
+    practices_parser.add_argument("--cadence", default="commit",
+                                  help="always|commit|milestone|deploy|pr (for add)")
+    practices_parser.add_argument("--agent-id", default="", help="Agent ID")
+    practices_parser.add_argument("--db-path", default=None, dest="db_path")
+
     args = parser.parse_args()
 
     if args.command == "init":
@@ -239,6 +256,14 @@ def main() -> None:
             month=args.month,
             agent_id=args.agent_id,
             as_json=args.as_json,
+        )
+    elif args.command == "practices":
+        _cmd_practices(
+            action=args.action,
+            rest=args.rest,
+            cadence=args.cadence,
+            agent_id=args.agent_id,
+            db_path=args.db_path,
         )
     else:
         parser.print_help()
@@ -462,6 +487,83 @@ def _cmd_score(agent_id: str, db_path: str | None) -> None:
     print(f"  Incorrect: {outcome_stats.get('incorrect', 0)}")
     print(f"  Neutral:   {outcome_stats.get('neutral', 0)}")
     print(f"  Total:     {total}")
+
+    # Recent-window, graded-only judgment metric (read-only; default 7 days).
+    recent = store.get_recent_graded_accuracy(7)
+    window = recent["window_days"]
+    graded_total = recent["graded_total"]
+    accuracy = recent["accuracy"]
+    print()
+    if accuracy is None:
+        print(f"Recent ({window}d): no graded decisions in window")
+    else:
+        print(f"Recent ({window}d): {accuracy:.1%}")
+        print(
+            f"  Graded:    {graded_total} "
+            f"({recent['correct']} correct / {recent['incorrect']} incorrect)"
+        )
+
+
+def _cmd_practices(
+    action: str,
+    rest: list[str],
+    cadence: str,
+    agent_id: str,
+    db_path: str | None,
+) -> None:
+    """Manage the enforced best-practice playbook from the CLI.
+
+    Mirrors the sentigent_practices MCP tool: list / add / enforce / toggle.
+    Enforcement level (off|warn|block) is the dial for how hard the practice
+    gate holds you to each practice at its cadence.
+    """
+    from sentigent.memory.store import MemoryStore
+
+    store = MemoryStore(agent_id=agent_id, org_id="cli", db_path=db_path)
+
+    if action == "add":
+        text = " ".join(rest).strip()
+        if not text:
+            print('usage: sentigent practices add "<practice text>" [--cadence commit]')
+            return
+        pid = store.add_practice(text, domain="global", cadence=cadence)
+        print(f"added #{pid}  (cadence={cadence}, enforcement=warn):  {text}")
+        return
+
+    if action == "enforce":
+        if len(rest) < 2 or not rest[0].isdigit():
+            print("usage: sentigent practices enforce <id> <off|warn|block>")
+            return
+        try:
+            store.set_practice_enforcement(int(rest[0]), rest[1])
+        except ValueError as exc:
+            print(f"error: {exc}")
+            return
+        print(f"practice #{rest[0]} → enforcement={rest[1].strip().lower()}")
+        return
+
+    if action == "toggle":
+        if len(rest) < 2 or not rest[0].isdigit():
+            print("usage: sentigent practices toggle <id> <on|off>")
+            return
+        on = rest[1].strip().lower() in ("on", "true", "1", "yes")
+        store.set_practice_active(int(rest[0]), on)
+        print(f"practice #{rest[0]} → active={on}")
+        return
+
+    # list
+    rows = store.get_practices(active_only=False)
+    if not rows:
+        print('No practices yet. Add one:')
+        print('  sentigent practices add "Run the tests before committing"')
+        return
+    print(f"{'id':>3}  {'enforce':<7} {'cadence':<9} {'foll/skip':<9} practice")
+    print("  " + "-" * 66)
+    for r in rows:
+        state = "" if r["active"] else "  (inactive)"
+        fs = f"{r['times_followed']}/{r['times_skipped']}"
+        print(f"{r['id']:>3}  {r.get('enforcement', 'warn'):<7} "
+              f"{r['cadence']:<9} {fs:<9} {r['text']}{state}")
 
 
 def _cmd_export(fmt: str, days: int, output_path: str | None) -> None:

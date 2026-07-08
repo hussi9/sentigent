@@ -61,6 +61,10 @@ class Sentigent:
         judge.record_outcome(decision.trace_id, "correct", "Fraud confirmed")
     """
 
+    # Force a baseline recompute every Nth recorded outcome; between forces,
+    # the store's own time-based throttle applies (hot-path guard).
+    _BASELINE_RECOMPUTE_EVERY = 25
+
     def __init__(
         self,
         profile: str | Profile = "default",
@@ -113,6 +117,17 @@ class Sentigent:
         # Insights engine — computes structured findings from accumulated episodes
         from sentigent.core.insights import InsightsEngine
         self._insights = InsightsEngine(self._memory)
+
+        # Precedent gate — real human decisions (approve/reject/correct/revert)
+        # outrank statistical signals. See sentigent.core.precedents.
+        from sentigent.core.precedents import PrecedentGate
+        self._precedent_gate = PrecedentGate(self._memory)
+        from sentigent.core.practice_gate import PracticeGate
+        self._practice_gate = PracticeGate(self._memory)
+
+        # Counts recorded outcomes to force a periodic baseline recompute
+        # (instance state — parity with _outcome_counter, not a shared class attr).
+        self._baseline_outcome_counter = 0
 
         # Counter for triggering periodic pattern mining (every 50 outcomes)
         self._outcome_counter: int = 0
@@ -224,22 +239,38 @@ class Sentigent:
         except Exception as exc:
             logger.debug("Layer 2 pattern pull failed (non-critical): %s", exc)
 
+    def _score_from_counts(self, graded_only: bool) -> float:
+        """correct/total accuracy from stored outcome counts, 0.0 on empty/error.
+
+        Shared by ``judgment_score`` and ``graded_judgment_score`` so their
+        zero-division and error handling can't drift apart.
+        """
+        label = "graded " if graded_only else ""
+        try:
+            total, correct = self._memory.get_outcome_counts(graded_only=graded_only)
+            return correct / total if total else 0.0
+        except Exception:
+            logger.warning("Failed to compute %sjudgment score from DB, returning 0.0", label)
+            return 0.0
+
     @property
     def judgment_score(self) -> float:
-        """Current judgment accuracy score (0.0 to 1.0).
+        """Observed judgment accuracy (0.0-1.0) over all recorded outcomes.
 
-        Computed from the database: ratio of correct decisions to total
-        evaluated decisions. Persists across restarts.
-        Only includes decisions where an outcome has been recorded.
+        Persists across restarts. Dominated by legacy auto-recorded tool-status
+        rows; ``graded_judgment_score`` is the honest headline.
         """
-        try:
-            total, correct = self._memory.get_outcome_counts()
-            if total == 0:
-                return 0.0
-            return correct / total
-        except Exception:
-            logger.warning("Failed to compute judgment score from DB, returning 0.0")
-            return 0.0
+        return self._score_from_counts(graded_only=False)
+
+    @property
+    def graded_judgment_score(self) -> float:
+        """Judgment accuracy over HUMAN-GRADED outcomes only (0.0-1.0).
+
+        Excludes legacy auto-recorded tool-status rows ("Bash command
+        succeeded" etc.), which measured tool exit codes rather than judgment
+        quality. This is the honest headline number.
+        """
+        return self._score_from_counts(graded_only=True)
 
     def evaluate(
         self,
@@ -404,6 +435,92 @@ class Sentigent:
             )
             self._safe_store_episode(task, context, agent_state, {}, gp_action, decision)
             return decision
+
+        # Step -0.25: Precedent gate — real human decisions outrank statistics.
+        # Sits below PolicyWall / graph policies (those are inviolable) but above
+        # every signal-based path: if the human has repeatedly reacted to this
+        # kind of action, honor that instead of re-deriving a verdict from
+        # signals that carry little numeric context on live tool calls.
+        # Fails open — any error just falls through to the signal path.
+        try:
+            from sentigent.core.precedents import normalize_signature
+
+            tool_input_ref = str(context.get("tool_input", "") or "")
+            if tool_name and tool_input_ref:
+                precedent = self._precedent_gate.lookup(
+                    normalize_signature(tool_name, tool_input_ref)
+                )
+                if precedent is not None:
+                    try:
+                        prec_action = DecisionAction(precedent.action)
+                    except ValueError:
+                        prec_action = DecisionAction.SLOW_DOWN
+                    decision = Decision(
+                        action=prec_action,
+                        reason=(
+                            f"Precedent: {precedent.reason} — "
+                            f"honoring your recorded judgment over signals"
+                        ),
+                        signals={},
+                        signal_details=[],
+                        judgment_score=self.judgment_score,
+                        confidence=precedent.agreement,
+                        metadata={
+                            "agent_id": self._agent_id,
+                            "source": "precedent",
+                            "precedent_sample_size": precedent.sample_size,
+                            "precedent_agreement": precedent.agreement,
+                        },
+                    )
+                    self._safe_store_episode(
+                        task, context, agent_state, {}, prec_action, decision
+                    )
+                    return decision
+        except Exception as _prec_err:
+            # Fails open to the signal path — but log it, so a real defect in
+            # the precedent lookup/Decision construction is debuggable rather
+            # than silently degrading judgment.
+            logger.debug("Precedent gate skipped (non-fatal): %s", _prec_err)
+
+        # Step -0.1: Practice enforcement — hold the agent to the practices the
+        # user declared (Layer A playbook). When a practice's cadence fires
+        # (e.g. `git commit`) and it wasn't satisfied this session, act per the
+        # user's chosen enforcement level: block → escalate, warn → slow_down.
+        # This is what lets the user stop re-prompting "did you run the tests?".
+        # Fails open — any error falls through to the signal path.
+        try:
+            recent = self._memory.get_recent_episodes(limit=40)
+            recent_texts = [str(r.get("task", "")) for r in (recent or [])]
+            pv = self._practice_gate.check(tool_name, task, recent_texts)
+            if pv is not None:
+                try:
+                    pv_action = DecisionAction(pv.action)
+                except ValueError:
+                    pv_action = DecisionAction.SLOW_DOWN
+                decision = Decision(
+                    action=pv_action,
+                    reason=(
+                        f"Practice enforced ({pv.enforcement}): {pv.reason}. "
+                        f"Satisfy it (or set this practice to a lower enforcement) to proceed."
+                    ),
+                    signals={},
+                    signal_details=[],
+                    judgment_score=self.judgment_score,
+                    confidence=1.0,
+                    metadata={
+                        "agent_id": self._agent_id,
+                        "source": "practice",
+                        "practice_id": pv.practice_id,
+                        "practice_key": pv.kb_key,
+                        "enforcement": pv.enforcement,
+                    },
+                )
+                self._safe_store_episode(
+                    task, context, agent_state, {}, pv_action, decision
+                )
+                return decision
+        except Exception as _prac_err:
+            logger.debug("Practice gate skipped (non-fatal): %s", _prac_err)
 
         # Step 0a: Enrich context with org profile intelligence (Layer 2 profile biases)
         # This injects value_weights and thresholds for the assigned org profile.
@@ -715,8 +832,15 @@ class Sentigent:
                 timestamp=datetime.now(timezone.utc),
             )
 
-            # Trigger learning: update baselines from accumulated experience
-            self._memory.update_baselines_from_episodes()
+            # Trigger learning: update baselines from accumulated experience.
+            # Unforced calls are throttled inside the store (recompute full-scans
+            # every episode's JSON context — it must not run per tool call);
+            # every 25th outcome forces one so learning still advances under
+            # sustained activity.
+            self._baseline_outcome_counter += 1
+            self._memory.update_baselines_from_episodes(
+                force=self._baseline_outcome_counter % self._BASELINE_RECOMPUTE_EVERY == 0
+            )
 
             # Track outcomes and periodically mine patterns
             if outcome in ("correct", "incorrect"):

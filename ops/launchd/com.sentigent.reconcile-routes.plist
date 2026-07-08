@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.sentigent.reconcile-routes</string>
+
+    <!-- Fold skill-router follow/ignore signal into routing_seeds.outcome so the
+         embedding router self-corrects. Cheap + fast (no model load): reads the
+         two ~/.claude logs, writes outcome deltas. Idempotent — safe to re-run. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>__SENTIGENT_REPO__/.venv/bin/python</string>
+        <string>-m</string>
+        <string>sentigent.scripts.reconcile_routing_outcomes</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__SENTIGENT_REPO__</string>
+
+    <!-- Daily at 03:30 local. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key><integer>3</integer>
+        <key>Minute</key><integer>30</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>__HOME__/Library/Logs/sentigent-reconcile-routes.log</string>
+    <key>StandardErrorPath</key>
+    <string>__HOME__/Library/Logs/sentigent-reconcile-routes.log</string>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>
