@@ -10,6 +10,7 @@ import asyncio
 import json
 import os
 import sqlite3
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -715,6 +716,92 @@ async def toggle_practice(practice_id: int) -> JSONResponse:
         store.set_practice_active(practice_id, not bool(row["active"]))
         updated = _find_practice(store, practice_id)
         return JSONResponse(_practice_to_dict(updated))
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
+# ── Routing Seeds (skill-router closed loop, console Task 11) ──
+
+def _reconcile_log_path(override: str | None, env_var: str, default: Path) -> Path:
+    """Resolve a reconciler log path: body override > env var > reconciler default."""
+    if override:
+        return Path(override)
+    env_val = os.environ.get(env_var)
+    if env_val:
+        return Path(env_val)
+    return default
+
+
+@app.get("/api/routing/seeds")
+async def get_routing_seeds() -> JSONResponse:
+    try:
+        store = _get_practices_store()
+        rows = store.get_all_routing_seeds_with_embeddings()
+        counts = {"correct": 0, "neutral": 0, "incorrect": 0}
+        seeds = []
+        for r in rows:
+            outcome = r.get("outcome") or "neutral"
+            if outcome not in counts:
+                outcome = "neutral"
+            counts[outcome] += 1
+            seeds.append({
+                "prompt_hash": r["prompt_hash"],
+                "skill": r["skill"],
+                "agent": r["agent"],
+                "model": r["model"],
+                "confidence": r["confidence"],
+                "outcome": outcome,
+            })
+        return JSONResponse({"seeds": seeds, "counts": counts})
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
+class RoutingReconcileRequest(BaseModel):
+    dry_run: bool = True
+    days: int | None = None
+    router_log: str | None = None
+    usage_log: str | None = None
+
+
+@app.post("/api/routing/reconcile")
+async def reconcile_routing(body: RoutingReconcileRequest) -> JSONResponse:
+    """Fold skill-router follow/ignore signal into routing_seeds.outcome.
+
+    Mirrors sentigent_reconcile_routes (mcp_server.py): parse both logs, then
+    either preview() (dry_run) or reconcile_outcomes() (wet) — no logic lives
+    here beyond wiring reconciler + store.
+    """
+    from sentigent.routing import reconciler
+
+    try:
+        since = 0.0
+        if body.days:
+            since = time.time() - body.days * 86400
+        router_log = _reconcile_log_path(
+            body.router_log, "SENTIGENT_ROUTER_LOG_PATH", reconciler.ROUTER_LOG_DEFAULT
+        )
+        usage_log = _reconcile_log_path(
+            body.usage_log, "SENTIGENT_USAGE_LOG_PATH", reconciler.USAGE_LOG_DEFAULT
+        )
+        routes = reconciler.parse_route_events(router_log, since=since)
+        invs = reconciler.parse_invocations(usage_log, since=since)
+
+        if body.dry_run:
+            return JSONResponse({
+                "dry_run": True,
+                "parsed_routes": len(routes),
+                "invocations": len(invs),
+                **reconciler.preview(routes, invs),
+            })
+
+        store = _get_practices_store()
+        stats = reconciler.reconcile_outcomes(store, routes, invs)
+        return JSONResponse({
+            "parsed_routes": len(routes),
+            "invocations": len(invs),
+            **stats,
+        })
     except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=500)
 
