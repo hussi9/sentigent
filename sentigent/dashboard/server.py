@@ -776,7 +776,7 @@ async def reconcile_routing(body: RoutingReconcileRequest) -> JSONResponse:
 
     try:
         since = 0.0
-        if body.days:
+        if body.days is not None and body.days > 0:
             since = time.time() - body.days * 86400
         router_log = _reconcile_log_path(
             body.router_log, "SENTIGENT_ROUTER_LOG_PATH", reconciler.ROUTER_LOG_DEFAULT
