@@ -36,7 +36,19 @@ def _events(store, run_id, etype):
     return out
 
 
-def test_phased_plan_runs_end_to_end(tmp_path):
+def test_phased_plan_runs_end_to_end(tmp_path, monkeypatch):
+    # Hermetic: stub the local-LLM boundary so the gate's verdict is
+    # deterministic on machines without a local model (CI). Without this the
+    # heuristic fallback is low-confidence and the decider correctly escalates,
+    # turning the run status into "waiting" instead of "done".
+    from sentigent.operator import gate as gate_mod
+    monkeypatch.setattr(gate_mod.local_llm, "llm_available", lambda *a, **k: True)
+    monkeypatch.setattr(
+        gate_mod.local_llm, "generate_json",
+        lambda *a, **k: {"decision": "continue", "confidence": 0.95,
+                         "reason": "stubbed verdict for hermetic e2e", "correction": ""},
+    )
+
     store = MemoryStore(agent_id="t-fly", org_id="t", db_path=tmp_path / "fly.db")
     plan = parse_plan(PLAN_MD)
 
