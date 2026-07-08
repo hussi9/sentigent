@@ -261,6 +261,9 @@ export type NavPage =
   | "dashboard"
   | "agents"
   | "policies"
+  | "practices"
+  | "escalations"
+  | "routing"
   | "prompt-builder"
   | "collective"
   | "proof"
@@ -278,6 +281,73 @@ export interface Layer2Status {
   configured: boolean;
   supabase_url: string | null;
   org_id: string;
+}
+
+// ── Practices ───────────────────────────────────────────────
+
+export type PracticeEnforcement = "off" | "warn" | "block";
+
+export interface Practice {
+  id: number;
+  text: string;
+  domain: string;
+  cadence: string;
+  enforcement: PracticeEnforcement;
+  active: boolean;
+  times_followed: number;
+  times_skipped: number;
+}
+
+export interface PracticesResponse {
+  practices: Practice[];
+}
+
+// ── Escalations ─────────────────────────────────────────────
+
+export type EscalationDecision = "approve" | "skip" | "takeover";
+
+export interface Escalation {
+  loop_id: string;
+  step: number | string;
+  title: string;
+  blocker: string;
+  asked_at: number;
+}
+
+export interface EscalationsResponse {
+  pending: Escalation[];
+}
+
+// ── Routing (skill-router closed loop) ─────────────────────
+
+export type RoutingOutcome = "correct" | "incorrect" | "neutral";
+
+export interface RoutingSeed {
+  prompt_hash: string;
+  skill: string;
+  agent: string;
+  model: string;
+  confidence: number;
+  outcome: RoutingOutcome;
+}
+
+export interface RoutingSeedsResponse {
+  seeds: RoutingSeed[];
+  counts: { correct: number; incorrect: number; neutral: number };
+}
+
+export interface RoutingReconcileResult {
+  dry_run?: boolean;
+  parsed_routes: number;
+  invocations: number;
+  seen?: number;
+  would_reinforce?: number;
+  would_demote?: number;
+  thin?: number;
+  reinforced?: number;
+  demoted?: number;
+  unchanged?: number;
+  unknown?: number;
 }
 
 // ── Truth Sprint (WS-B ablation harness) ───────────────────

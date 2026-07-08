@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client";
-import type { OrgPolicy } from "@/types";
+import type { OrgPolicy, PracticeEnforcement, EscalationDecision } from "@/types";
 
 // ── Query Keys ─────────────────────────────────────────────
 
@@ -17,6 +17,9 @@ export const keys = {
   layer2Timeline: ["layer2", "timeline"] as const,
   policies: ["policies"] as const,
   practiceTemplates: ["practice-templates"] as const,
+  practices: ["practices"] as const,
+  escalations: ["escalations"] as const,
+  routingSeeds: ["routing", "seeds"] as const,
   prove: (days: number) => ["prove", days] as const,
   collective: (orgId: string) => ["collective", orgId] as const,
   collectivePatterns: (orgId: string) => ["collective-patterns", orgId] as const,
@@ -114,6 +117,66 @@ export function useTogglePolicy() {
   return useMutation({
     mutationFn: (name: string) => api.togglePolicy(name),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.policies }),
+  });
+}
+
+// ── Practices ──────────────────────────────────────────────
+
+export function usePractices() {
+  return useQuery({ queryKey: keys.practices, queryFn: api.getPractices, refetchInterval: 30_000 });
+}
+
+export function useCreatePractice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (practice: { text: string; domain?: string; cadence?: string }) => api.createPractice(practice),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.practices }),
+  });
+}
+
+export function useSetPracticeEnforcement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, level }: { id: number; level: PracticeEnforcement }) =>
+      api.setPracticeEnforcement(id, level),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.practices }),
+  });
+}
+
+export function useTogglePractice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.togglePractice(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.practices }),
+  });
+}
+
+// ── Escalations ────────────────────────────────────────────
+
+export function useEscalations() {
+  return useQuery({ queryKey: keys.escalations, queryFn: api.getEscalations, refetchInterval: 10_000 });
+}
+
+export function useAnswerEscalation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ loopId, decision }: { loopId: string; decision: EscalationDecision }) =>
+      api.answerEscalation(loopId, decision),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.escalations }),
+  });
+}
+
+// ── Routing ────────────────────────────────────────────────
+
+export function useRoutingSeeds() {
+  return useQuery({ queryKey: keys.routingSeeds, queryFn: api.getRoutingSeeds, refetchInterval: 30_000 });
+}
+
+export function useReconcileRouting() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (dryRun: boolean) => api.reconcileRouting(dryRun),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.routingSeeds }),
   });
 }
 

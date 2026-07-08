@@ -15,6 +15,9 @@ import {
   Brain,
   HelpCircle,
   Library,
+  ClipboardList,
+  AlertOctagon,
+  Route,
 } from "lucide-react";
 import type { NavPage } from "@/types";
 
@@ -58,6 +61,9 @@ const NAV_SECTIONS: Array<{ label: string; items: NavItem[] }> = [
     label: "Governance",
     items: [
       { id: "policies", label: "Policy Manager", icon: <ShieldCheck size={15} /> },
+      { id: "practices", label: "Practices", icon: <ClipboardList size={15} /> },
+      { id: "escalations", label: "Escalations", icon: <AlertOctagon size={15} /> },
+      { id: "routing", label: "Routing", icon: <Route size={15} /> },
       { id: "org-knowledge", label: "Org Knowledge", icon: <Library size={15} /> },
       { id: "collective", label: "Collective Intel", icon: <Globe size={15} /> },
     ],

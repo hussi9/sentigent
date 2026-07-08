@@ -5,6 +5,9 @@ import { Layout } from "@/components/layout/Layout";
 import { Dashboard } from "@/pages/Dashboard";
 import { AgentExplorer } from "@/pages/AgentExplorer";
 import { PolicyManager } from "@/pages/PolicyManager";
+import { Practices } from "@/pages/Practices";
+import { Escalations } from "@/pages/Escalations";
+import { Routing } from "@/pages/Routing";
 import { PromptBuilder } from "@/pages/PromptBuilder";
 import { CollectiveIntelligence } from "@/pages/CollectiveIntelligence";
 import { ProofOfValue } from "@/pages/ProofOfValue";
@@ -68,6 +71,9 @@ function AppShell() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/agents" element={<AgentExplorer />} />
           <Route path="/policies" element={<PolicyManager />} />
+          <Route path="/practices" element={<Practices />} />
+          <Route path="/escalations" element={<Escalations />} />
+          <Route path="/routing" element={<Routing />} />
           <Route path="/prompt-builder" element={<PromptBuilder />} />
           <Route path="/collective" element={<CollectiveIntelligence />} />
           <Route path="/proof" element={<ProofOfValue />} />

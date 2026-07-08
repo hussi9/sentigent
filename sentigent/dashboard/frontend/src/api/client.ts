@@ -14,6 +14,13 @@ import type {
   TemplateInfo,
   PromptSession,
   SprintResponse,
+  Practice,
+  PracticesResponse,
+  PracticeEnforcement,
+  EscalationsResponse,
+  EscalationDecision,
+  RoutingSeedsResponse,
+  RoutingReconcileResult,
 } from "@/types";
 
 const BASE = "/api";
@@ -108,6 +115,25 @@ export const api = {
     get<CollectiveResponse>("/collective", { ...(orgId ? { org_id: orgId } : {}), action: "status" }),
   getCollectivePatterns: (orgId = "") =>
     get<CollectiveResponse>("/collective", { ...(orgId ? { org_id: orgId } : {}), action: "pull" }),
+
+  // Practices
+  getPractices: () => get<PracticesResponse>("/practices"),
+  createPractice: (practice: { text: string; domain?: string; cadence?: string }) =>
+    post<Practice>("/practices", practice),
+  setPracticeEnforcement: (id: number, level: PracticeEnforcement) =>
+    post<Practice>(`/practices/${id}/enforcement`, { level }),
+  togglePractice: (id: number) =>
+    post<Practice>(`/practices/${id}/toggle`, undefined),
+
+  // Escalations
+  getEscalations: () => get<EscalationsResponse>("/escalations"),
+  answerEscalation: (loopId: string, decision: EscalationDecision) =>
+    post<{ status: string; [key: string]: unknown }>(`/escalations/${encodeURIComponent(loopId)}/answer`, { decision }),
+
+  // Routing seeds
+  getRoutingSeeds: () => get<RoutingSeedsResponse>("/routing/seeds"),
+  reconcileRouting: (dryRun: boolean) =>
+    post<RoutingReconcileResult>("/routing/reconcile", { dry_run: dryRun }),
 
   // Prompt builder
   getTemplates: () => get<TemplateInfo[]>("/prompt-builder/templates"),

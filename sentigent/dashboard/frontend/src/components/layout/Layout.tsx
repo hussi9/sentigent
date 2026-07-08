@@ -22,7 +22,7 @@ function pathToPage(pathname: string): NavPage {
   }
   const segment = clean.split("/")[0] as NavPage;
   const valid: NavPage[] = [
-    "dashboard", "agents", "policies", "prompt-builder",
+    "dashboard", "agents", "policies", "practices", "escalations", "routing", "prompt-builder",
     "collective", "proof", "onboarding", "my-agent", "intelligence", "help",
     "org-knowledge",
   ];
