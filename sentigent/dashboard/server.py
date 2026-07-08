@@ -629,6 +629,96 @@ async def deactivate_policy(policy_name: str) -> JSONResponse:
         return JSONResponse({"error": str(exc)}, status_code=500)
 
 
+# ── Practices (the declared "how I build" playbook) ─────────────
+
+def _get_practices_store() -> Any:
+    from sentigent.memory.store import MemoryStore
+    agent_id = os.environ.get("SENTIGENT_AGENT_ID", "claude_code")
+    return MemoryStore(agent_id=agent_id, org_id=_resolve_org_id(), db_path=_get_db_path())
+
+
+def _practice_to_dict(row: dict) -> dict:
+    return {
+        "id": row["id"],
+        "text": row["text"],
+        "domain": row["domain"],
+        "cadence": row["cadence"],
+        "enforcement": row.get("enforcement", "warn"),
+        "active": bool(row["active"]),
+        "times_followed": row["times_followed"],
+        "times_skipped": row["times_skipped"],
+    }
+
+
+def _find_practice(store: Any, practice_id: int) -> dict | None:
+    rows = store.get_practices(active_only=False)
+    return next((r for r in rows if r["id"] == practice_id), None)
+
+
+@app.get("/api/practices")
+async def get_practices() -> JSONResponse:
+    try:
+        store = _get_practices_store()
+        rows = store.get_practices(active_only=False)
+        return JSONResponse({"practices": [_practice_to_dict(r) for r in rows]})
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
+class PracticeCreate(BaseModel):
+    text: str
+    domain: str = "global"
+    cadence: str = "always"
+
+
+@app.post("/api/practices")
+async def create_practice(body: PracticeCreate) -> JSONResponse:
+    if not body.text.strip():
+        return JSONResponse({"error": "text is required"}, status_code=400)
+    try:
+        store = _get_practices_store()
+        pid = store.add_practice(body.text.strip(), domain=body.domain, cadence=body.cadence)
+        row = _find_practice(store, pid)
+        if row is None:
+            return JSONResponse({"error": "practice not found after create"}, status_code=500)
+        return JSONResponse(_practice_to_dict(row))
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
+class PracticeEnforcement(BaseModel):
+    level: str
+
+
+@app.post("/api/practices/{practice_id}/enforcement")
+async def set_practice_enforcement(practice_id: int, body: PracticeEnforcement) -> JSONResponse:
+    try:
+        store = _get_practices_store()
+        store.set_practice_enforcement(practice_id, body.level)
+    except ValueError as ve:
+        return JSONResponse({"error": str(ve)}, status_code=400)
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+    row = _find_practice(store, practice_id)
+    if row is None:
+        return JSONResponse({"error": "Practice not found"}, status_code=404)
+    return JSONResponse(_practice_to_dict(row))
+
+
+@app.post("/api/practices/{practice_id}/toggle")
+async def toggle_practice(practice_id: int) -> JSONResponse:
+    try:
+        store = _get_practices_store()
+        row = _find_practice(store, practice_id)
+        if row is None:
+            return JSONResponse({"error": "Practice not found"}, status_code=404)
+        store.set_practice_active(practice_id, not bool(row["active"]))
+        updated = _find_practice(store, practice_id)
+        return JSONResponse(_practice_to_dict(updated))
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
 # ── Practice Policy Templates ──────────────────────────────────
 
 PRACTICE_TEMPLATES = [
