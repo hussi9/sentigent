@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { supabase, isLocalMode } from "@/lib/supabase";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -36,15 +36,39 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// ── Local mode ─────────────────────────────────────────────────────────────
+// No Supabase project configured (the default `pip install sentigent` case,
+// server bound to 127.0.0.1). There's no multi-tenant auth to gate — the
+// dashboard is a single-user local console, so we synthesize a permanent
+// "local" session/user/membership instead of ever hitting Supabase.
+
+const LOCAL_USER = {
+  id: "local",
+  email: "local@localhost",
+} as unknown as User;
+
+const LOCAL_SESSION = {
+  access_token: "local",
+  token_type: "bearer",
+  user: LOCAL_USER,
+} as unknown as Session;
+
+const LOCAL_MEMBERSHIP: OrgMembership = {
+  org_id: "local",
+  org_name: "Local",
+  org_slug: "local",
+  role: "owner",
+  plan: "enterprise",
+};
+
 // ── Provider ───────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    session: null,
-    user: null,
-    membership: null,
-    loading: true,
-  });
+  const [state, setState] = useState<AuthState>(
+    isLocalMode
+      ? { session: LOCAL_SESSION, user: LOCAL_USER, membership: LOCAL_MEMBERSHIP, loading: false }
+      : { session: null, user: null, membership: null, loading: true }
+  );
 
   const fetchMembership = useCallback(async (userId: string) => {
     try {
@@ -77,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshMembership = useCallback(async () => {
+    if (isLocalMode) return; // membership is fixed in local mode
     const userId = state.user?.id;
     if (!userId) return;
     const membership = await fetchMembership(userId);
@@ -84,6 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [state.user?.id, fetchMembership]);
 
   useEffect(() => {
+    if (isLocalMode) return; // state is already seeded with the local session
+
     // Load initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const membership = session?.user
@@ -106,12 +133,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchMembership]);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (isLocalMode) return { error: null }; // already signed in locally
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
   }, []);
 
   const signUp = useCallback(
     async (email: string, password: string, orgName: string, orgSlug: string) => {
+      if (isLocalMode) return { error: null }; // no signup flow in local mode
       // 1. Create the auth user
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) return { error: error.message };
@@ -130,11 +159,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    if (isLocalMode) return; // no-op — there's no one else to sign in as locally
     await supabase.auth.signOut();
     setState({ session: null, user: null, membership: null, loading: false });
   }, []);
 
   const acceptInvite = useCallback(async (token: string) => {
+    if (isLocalMode) return { error: null }; // no org invites in local mode
     const { error } = await supabase.rpc("accept_invite", { p_token: token });
     if (error) return { error: error.message };
     await refreshMembership();

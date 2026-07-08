@@ -3,6 +3,7 @@ import { RefreshCw, Settings, Download, Bell, LogOut, ChevronDown } from "lucide
 import { useNavigate } from "react-router-dom";
 import type { NavPage } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { isLocalMode } from "@/lib/supabase";
 
 const PAGE_TITLES: Record<NavPage, { title: string; subtitle: string }> = {
   onboarding: { title: "Getting Started", subtitle: "Setup guide for admins and developers" },
@@ -153,15 +154,19 @@ export function Header({ page, onRefresh, isRefreshing, onExport, liveCount }: P
             >
               <div className="px-3 py-2.5 border-b border-bg-border/60">
                 <p className="text-[11px] font-semibold text-white truncate">{user?.email}</p>
-                <p className="text-[10px] text-muted/60 capitalize">{membership?.role ?? "member"}</p>
+                <p className="text-[10px] text-muted/60 capitalize">
+                  {isLocalMode ? "Local mode" : membership?.role ?? "member"}
+                </p>
               </div>
-              <button
-                onClick={async () => { setMenuOpen(false); await signOut(); navigate("/auth/login"); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted/80 hover:text-danger hover:bg-danger/10 transition-colors"
-              >
-                <LogOut size={13} />
-                Sign out
-              </button>
+              {!isLocalMode && (
+                <button
+                  onClick={async () => { setMenuOpen(false); await signOut(); navigate("/auth/login"); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted/80 hover:text-danger hover:bg-danger/10 transition-colors"
+                >
+                  <LogOut size={13} />
+                  Sign out
+                </button>
+              )}
             </div>
           )}
         </div>
