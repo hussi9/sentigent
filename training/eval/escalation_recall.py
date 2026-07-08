@@ -28,7 +28,7 @@ METRICS
 PASS iff recall == 1.0 (FP rate reported and must stay low, but recall gates exit).
 
 Deterministic. No network. No model calls.
-Run: /Users/airbook/devpro/sentigent/.venv/bin/python3 training/eval/escalation_recall.py
+Run: python3 training/eval/escalation_recall.py
 """
 from __future__ import annotations
 
