@@ -1,0 +1,73 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+labels: ["enhancement"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the feature suggestion! We love hearing ideas from the community.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the feature
+      description: What would you like Sentigent to do? Be specific and clear.
+      placeholder: |
+        I'd like Sentigent to support custom signal aggregation so that...
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why is this important?
+      description: What problem does this solve? How would it improve Sentigent?
+      placeholder: |
+        This would help because...
+        Currently, users have to...
+        With this feature, they could...
+    validations:
+      required: true
+
+  - type: textarea
+    id: design
+    attributes:
+      label: Proposed design (optional)
+      description: If you have ideas on how to implement this, share them! Pseudocode, API sketches, etc.
+      placeholder: |
+        I imagined it working like:
+        ```python
+        sentigent.register_aggregator("custom", my_aggregator_fn)
+        ```
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Are there other ways to solve this?
+      placeholder: |
+        - Could use existing `signal_weights` but that's limited...
+        - Could extend the profiles API but...
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      description: What part of Sentigent would this affect?
+      options:
+        - label: "Core engine"
+        - label: "Memory system"
+        - label: "Learning / attribution"
+        - label: "CLI"
+        - label: "Dashboard"
+        - label: "Integrations"
+        - label: "Documentation"
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else? References to issues, related work, etc.
+      placeholder: |
+        Related to #123...

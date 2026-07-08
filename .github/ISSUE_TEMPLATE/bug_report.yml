@@ -1,0 +1,104 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please provide as much detail as possible to help us diagnose and fix the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: What happened? What did you expect to happen?
+      placeholder: |
+        When I run `sentigent route`, it crashes with an error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this bug?
+      placeholder: |
+        1. Install sentigent with `pip install -e ".[dev]"`
+        2. Create a test domain profile in `sentigent/profiles/test.py`
+        3. Run `sentigent route --profile test`
+        4. See the error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message or logs
+      description: Include any error messages, tracebacks, or relevant log output
+      render: python
+      placeholder: |
+        Traceback (most recent call last):
+          File "...", line X, in function()
+        ValueError: ...
+
+  - type: input
+    id: version
+    attributes:
+      label: Sentigent version
+      description: |
+        Get this by running `sentigent --version` or `pip show sentigent`
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you running?
+      options:
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Linux (Ubuntu)
+        - Linux (Other)
+        - Windows (WSL2)
+        - Windows (native)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: python
+    attributes:
+      label: Python version
+      description: Run `python --version` to find out
+      options:
+        - "3.10"
+        - "3.11"
+        - "3.12"
+        - "3.13"
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: extras
+    attributes:
+      label: Extras installed
+      description: Which optional dependencies do you have?
+      options:
+        - label: "mcp"
+        - label: "embeddings"
+        - label: "dashboard"
+        - label: "layer2 (Supabase)"
+        - label: "langgraph"
+        - label: "coach (Anthropic)"
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else we should know? (config files, related issues, etc.)
+      placeholder: |
+        I'm running this on a Mac with 16GB RAM...
