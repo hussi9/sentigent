@@ -127,3 +127,25 @@ def test_reconcile_days_filter_can_exclude_all_events(client, store_with_two_see
         "/api/routing/reconcile", json={"dry_run": True, "days": 3650}
     ).json()
     assert dry["would_reinforce"] == 1  # generous window still finds the events
+
+
+def test_reconcile_ignores_negative_and_zero_days(
+    client, store_with_two_seeds, fake_logs
+):
+    """Negative or zero days is ignored (treated as all history), matching the
+    MCP tool's ``days > 0`` guard.  Pre-fix: ``days: -5`` flipped ``since``
+    into the future and silently found zero events."""
+    dry_no_days = client.post(
+        "/api/routing/reconcile", json={"dry_run": True}
+    ).json()
+    assert dry_no_days["would_reinforce"] == 1
+
+    dry_negative = client.post(
+        "/api/routing/reconcile", json={"dry_run": True, "days": -5}
+    ).json()
+    assert dry_negative == dry_no_days
+
+    dry_zero = client.post(
+        "/api/routing/reconcile", json={"dry_run": True, "days": 0}
+    ).json()
+    assert dry_zero == dry_no_days
