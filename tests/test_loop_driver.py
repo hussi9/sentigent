@@ -197,3 +197,95 @@ def test_build_prompt_omits_error_block_when_no_last_error():
     step = {"text": "first try", "last_error": ""}
     prompt = L._build_prompt(state, step)
     assert "FAILED VERIFICATION" not in prompt
+
+
+# ── list_pending_escalations (direct, not via HTTP) ─────────────────────────────
+# Task 10 review: the listing must cover every `blocked` shape step_once() can leave
+# a loop in, not just the "ask" branch that sets open_escalation_step. These pin the
+# guardrail-blocked and persist-failure shapes directly against the function, no
+# FastAPI TestClient involved.
+class TestListPendingEscalationsDirect:
+    def test_normal_ask_path_escalation_appears(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(L, "LOOP_DIR", tmp_path)
+        state = L.start("ship it", ["deploy the service"], cwd=str(tmp_path))
+        step = state["steps"][0]
+        step["status"] = "failed"
+        step["last_error"] = "needs human sign-off"
+        step["ended_at"] = 111.0
+        state["status"] = "blocked"
+        state["open_escalation_id"] = 42
+        state["open_escalation_step"] = step["i"]
+        L._save(state)
+
+        pending = L.list_pending_escalations(tmp_path)
+        assert len(pending) == 1
+        item = pending[0]
+        assert item["loop_id"] == state["loop_id"]
+        assert item["step"] == 0
+        assert item["title"] == "deploy the service"
+        assert item["blocker"] == "needs human sign-off"
+        assert item["asked_at"] == 111.0
+
+    def test_guardrail_blocked_loop_appears_without_open_escalation_step(self, tmp_path, monkeypatch):
+        """Mirrors step_once()'s guardrail branch (loop_driver.py ~423-431): sets
+        status="blocked" + step.status="failed" + asked=True but NEVER sets
+        open_escalation_step/open_escalation_id — a human is paged but the old
+        listing filter (`open_escalation_step is not None`) hid it."""
+        monkeypatch.setattr(L, "LOOP_DIR", tmp_path)
+        state = L.start("risky change", ["rm -rf /prod"], cwd=str(tmp_path))
+        step = state["steps"][0]
+        step["status"] = "failed"
+        step["asked"] = True
+        step["last_error"] = "guardrail: destructive command blocked"
+        step["clone_note"] = "guardrail:no-rm (deny) — destructive command blocked"
+        step["ended_at"] = 222.0
+        state["asks"] += 1
+        state["status"] = "blocked"
+        # NOTE: open_escalation_step / open_escalation_id intentionally absent
+        L._save(state)
+
+        pending = L.list_pending_escalations(tmp_path)
+        assert len(pending) == 1
+        item = pending[0]
+        assert item["loop_id"] == state["loop_id"]
+        assert item["step"] == 0
+        assert item["blocker"] == "guardrail: destructive command blocked"
+        assert item["asked_at"] == 222.0
+
+    def test_persist_escalation_failure_shape_appears(self, tmp_path, monkeypatch):
+        """Same gap on the normal ask path when `_persist_escalation` returns None
+        (store unavailable): status="blocked", step failed, but no
+        open_escalation_step ever gets set."""
+        monkeypatch.setattr(L, "LOOP_DIR", tmp_path)
+        state = L.start("ship it", ["deploy the service"], cwd=str(tmp_path))
+        step = state["steps"][0]
+        step["status"] = "failed"
+        step["asked"] = True
+        step["last_error"] = "deploy failed: timeout"
+        state["asks"] += 1
+        state["status"] = "blocked"
+        L._save(state)
+
+        pending = L.list_pending_escalations(tmp_path)
+        assert len(pending) == 1
+        assert pending[0]["blocker"] == "deploy failed: timeout"
+
+    def test_done_loop_excluded(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(L, "LOOP_DIR", tmp_path)
+        state = L.start("finished thing", ["write it"], cwd=str(tmp_path))
+        state["steps"][0]["status"] = "done"
+        state["status"] = "done"
+        L._save(state)
+        assert L.list_pending_escalations(tmp_path) == []
+
+    def test_running_loop_excluded(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(L, "LOOP_DIR", tmp_path)
+        L.start("in progress", ["write it"], cwd=str(tmp_path))
+        assert L.list_pending_escalations(tmp_path) == []
+
+    def test_max_loop_excluded(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(L, "LOOP_DIR", tmp_path)
+        state = L.start("hit max laps", ["write it"], cwd=str(tmp_path))
+        state["status"] = "max"
+        L._save(state)
+        assert L.list_pending_escalations(tmp_path) == []

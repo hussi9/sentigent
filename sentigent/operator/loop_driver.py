@@ -337,6 +337,24 @@ def _persist_escalation(state: dict, step: dict, attempt: dict) -> int | None:
         return None
 
 
+def _find_blocked_step(state: dict) -> dict | None:
+    """Return the step `answer()` would reopen for this loop's current blocker — the
+    ONE selection rule shared by `answer()` and `list_pending_escalations()`, so the
+    console listing can never drift from what answering actually resolves.
+
+    Prefer the step at `open_escalation_step` (the normal "ask" path, set once
+    `_persist_escalation` succeeds). When that's unset — the guardrail-check branch
+    in `step_once()` never sets it, and neither does the ask branch when
+    `_persist_escalation` fails/returns None — fall back to whichever step is
+    `status == "failed"`. Both shapes still page a human via `state["status"] ==
+    "blocked"`; only the escalation-store bookkeeping differs."""
+    sidx = state.get("open_escalation_step")
+    for s in state.get("steps", []):
+        if (sidx is not None and s["i"] == sidx) or (sidx is None and s["status"] == "failed"):
+            return s
+    return None
+
+
 def answer(loop_id: str, decision: str) -> dict:
     """Answer a loop's open blocker AS the human. Records the precedent + scores the
     clone's attempt (record_calibration via learn_from_escalation_answer), closes the
@@ -356,13 +374,11 @@ def answer(loop_id: str, decision: str) -> dict:
         except Exception:
             pass
     # reopen the step the loop blocked on so the plan can continue
-    sidx = state.get("open_escalation_step")
-    for s in state["steps"]:
-        if (sidx is not None and s["i"] == sidx) or (sidx is None and s["status"] == "failed"):
-            s["status"] = "pending"
-            s["attempts"] = 0
-            s["asked"] = False
-            break
+    step = _find_blocked_step(state)
+    if step is not None:
+        step["status"] = "pending"
+        step["attempts"] = 0
+        step["asked"] = False
     state.pop("open_escalation_id", None)
     state.pop("open_escalation_step", None)
     state["status"] = "running"
@@ -374,9 +390,15 @@ def answer(loop_id: str, decision: str) -> dict:
 
 
 def list_pending_escalations(loop_dir: Path | str | None = None) -> list[dict]:
-    """One item per currently-open escalation across every loop on disk — the pending
-    queue behind the dashboard's /api/escalations. A loop shows up here iff it's
-    `blocked` on a step that paged a human (open_escalation_step set); the moment
+    """One item per loop currently blocked on a human — the pending queue behind the
+    dashboard's /api/escalations. A loop shows up here iff `status == "blocked"` AND
+    `_find_blocked_step` can locate the step paging the human — the SAME predicate
+    `answer()` uses to pick what to reopen, so this listing can't be stricter (or
+    looser) than what answering actually resolves. That covers all three shapes
+    `step_once()` can leave a blocked loop in: the normal "ask" path
+    (`open_escalation_step` set), the guardrail-check path (status="blocked",
+    step failed, no open_escalation_step), and an ask-path where
+    `_persist_escalation` failed/returned None (same shape as guardrail). The moment
     `answer()` reopens the step, it disappears. Read straight from each loop's
     persisted state — same source of truth as `load()`/`status_line()`, no separate
     store. Item shape: {loop_id, step, title, blocker, asked_at}."""
@@ -389,10 +411,9 @@ def list_pending_escalations(loop_dir: Path | str | None = None) -> list[dict]:
             state = json.loads(f.read_text())
         except Exception:
             continue
-        step_i = state.get("open_escalation_step")
-        if state.get("status") != "blocked" or step_i is None:
+        if state.get("status") != "blocked":
             continue
-        step = next((s for s in state.get("steps", []) if s["i"] == step_i), None)
+        step = _find_blocked_step(state)
         if step is None:
             continue
         out.append({

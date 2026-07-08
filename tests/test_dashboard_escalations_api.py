@@ -106,6 +106,16 @@ class TestEscalationsAnswer:
         )
         assert r.status_code == 404
 
+    def test_answer_bad_decision_and_unknown_loop_is_400(self, client):
+        """400-before-404 precedence: decision is validated unconditionally before
+        the loop is even loaded, so an invalid decision + unknown loop combo must
+        still be 400, not 404."""
+        r = client.post(
+            "/api/escalations/loop-does-not-exist/answer",
+            json={"decision": "yolo"},
+        )
+        assert r.status_code == 400
+
 
 class TestEscalationsContractSketch:
     def test_list_and_answer(self, client, seeded_escalation):
