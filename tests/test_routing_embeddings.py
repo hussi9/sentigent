@@ -1,6 +1,9 @@
 """Tests for the embedding engine."""
 from __future__ import annotations
 import pytest
+
+pytest.importorskip("sentence_transformers", reason="embeddings extra not installed")
+
 from sentigent.routing.embeddings import encode, cosine_sim, EMBEDDING_DIM
 
 

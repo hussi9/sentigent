@@ -1,6 +1,9 @@
 """Tests for the embedding-based routing matcher."""
 from __future__ import annotations
 import pytest
+
+pytest.importorskip("sentence_transformers", reason="embeddings extra not installed")
+
 from sentigent.routing.matcher import match_seeds, RouteMatch, MATCH_THRESHOLD
 from sentigent.routing.embeddings import encode_list
 
