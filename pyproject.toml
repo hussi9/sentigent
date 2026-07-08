@@ -94,3 +94,19 @@ markers = [
 dev = [
     "pytest-cov>=7.0.0",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["sentigent"]
+exclude = [
+  "sentigent/dashboard/frontend/node_modules",
+  "sentigent/dashboard/frontend/src",
+  "**/__pycache__",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "sentigent/dashboard/frontend/node_modules",
+  ".venv",
+  "data",
+  "eval/results",
+]
