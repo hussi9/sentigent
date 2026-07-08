@@ -9,6 +9,8 @@ functions (list_pending_escalations / answer) — no separate logic.
 from __future__ import annotations
 
 import pytest
+
+pytest.importorskip("fastapi", reason="dashboard extra not installed")
 from fastapi.testclient import TestClient
 
 from sentigent.memory.store import MemoryStore

@@ -10,6 +10,8 @@ from __future__ import annotations
 import time
 
 import pytest
+
+pytest.importorskip("fastapi", reason="dashboard extra not installed")
 from fastapi.testclient import TestClient
 
 from sentigent.memory.store import MemoryStore

@@ -4,6 +4,8 @@ from __future__ import annotations
 import os
 
 import pytest
+
+pytest.importorskip("fastapi", reason="dashboard extra not installed")
 from fastapi.testclient import TestClient
 
 
