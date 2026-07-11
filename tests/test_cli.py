@@ -1,5 +1,6 @@
 """Tests for the CLI entry point and command routing."""
 
+import json
 import sys
 from io import StringIO
 from unittest.mock import MagicMock, patch
@@ -82,3 +83,39 @@ class TestCLIRouting:
         main()
         captured = capsys.readouterr()
         assert "sentigent" in captured.out.lower() or "usage" in captured.out.lower()
+
+    def test_practices_json_flag_routes_to_command(self):
+        """'sentigent practices --json' should pass as_json through."""
+        with patch("sentigent.cli._cmd_practices") as mock_practices:
+            sys.argv = ["sentigent", "practices", "--json"]
+            main()
+
+            mock_practices.assert_called_once_with(
+                action="list",
+                rest=[],
+                cadence="commit",
+                agent_id="",
+                db_path=None,
+                as_json=True,
+            )
+
+    def test_practices_json_outputs_machine_readable_schema(self, tmp_path, capsys):
+        """The practices command should expose the automation JSON schema."""
+        from sentigent.cli import _cmd_practices
+
+        db = str(tmp_path / "cli.db")
+        _cmd_practices("add", ["Run tests before committing"], "commit", "json-cli", db)
+        capsys.readouterr()
+
+        _cmd_practices("list", [], "commit", "json-cli", db, as_json=True)
+
+        data = json.loads(capsys.readouterr().out)
+        assert data == [
+            {
+                "name": "Run tests before committing",
+                "enabled": True,
+                "rules": ["Run tests before committing"],
+                "last_checked_at": None,
+                "violations_count": 0,
+            }
+        ]

@@ -184,6 +184,8 @@ def main() -> None:
                                   help="always|commit|milestone|deploy|pr (for add)")
     practices_parser.add_argument("--agent-id", default="", help="Agent ID")
     practices_parser.add_argument("--db-path", default=None, dest="db_path")
+    practices_parser.add_argument("--json", action="store_true", dest="as_json",
+                                  help="Output practices as compact JSON")
 
     args = parser.parse_args()
 
@@ -264,6 +266,7 @@ def main() -> None:
             cadence=args.cadence,
             agent_id=args.agent_id,
             db_path=args.db_path,
+            as_json=args.as_json,
         )
     else:
         parser.print_help()
@@ -515,6 +518,7 @@ def _cmd_practices(
     cadence: str,
     agent_id: str,
     db_path: str | None,
+    as_json: bool = False,
 ) -> None:
     """Manage the enforced best-practice playbook from the CLI.
 
@@ -570,6 +574,28 @@ def _cmd_practices(
 
     # list
     rows = store.get_practices(active_only=False)
+    if as_json:
+        from pydantic import BaseModel
+
+        class PracticeJson(BaseModel):
+            name: str
+            enabled: bool
+            rules: list[str]
+            last_checked_at: float | None
+            violations_count: int
+
+        print("[" + ",".join(
+            PracticeJson(
+                name=r["text"],
+                enabled=bool(r["active"]),
+                rules=[r["text"]],
+                last_checked_at=r.get("last_checked_at"),
+                violations_count=int(r.get("times_skipped") or 0),
+            ).model_dump_json()
+            for r in rows
+        ) + "]")
+        return
+
     if not rows:
         print('No practices yet. Add one:')
         print('  sentigent practices add "Run the tests before committing"')

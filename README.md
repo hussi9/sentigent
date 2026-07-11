@@ -90,6 +90,7 @@ holds you to practices you declare:
 ```bash
 sentigent practices add "Run the tests before committing"
 sentigent practices enforce 1 block   # off | warn | block
+sentigent practices --json | jq '.[] | {name, enabled, violations_count}'
 ```
 
 At the moment a practice's cadence fires — a `git commit` for a `commit`-cadence practice — Sentigent
